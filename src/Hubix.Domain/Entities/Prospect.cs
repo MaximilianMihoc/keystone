@@ -1,0 +1,83 @@
+using Hubix.Domain.Common;
+
+namespace Hubix.Domain.Entities;
+
+/// <summary>
+/// Someone interested in buying. Not a staff account.
+/// </summary>
+public class Prospect : Entity
+{
+    /// <summary>
+    /// Unique. SQL Server's default collation is case-insensitive, so <c>Ion@example.ro</c>
+    /// and <c>ion@example.ro</c> collide as they should, and cannot become two people.
+    /// </summary>
+    public required string Email { get; set; }
+
+    public string? FullName { get; set; }
+
+    public string? Phone { get; set; }
+
+    public string Locale { get; set; } = "ro";
+
+    /// <summary>Where they came from: "website", "import", "referral".</summary>
+    public string? Source { get; set; }
+
+    // --- GDPR -------------------------------------------------------------------
+    // Present from the first migration rather than added later. The Equity document
+    // explicitly promises the prospect database is used only for its stated purpose,
+    // and retrofitting consent onto a live table is genuinely painful.
+
+    public DateTimeOffset? GdprConsentAt { get; set; }
+
+    /// <summary>What they consented to, e.g. "reservations", "marketing".</summary>
+    public List<string> GdprConsentPurpose { get; set; } = [];
+
+    /// <summary>Which form and which version of the wording they accepted.</summary>
+    public string? GdprConsentSource { get; set; }
+
+    public DateTimeOffset? DeletionRequestedAt { get; set; }
+
+    // --- Serial-canceller rule --------------------------------------------------
+    // Hubix's documents state that a prospect who abandons a hold may not take another,
+    // "to avoid reservations cancelled in series by the same person". Today that is
+    // enforced by staff memory.
+
+    public int LapsedHoldCount { get; set; }
+
+    public bool CanHold { get; set; } = true;
+
+    public string? BlockReason { get; set; }
+
+    public ICollection<Hold> Holds { get; set; } = [];
+
+    public ICollection<Reservation> Reservations { get; set; } = [];
+
+    public ICollection<WaitlistEntry> WaitlistEntries { get; set; } = [];
+
+    /// <summary>Records a lapse and blocks further holds, per Hubix's stated rule.</summary>
+    public void RecordLapsedHold()
+    {
+        LapsedHoldCount++;
+        CanHold = false;
+        BlockReason = $"Hold lapsed without proceeding ({LapsedHoldCount}).";
+    }
+
+    /// <summary>Lifts a block. Staff action, and audited.</summary>
+    public void ClearBlock()
+    {
+        CanHold = true;
+        BlockReason = null;
+    }
+}
+
+/// <summary>A Hubix staff member.</summary>
+public class StaffUser : Entity
+{
+    public required string Email { get; set; }
+
+    public required string Name { get; set; }
+
+    public StaffRole Role { get; set; } = StaffRole.Viewer;
+
+    public bool IsActive { get; set; } = true;
+}

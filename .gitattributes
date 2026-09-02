@@ -9,6 +9,7 @@
 *.razor     text
 *.csproj    text
 *.sln       text eol=crlf
+*.slnx      text eol=crlf
 *.props     text
 *.targets   text
 *.json      text
