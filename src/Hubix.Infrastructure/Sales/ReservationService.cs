@@ -332,7 +332,7 @@ public sealed class ReservationService(
                 "{Actor} moved {UnitCode} from {From} to {To}",
                 actorLabel, unit.Code, from, target);
 
-            return new ReservationOutcome.Moved(from, target, at);
+            return new ReservationOutcome.Moved(from, target, at, reservation.UnitId);
         });
     }
 

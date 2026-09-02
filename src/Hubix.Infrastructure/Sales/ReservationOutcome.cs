@@ -13,10 +13,15 @@ public abstract record ReservationOutcome
 {
     public sealed record Created(Guid ReservationId, ReservationState State) : ReservationOutcome;
 
+    /// <param name="UnitId">
+    /// So the caller can act on what the move did to the unit. A cancellation puts an
+    /// apartment back on sale, and somebody on the waiting list is owed that news.
+    /// </param>
     public sealed record Moved(
         ReservationState From,
         ReservationState To,
-        UnitState UnitState) : ReservationOutcome;
+        UnitState UnitState,
+        Guid UnitId) : ReservationOutcome;
 
     public sealed record Updated(IReadOnlyDictionary<string, object?> Changes) : ReservationOutcome;
 

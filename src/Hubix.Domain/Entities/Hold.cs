@@ -62,9 +62,5 @@ public class Hold : Entity
         reason is HoldReleaseReason.Expired or HoldReleaseReason.Cancelled;
 
     /// <summary>A URL-safe secret, 256 bits from a cryptographic RNG.</summary>
-    public static string NewAccessToken() =>
-        Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
+    public static string NewAccessToken() => Common.AccessToken.New();
 }

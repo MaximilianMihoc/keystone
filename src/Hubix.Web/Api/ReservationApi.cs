@@ -5,6 +5,7 @@ using Hubix.Domain.Entities;
 using Hubix.Domain.Pricing;
 using Hubix.Infrastructure;
 using Hubix.Infrastructure.Sales;
+using Hubix.Web.Notifications;
 using Hubix.Web.Pages.Admin;
 using Microsoft.EntityFrameworkCore;
 
@@ -104,7 +105,47 @@ public static class ReservationApi
                 return Results.Ok(new { project, reservations, candidates });
             });
 
+        // The waiting list, which today lives in Google Forms nobody reads until somebody
+        // remembers to. Seeing the queue is most of the value of having one.
+        api.MapGet("/projects/{projectId:guid}/waitlist",
+            async (Guid projectId, HubixDbContext db, CancellationToken ct) =>
+            {
+                var entries = await db.WaitlistEntries
+                    .AsNoTracking()
+                    .Where(w => w.ProjectId == projectId && w.RemovedAt == null)
+                    .OrderBy(w => w.UnitTypeId == null)
+                    .ThenBy(w => w.Position)
+                    .ThenBy(w => w.CreatedAt)
+                    .Select(w => new
+                    {
+                        id = w.Id,
+                        typeId = w.UnitTypeId,
+                        typeName = w.UnitType == null ? null : w.UnitType.Name,
+                        email = w.Prospect!.Email,
+                        name = w.Prospect.FullName,
+                        phone = w.Prospect.Phone,
+                        joinedAt = w.CreatedAt,
+                        notifiedAt = w.NotifiedAt
+                    })
+                    .ToListAsync(ct);
+
+                return Results.Ok(entries);
+            });
+
         var editable = api.MapGroup("").RequireAuthorization(AuthPolicies.CanEdit);
+
+        editable.MapDelete("/waitlist/{entryId:guid}",
+            async (Guid entryId,
+                   WaitlistService waitlist,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                // People ask to come off by phone as often as by clicking a link.
+                var removed = await waitlist.RemoveAsync(
+                    entryId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
+
+                return removed ? Results.Ok(new { removed = true }) : Results.NotFound();
+            });
 
         editable.MapPost("/units/{unitId:guid}/reservation",
             async (Guid unitId,
@@ -149,6 +190,8 @@ public static class ReservationApi
             async (Guid reservationId,
                    MoveRequest request,
                    ReservationService reservations,
+                   WaitlistPromoter promoter,
+                   ILoggerFactory loggers,
                    ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
@@ -160,6 +203,22 @@ public static class ReservationApi
                 var result = await reservations.MoveAsync(
                     reservationId, target, request.Reason,
                     AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
+
+                // A cancellation puts the apartment back on sale, and somebody may have been
+                // waiting months for exactly that. The move is already committed, so a mail
+                // failure must not report the cancellation as failed.
+                if (result is ReservationOutcome.Moved { UnitState: UnitState.Available } moved)
+                {
+                    try
+                    {
+                        await promoter.PromoteAsync(moved.UnitId, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        loggers.CreateLogger(nameof(ReservationApi)).LogError(ex,
+                            "Could not tell the waiting list that a unit came free");
+                    }
+                }
 
                 return Render(result);
             });

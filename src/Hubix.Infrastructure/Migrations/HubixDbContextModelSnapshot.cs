@@ -920,6 +920,11 @@ namespace Hubix.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTimeOffset?>("ConvertedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -948,6 +953,10 @@ namespace Hubix.Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AccessToken")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Waitlist_AccessToken");
 
                     b.HasIndex("ProspectId");
 

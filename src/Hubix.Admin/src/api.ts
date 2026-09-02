@@ -163,6 +163,19 @@ export interface Reservation {
   totalGross: number;
 }
 
+/** Somebody waiting for an apartment type. */
+export interface WaitlistEntry {
+  id: string;
+  typeId: string | null;
+  /** Null means they will take any apartment. */
+  typeName: string | null;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  joinedAt: string;
+  notifiedAt: string | null;
+}
+
 /** A unit a reservation could be started on. */
 export interface ReservationCandidate {
   id: string;
@@ -202,6 +215,12 @@ export const api = {
     ),
 
   pipeline: () => request<Pipeline>('/api/admin/pipeline'),
+
+  waitlist: (projectId: string) =>
+    request<WaitlistEntry[]>(`/api/admin/projects/${projectId}/waitlist`),
+
+  removeFromWaitlist: (entryId: string) =>
+    request<{ removed: boolean }>(`/api/admin/waitlist/${entryId}`, { method: 'DELETE' }),
 
   reservations: (projectId: string) =>
     request<ReservationsResponse>(`/api/admin/projects/${projectId}/reservations`),

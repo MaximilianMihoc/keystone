@@ -123,4 +123,23 @@
             </table>
         }
     </div>
+
+    @* The moment somebody finds nothing here suits them is the moment the waiting list is
+       worth offering — and it carries the filter they are already looking at. *@
+    <div class="waitlist-cta">
+        <p>
+            @if (Model.Rows.Any(u => Display.IsFree(u.State)))
+            {
+                @L["Waitlist.CtaSomeFree"]
+            }
+            else
+            {
+                @L["Waitlist.CtaNoneFree"]
+            }
+        </p>
+        <a class="btn ghost"
+           asp-page="/Projects/Waitlist" asp-route-slug="@Model.Slug" asp-route-type="@Model.Type">
+            @L["Reserve.JoinWaitlist"]
+        </a>
+    </div>
 </div>

@@ -1,0 +1,66 @@
+@page "/waitlist/{token}"
+@model Hubix.Web.Pages.WaitlistModel
+@{
+    var place = Model.Place!;
+    ViewData["Title"] = $"{T["Waitlist.YourPlace"].Value} — {place.ProjectName}";
+}
+
+<div class="shell">
+    <div class="page-head">
+        <p class="eyebrow">@place.ProjectName</p>
+        <h1>@(place.TypeName ?? T["Waitlist.AnyType"].Value)</h1>
+    </div>
+
+    @if (Model.JustLeft)
+    {
+        <div class="alert" role="status">@L["Waitlist.JustLeft"]</div>
+    }
+
+    @if (place.RemovedAt is not null)
+    {
+        <div class="section">
+            <div class="prose">
+                <p>@L["Waitlist.NoLongerOn"]</p>
+            </div>
+            <p style="margin-top:20px">
+                <a class="btn ghost" asp-page="/Projects/Apartments" asp-route-slug="@place.ProjectSlug">
+                    @L["Reserve.SeeWhatIsLeft"]
+                </a>
+            </p>
+        </div>
+    }
+    else if (place.NotifiedAt is not null)
+    {
+        <div class="alert" role="status">@L["Waitlist.AlreadyTold"]</div>
+
+        <p style="margin-top:20px">
+            <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@place.ProjectSlug">
+                @L["Reserve.SeeWhatIsLeft"]
+            </a>
+        </p>
+    }
+    else
+    {
+        <div class="countdown">
+            <p class="countdown-label">@L["Waitlist.YourPlace"]</p>
+            <p class="countdown-clock">@place.Place</p>
+            <p class="countdown-until">@L["Waitlist.OfWaiting", place.QueueLength]</p>
+        </div>
+
+        <div class="section">
+            <p class="section-label">@L["Hold.WhatNext"]</p>
+            <div class="prose">
+                <p>@L["Waitlist.WhatNextBody"]</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <form method="post" asp-page-handler="Leave" asp-route-token="@RouteData.Values["token"]">
+                <p class="note">@L["Waitlist.LeaveWarning"]</p>
+                <button class="btn ghost" type="submit" style="margin-top:16px">
+                    @L["Waitlist.Leave"]
+                </button>
+            </form>
+        </div>
+    }
+</div>

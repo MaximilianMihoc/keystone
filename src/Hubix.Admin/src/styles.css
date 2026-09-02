@@ -606,3 +606,83 @@ main { padding: 22px 20px 60px; }
 @media (max-width: 899px) {
   .drawer { width: 100%; }
 }
+
+/* ---------- waiting list ---------- */
+
+.queues { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+
+.queue {
+  flex: 1 1 340px;
+  max-width: 520px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.queue-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.queue-type {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.queue-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-list { list-style: none; margin: 0; padding: 0; }
+
+.queue-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 13px;
+}
+
+.queue-list li:last-child { border-bottom: none; }
+
+/* Somebody already told is still on the list until they act, but they are not queueing
+   any more — so they keep their row and lose their number. */
+.queue-list li.told { opacity: 0.55; }
+
+.queue-place {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  min-width: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.queue-who strong { font-weight: 600; color: var(--ink); }
+
+.queue-email {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queue-when {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}

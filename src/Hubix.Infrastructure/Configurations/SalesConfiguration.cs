@@ -160,6 +160,14 @@ public class WaitlistEntryConfiguration : IEntityTypeConfiguration<WaitlistEntry
 {
     public void Configure(EntityTypeBuilder<WaitlistEntry> builder)
     {
+        builder.Property(w => w.AccessToken).HasMaxLength(64).IsRequired();
+
+        // Somebody reaches their place in the queue by this token alone, so it must resolve
+        // in one indexed lookup and must never collide.
+        builder.HasIndex(w => w.AccessToken)
+            .IsUnique()
+            .HasDatabaseName("UX_Waitlist_AccessToken");
+
         builder.HasOne(w => w.Project)
             .WithMany()
             .HasForeignKey(w => w.ProjectId)

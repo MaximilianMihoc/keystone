@@ -840,3 +840,25 @@ footer {
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* The waiting list offer, under the inventory. Quiet: it is the second-best outcome on
+   the page, and it should not compete with an apartment somebody can actually buy. */
+.waitlist-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding: 20px 22px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+}
+
+.waitlist-cta p {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.55;
+}

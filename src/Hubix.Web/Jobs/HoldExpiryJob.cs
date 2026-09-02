@@ -20,7 +20,7 @@ namespace Hubix.Web.Jobs;
 /// </remarks>
 public sealed class HoldExpiryJob(
     HoldService holds,
-    WaitlistService waitlist,
+    WaitlistPromoter promoter,
     HoldNotifier notifier,
     HubixDbContext db,
     TimeProvider clock,
@@ -53,7 +53,7 @@ public sealed class HoldExpiryJob(
 
             try
             {
-                await PromoteWaitlistAsync(hold, ct);
+                await promoter.PromoteAsync(hold.UnitId, ct);
             }
             catch (Exception ex)
             {
@@ -63,25 +63,6 @@ public sealed class HoldExpiryJob(
         }
 
         LastSuccessAt = clock.GetUtcNow();
-    }
-
-    private async Task PromoteWaitlistAsync(ExpiredHold hold, CancellationToken ct)
-    {
-        var candidate = await waitlist.NextInLineAsync(hold.ProjectId, hold.UnitTypeId, ct);
-
-        if (candidate is null)
-        {
-            return;
-        }
-
-        await notifier.UnitFreedAsync(
-            candidate, hold.ProjectName, hold.ProjectSlug, hold.UnitCode, ct);
-
-        await waitlist.MarkNotifiedAsync(candidate.EntryId, ct);
-
-        logger.LogInformation(
-            "Told waitlist position {Position} that {UnitCode} is free again",
-            candidate.Position, hold.UnitCode);
     }
 
     /// <summary>

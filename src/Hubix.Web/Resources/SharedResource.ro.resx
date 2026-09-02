@@ -145,6 +145,7 @@
   <data name="Form.EmailHint"><value>Aici primești linkul rezervării. Verifică să fie corect.</value></data>
   <data name="Form.Phone"><value>Telefon (opțional)</value></data>
   <data name="Form.Consent"><value>Sunt de acord ca Hubix să mă contacteze despre această rezervare și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
+  <data name="Waitlist.Consent"><value>Sunt de acord ca Hubix să îmi scrie când se eliberează un apartament și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
 
   <data name="Validation.NameRequired"><value>Spune-ne numele tău, ca să știm pe cine sunăm.</value></data>
   <data name="Validation.EmailRequired"><value>Avem nevoie de un email ca să îți trimitem linkul rezervării.</value></data>
@@ -185,4 +186,33 @@ Dacă ești în continuare interesat, vezi ce este disponibil aici:
 
 Este disponibil pentru oricine, deci va reveni celui care rezervă primul:
 {2}</value></data>
+
+  <data name="Email.WaitlistJoinedSubject"><value>Ești pe lista de așteptare pentru {0}</value></data>
+  <data name="Email.WaitlistJoinedBody"><value>Ești pe locul {2} pe lista de așteptare pentru {0} din {1}.
+
+Îți scriem imediat ce se eliberează unul. În acel moment va fi disponibil pentru oricine, deci avantajul este că afli primul, nu că este rezervat.
+
+Vezi-ți locul sau ieși de pe listă aici:
+{3}</value></data>
+
+  <data name="Waitlist.Heading"><value>Înscrie-te pe lista de așteptare</value></data>
+  <data name="Waitlist.CtaNoneFree"><value>Momentan nu este nimic liber aici. Rezervările expiră sau se anulează, deci apartamentele revin.</value></data>
+  <data name="Waitlist.CtaSomeFree"><value>Nu este cel potrivit? Te anunțăm când revine altul.</value></data>
+  <data name="Waitlist.NoneFree"><value>Momentan totul este ocupat. Rezervările expiră sau se anulează, deci apartamentele revin — te anunțăm când se întâmplă.</value></data>
+  <data name="Waitlist.SomeFree"><value>{0} disponibile acum. Dacă niciunul nu ți se potrivește, te anunțăm când revine altul.</value></data>
+  <data name="Waitlist.WhichType"><value>Ce apartament aștepți?</value></data>
+  <data name="Waitlist.WhichTypeHint"><value>Dacă aștepți un tip anume, ai prioritate față de cei care acceptă orice.</value></data>
+  <data name="Waitlist.AnyType"><value>Orice apartament</value></data>
+  <data name="Waitlist.EmailHint"><value>Aici îți scriem când se eliberează unul.</value></data>
+  <data name="Waitlist.Join"><value>Înscrie-mă pe listă</value></data>
+  <data name="Waitlist.NoObligation"><value>Nu se rezervă nimic și nu datorezi nimic. Poți ieși de pe listă oricând.</value></data>
+  <data name="Waitlist.CouldNotJoin"><value>Nu te-am putut adăuga pe listă. Te rugăm să încerci din nou.</value></data>
+  <data name="Waitlist.YourPlace"><value>Locul tău</value></data>
+  <data name="Waitlist.OfWaiting"><value>din {0} în așteptare</value></data>
+  <data name="Waitlist.WhatNextBody"><value>Când un apartament de acest tip revine la vânzare, îi scriem primul celui aflat în fruntea listei. Rămâne disponibil pentru toată lumea, deci va reveni celui care rezervă primul — avantajul este că afli înaintea celorlalți, nu că ți-l păstrăm.</value></data>
+  <data name="Waitlist.LeaveWarning"><value>Dacă ieși, îți pierzi locul. Te poți înscrie din nou, dar la coada listei.</value></data>
+  <data name="Waitlist.Leave"><value>Scoate-mă de pe listă</value></data>
+  <data name="Waitlist.JustLeft"><value>Ai ieșit de pe listă. Nu îți vom mai scrie despre acest proiect.</value></data>
+  <data name="Waitlist.NoLongerOn"><value>Nu ești pe această listă de așteptare.</value></data>
+  <data name="Waitlist.AlreadyTold"><value>Ți-am scris deja despre un apartament care s-a eliberat. Locul tău a fost folosit, deci nu mai ești în așteptare.</value></data>
 </root>

@@ -160,6 +160,7 @@
   <data name="Form.EmailHint"><value>Your hold link goes here. Check it is right.</value></data>
   <data name="Form.Phone"><value>Phone (optional)</value></data>
   <data name="Form.Consent"><value>Hubix may contact me about this reservation and store my details for it. Used for nothing else.</value></data>
+  <data name="Waitlist.Consent"><value>Hubix may email me when an apartment comes free and store my details for that. Used for nothing else.</value></data>
 
   <data name="Validation.NameRequired"><value>Tell us your name so we know who to call.</value></data>
   <data name="Validation.EmailRequired"><value>We need an email to send your hold link to.</value></data>
@@ -202,4 +203,34 @@ If you are still interested, see what is available here:
 
 It is available to anyone, so it will go to whoever reserves first:
 {2}</value></data>
+
+  <data name="Email.WaitlistJoinedSubject"><value>You are on the waiting list for {0}</value></data>
+  <data name="Email.WaitlistJoinedBody"><value>You are number {2} on the waiting list for {0} at {1}.
+
+We will email you as soon as one comes free. It will be open to anyone at that point, so being told first is the advantage, not a reservation.
+
+See your place, or take yourself off the list, here:
+{3}</value></data>
+
+  <!-- Waiting list -->
+  <data name="Waitlist.Heading"><value>Join the waiting list</value></data>
+  <data name="Waitlist.CtaNoneFree"><value>Nothing here is free at the moment. Holds run out and reservations fall through, so apartments do come back.</value></data>
+  <data name="Waitlist.CtaSomeFree"><value>Not the right one? We will tell you when something else comes back.</value></data>
+  <data name="Waitlist.NoneFree"><value>Everything here is taken for now. Holds run out and reservations fall through, so apartments do come back — we will tell you when one does.</value></data>
+  <data name="Waitlist.SomeFree"><value>{0} available right now. If none of them suit, we will tell you when something else comes back.</value></data>
+  <data name="Waitlist.WhichType"><value>Which apartment are you waiting for?</value></data>
+  <data name="Waitlist.WhichTypeHint"><value>Waiting for a particular type puts you ahead of people who will take anything.</value></data>
+  <data name="Waitlist.AnyType"><value>Any apartment</value></data>
+  <data name="Waitlist.EmailHint"><value>This is where we will write when one comes free.</value></data>
+  <data name="Waitlist.Join"><value>Join the list</value></data>
+  <data name="Waitlist.NoObligation"><value>Nothing is reserved and nothing is owed. You can take yourself off the list at any time.</value></data>
+  <data name="Waitlist.CouldNotJoin"><value>We could not add you to the list. Please try again.</value></data>
+  <data name="Waitlist.YourPlace"><value>Your place</value></data>
+  <data name="Waitlist.OfWaiting"><value>of {0} waiting</value></data>
+  <data name="Waitlist.WhatNextBody"><value>When an apartment of this type returns to sale, we email the person at the front of the list first. It stays open to everyone, so it will go to whoever reserves first — the head start is the point, not a claim on it.</value></data>
+  <data name="Waitlist.LeaveWarning"><value>Leaving gives up your place. You can join again, but at the back.</value></data>
+  <data name="Waitlist.Leave"><value>Take me off the list</value></data>
+  <data name="Waitlist.JustLeft"><value>You are off the list. We will not write to you about this project again.</value></data>
+  <data name="Waitlist.NoLongerOn"><value>You are not on this waiting list.</value></data>
+  <data name="Waitlist.AlreadyTold"><value>We have already written to you about an apartment that came free. Your place has been used, so you are no longer in the queue.</value></data>
 </root>

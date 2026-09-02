@@ -22,7 +22,7 @@ export default defineConfig({
     port: 5200,
     // `npm run dev` talks to the running ASP.NET host for data and auth.
     proxy: {
-      '/api': { target: 'http://localhost:5199', changeOrigin: true },
+      '/api': { target: 'http://localhost:5001', changeOrigin: true },
     },
   },
 });

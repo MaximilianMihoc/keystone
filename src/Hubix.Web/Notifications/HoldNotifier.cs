@@ -12,7 +12,7 @@ public sealed class HubixOptions
     public const string Section = "Hubix";
 
     /// <summary>Absolute base for links in emails. Relative URLs are useless in an inbox.</summary>
-    public string PublicBaseUrl { get; set; } = "http://localhost:5199";
+    public string PublicBaseUrl { get; set; } = "http://localhost:5001";
 
     /// <summary>
     /// Where new-hold notifications go internally.
@@ -85,6 +85,40 @@ public sealed class HoldNotifier(
             hold.UnitCode));
 
         await email.SendAsync(new EmailMessage(hold.ProspectEmail, subject, body), ct);
+    }
+
+    /// <summary>
+    /// Confirms a place in the queue.
+    /// </summary>
+    /// <remarks>
+    /// Carries the link to their own page, which is where they can leave. An email telling
+    /// somebody they are on a list has to also be the way off it.
+    /// </remarks>
+    public async Task WaitlistJoinedAsync(
+        string toEmail,
+        string locale,
+        string projectName,
+        string? typeLabel,
+        int place,
+        string accessToken,
+        CancellationToken ct)
+    {
+        var link = $"{_options.PublicBaseUrl.TrimEnd('/')}/waitlist/{accessToken}";
+
+        var body = InLocale(locale, () => string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["Email.WaitlistJoinedBody"].Value,
+            typeLabel ?? localizer["Waitlist.AnyType"].Value,
+            projectName,
+            place,
+            link));
+
+        var subject = InLocale(locale, () => string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["Email.WaitlistJoinedSubject"].Value,
+            projectName));
+
+        await email.SendAsync(new EmailMessage(toEmail, subject, body, _options.SalesInbox), ct);
     }
 
     public async Task UnitFreedAsync(

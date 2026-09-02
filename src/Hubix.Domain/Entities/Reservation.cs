@@ -122,7 +122,22 @@ public class WaitlistEntry : Entity
 
     public Prospect? Prospect { get; set; }
 
+    /// <summary>
+    /// Arrival number within this queue, assigned once and never revised.
+    /// </summary>
+    /// <remarks>
+    /// Not the place in the queue that anybody is shown. People ahead drop out, so a stored
+    /// place goes stale the moment it is written and would tell somebody they are fifth long
+    /// after they became second. What is displayed is counted at the time of asking; this is
+    /// only the arrival order that counting sorts by.
+    /// </remarks>
     public int Position { get; set; }
+
+    /// <summary>
+    /// Lets someone see their place and leave the queue without an account, and without
+    /// having to ask Hubix to take them off by email.
+    /// </summary>
+    public required string AccessToken { get; set; }
 
     public DateTimeOffset? NotifiedAt { get; set; }
 
@@ -131,6 +146,9 @@ public class WaitlistEntry : Entity
     public DateTimeOffset? RemovedAt { get; set; }
 
     public bool IsActive => RemovedAt is null;
+
+    /// <summary>Whether they are still waiting, as opposed to already told about a unit.</summary>
+    public bool IsWaiting => RemovedAt is null && NotifiedAt is null;
 }
 
 /// <summary>Replaces the "trimite intrebari" form.</summary>

@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { api, SessionExpired, type Me, type ProjectSummary, type UnitsResponse } from './api';
 import { UnitsGrid } from './UnitsGrid';
 import { PipelineBoard } from './PipelineBoard';
+import { WaitlistPanel } from './WaitlistPanel';
 
-type View = 'units' | 'pipeline';
+type View = 'units' | 'pipeline' | 'waitlist';
 
 type Load<T> =
   | { status: 'loading' }
@@ -141,6 +142,13 @@ export function App() {
             >
               Pipeline
             </button>
+            <button
+              className={`view${view === 'waitlist' ? ' view-on' : ''}`}
+              type="button"
+              onClick={() => setView('waitlist')}
+            >
+              Waiting list
+            </button>
           </nav>
         )}
 
@@ -163,6 +171,15 @@ export function App() {
 
         {view === 'pipeline' && selected && me.status === 'ready' && (
           <PipelineBoard
+            key={selected}
+            projectId={selected}
+            canEdit={me.data.canEdit}
+            onSessionExpired={() => setExpired(true)}
+          />
+        )}
+
+        {view === 'waitlist' && selected && me.status === 'ready' && (
+          <WaitlistPanel
             key={selected}
             projectId={selected}
             canEdit={me.data.canEdit}
