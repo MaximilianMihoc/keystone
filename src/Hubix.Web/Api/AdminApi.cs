@@ -161,6 +161,8 @@ public static class AdminApi
                 };
             });
 
+        api.MapReservations();
+
         api.MapGet("/audit", async (
             HubixDbContext db,
             Guid? entityId,
@@ -193,10 +195,10 @@ public static class AdminApi
         });
     }
 
-    private static Guid ActorId(ClaimsPrincipal user) =>
+    internal static Guid ActorId(ClaimsPrincipal user) =>
         Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
 
-    private static string ActorLabel(ClaimsPrincipal user) =>
+    internal static string ActorLabel(ClaimsPrincipal user) =>
         user.FindFirstValue(ClaimTypes.Email) ?? "unknown";
 
     public sealed record WithdrawRequest(bool Withdrawn);

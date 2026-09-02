@@ -28,17 +28,24 @@
     the bundle. Skipped entirely when npm is unavailable, so a machine without Node can
     still build and test the .NET side; the admin page then explains what to run.
   -->
+  <!--
+    Outside the target on purpose. Inputs="@(AdminClientSource)" is evaluated before the
+    target runs, so an ItemGroup declared inside it resolves to nothing — and a target with
+    no inputs and an output that exists is considered up to date for ever. That shipped a
+    stale bundle from the moment index.js first appeared.
+  -->
+  <ItemGroup>
+    <AdminClientSource Include="$(AdminClientDir)\src\**\*" />
+    <AdminClientSource Include="$(AdminClientDir)\package.json" />
+    <AdminClientSource Include="$(AdminClientDir)\vite.config.ts" />
+    <AdminClientSource Include="$(AdminClientDir)\index.html" />
+  </ItemGroup>
+
   <Target Name="BuildAdminClient"
           BeforeTargets="BeforeBuild"
           Condition="Exists('$(AdminClientDir)\package.json')"
           Inputs="@(AdminClientSource)"
           Outputs="$(MSBuildProjectDirectory)\wwwroot\admin-assets\index.js">
-
-    <ItemGroup>
-      <AdminClientSource Include="$(AdminClientDir)\src\**\*" />
-      <AdminClientSource Include="$(AdminClientDir)\package.json" />
-      <AdminClientSource Include="$(AdminClientDir)\vite.config.ts" />
-    </ItemGroup>
 
     <Exec Command="npm --version" ContinueOnError="true" StandardOutputImportance="low">
       <Output TaskParameter="ExitCode" PropertyName="NpmExitCode" />

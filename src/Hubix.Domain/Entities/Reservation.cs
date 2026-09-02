@@ -18,7 +18,19 @@ public class Reservation : Entity
 
     public ReservationState State { get; set; } = ReservationState.PendingFee;
 
+    /// <summary>
+    /// When it arrived at its current stage.
+    /// </summary>
+    /// <remarks>
+    /// The board's real question is not which stage a sale is at but how long it has been sat
+    /// there. A reservation that has waited three weeks for a signature is the one worth
+    /// chasing, and today nothing records that at all.
+    /// </remarks>
+    public DateTimeOffset StateChangedAt { get; set; } = DateTimeOffset.UtcNow;
+
     // --- The pipeline, as Hubix tracks it today ---------------------------------
+    // Ordering, and what each of these means, live in ReservationPipeline. These are just
+    // the dates.
 
     /// <summary>"Numar contract"</summary>
     public string? ContractNumber { get; set; }
@@ -26,11 +38,17 @@ public class Reservation : Entity
     /// <summary>"Platit rezervare"</summary>
     public DateTimeOffset? FeePaidAt { get; set; }
 
+    /// <summary>No column of their own for this; the agreement goes out by email.</summary>
+    public DateTimeOffset? AgreementSentAt { get; set; }
+
     /// <summary>"Trimis rezervarea semnata"</summary>
     public DateTimeOffset? SignedAgreementAt { get; set; }
 
     /// <summary>"Cesiune semnata la NOTAR"</summary>
     public DateTimeOffset? CesiuneSignedAt { get; set; }
+
+    /// <summary>Balance settled and the sale closed.</summary>
+    public DateTimeOffset? CompletedAt { get; set; }
 
     /// <summary>"Locatie cesiune"</summary>
     public string? NotaryLocation { get; set; }
@@ -56,6 +74,12 @@ public class Reservation : Entity
     /// <summary>The tranche schedule as agreed, stored as JSON.</summary>
     public IReadOnlyList<TrancheAmount> SnapTranches { get; set; } = [];
 
+    /// <summary>
+    /// The reservation fee as it stood on the day. Projects charge 1,000, 4,000 or 5,000 EUR
+    /// and a project may change its mind; what this buyer was asked for must not change with it.
+    /// </summary>
+    public decimal? SnapReservationFee { get; set; }
+
     /// <summary>Was "Comments Istratescu".</summary>
     public string? InternalNotes { get; set; }
 
@@ -63,7 +87,7 @@ public class Reservation : Entity
 
     public string? CancellationReason { get; set; }
 
-    public bool IsOpen => State is not (ReservationState.Completed or ReservationState.Cancelled);
+    public bool IsOpen => ReservationPipeline.IsOpen(State);
 
     /// <summary>Freezes the agreed price onto this reservation.</summary>
     public void ApplySnapshot(PriceBreakdown breakdown)

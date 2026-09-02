@@ -21,8 +21,11 @@ public static class UnitStateMachine
         // A reservation can collapse back to Available if it is cancelled.
         [UnitState.Reserved] = [UnitState.Contracted, UnitState.Available],
 
-        // Even a signed cesiune can fall through, though rarely.
-        [UnitState.Contracted] = [UnitState.Sold, UnitState.Available],
+        // Even a signed cesiune can fall through, though rarely. Reserved is here because a
+        // step back down the pipeline is a correction — somebody marked the cesiune signed
+        // and it was not — and without it the unit would sit Contracted while its reservation
+        // says otherwise, which is the disagreement this system exists to remove.
+        [UnitState.Contracted] = [UnitState.Sold, UnitState.Available, UnitState.Reserved],
 
         // Sold is terminal in normal operation. Reversing it is a correction, and is
         // deliberately not expressible here: it goes through an explicit admin action

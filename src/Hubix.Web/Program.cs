@@ -39,6 +39,7 @@ builder.Services.AddScoped<HoldExpiryJob>();
 builder.Services.AddScoped<StaffAuthService>();
 builder.Services.AddScoped<StaffNotifier>();
 builder.Services.AddScoped<UnitAdminService>();
+builder.Services.AddScoped<ReservationService>();
 
 // --- Staff authentication ----------------------------------------------------------
 // Passwordless, for a team of four. No password store means no hashing policy to get

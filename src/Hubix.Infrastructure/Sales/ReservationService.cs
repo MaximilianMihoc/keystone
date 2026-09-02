@@ -1,0 +1,556 @@
+using System.Text.Json;
+using Hubix.Domain;
+using Hubix.Domain.Entities;
+using Hubix.Domain.Pricing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace Hubix.Infrastructure.Sales;
+
+/// <summary>
+/// Starting reservations and moving them through the pipeline.
+/// </summary>
+/// <remarks>
+/// This is the only place a unit reaches <see cref="UnitState.Reserved"/> and beyond. Where the
+/// pipeline's shape lives in <see cref="ReservationPipeline"/>, the consequences live here: the
+/// unit follows the reservation, the price is frozen on the day it is agreed, and every move
+/// writes an audit row.
+/// </remarks>
+public sealed class ReservationService(
+    HubixDbContext db,
+    TimeProvider clock,
+    ILogger<ReservationService> logger)
+{
+    /// <summary>
+    /// Starts a reservation on a unit.
+    /// </summary>
+    /// <param name="unitId">
+    /// A unit that is <see cref="UnitState.Held"/>, whose hold then converts, or one already
+    /// marked <see cref="UnitState.Reserved"/> with no record behind it. The second case is not
+    /// a curiosity: every project Hubix migrates arrives with sales already in flight, and a
+    /// unit the spreadsheet calls reserved has to be able to become a reservation here.
+    /// </param>
+    /// <param name="details">
+    /// The buyer. Ignored when the unit is held, since the hold already knows who they are, and
+    /// required when it is not.
+    /// </param>
+    public async Task<ReservationOutcome> CreateAsync(
+        Guid unitId,
+        ProspectDetails? details,
+        BuyerType buyerType,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+
+        var unit = await db.Units
+            .AsNoTracking()
+            .Include(u => u.Project!).ThenInclude(p => p.PricingRules)
+            .FirstOrDefaultAsync(u => u.Id == unitId, ct);
+
+        if (unit?.Project is null)
+        {
+            return new ReservationOutcome.NotFound();
+        }
+
+        if (unit.State is not (UnitState.Held or UnitState.Reserved))
+        {
+            return new ReservationOutcome.Refused(
+                $"{unit.Code} is {unit.State.ToString().ToLowerInvariant()}. A reservation " +
+                "starts from a hold, or from a unit already marked reserved.");
+        }
+
+        // Completed counts as taken: a sold unit must never acquire a second reservation.
+        // The filtered unique index enforces the same thing; this is so the ordinary case
+        // gets a sentence rather than a constraint violation.
+        var taken = await db.Reservations
+            .AnyAsync(r => r.UnitId == unitId && r.State != ReservationState.Cancelled, ct);
+
+        if (taken)
+        {
+            return new ReservationOutcome.Refused($"{unit.Code} already has a reservation.");
+        }
+
+        var hold = await db.Holds
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.UnitId == unitId && h.ReleasedAt == null, ct);
+
+        var prospect = hold is not null
+            ? await db.Prospects.FirstOrDefaultAsync(p => p.Id == hold.ProspectId, ct)
+            : details is not null
+                ? await RecordBuyerAsync(details, ct)
+                : null;
+
+        if (prospect is null)
+        {
+            return new ReservationOutcome.Refused(
+                "Nobody is holding this unit, so the buyer's email address is needed.");
+        }
+
+        var rule = unit.Project.PricingRules
+            .Where(r => r.EffectiveFrom <= now)
+            .MaxBy(r => r.EffectiveFrom);
+
+        if (rule is null || rule.Tranches.Count == 0)
+        {
+            return new ReservationOutcome.Refused(
+                $"{unit.Project.Name} has no payment schedule, so there is nothing to agree to.");
+        }
+
+        var cesiune = unit.CesiunePriceNet ?? 0m;
+
+        if (cesiune > unit.BasePriceNet)
+        {
+            return new ReservationOutcome.Refused(
+                $"{unit.Code} has a cesiune price above its total price. Correct the unit first.");
+        }
+
+        var breakdown = TrancheCalculator.Calculate(
+            rule, unit.BasePriceNet, cesiune, ReducedVatApplies(unit, buyerType));
+
+        var startState = unit.State;
+        var prospectId = prospect.Id;
+        var prospectEmail = prospect.Email;
+        var reservationFee = unit.Project.ReservationFee;
+
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync<ReservationOutcome>(async () =>
+        {
+            db.ChangeTracker.Clear();
+
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+            // The guard, as in the hold service. When the unit is held this also settles the
+            // race between two people converting the same hold: exactly one gets rows == 1.
+            var rows = await db.Units
+                .Where(u => u.Id == unitId && u.State == startState)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(u => u.State, UnitState.Reserved)
+                    .SetProperty(u => u.StateChangedAt, now)
+                    .SetProperty(u => u.UpdatedAt, now), ct);
+
+            if (rows == 0)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return new ReservationOutcome.Refused(
+                    $"{unit.Code} changed while this was being saved. Reload and try again.");
+            }
+
+            var reservation = new Reservation
+            {
+                UnitId = unitId,
+                ProspectId = prospectId,
+                BuyerType = buyerType,
+                State = ReservationState.PendingFee,
+                StateChangedAt = now,
+                SnapReservationFee = reservationFee
+            };
+
+            reservation.ApplySnapshot(breakdown);
+            db.Reservations.Add(reservation);
+
+            if (hold is not null)
+            {
+                // Converted, not released: the unit stays off the market, because it has just
+                // moved further along rather than come back.
+                await db.Holds
+                    .Where(h => h.Id == hold.Id && h.ReleasedAt == null)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(h => h.ReleasedAt, now)
+                        .SetProperty(h => h.ReleaseReason, HoldReleaseReason.Converted)
+                        .SetProperty(h => h.UpdatedAt, now), ct);
+            }
+
+            db.AuditLogs.Add(new AuditLog
+            {
+                ActorType = "staff",
+                ActorId = actorId,
+                ActorLabel = actorLabel,
+                EntityType = "reservation",
+                EntityId = reservation.Id,
+                Action = "reservation.created",
+                Before = Json(new { unit.Code, State = startState.ToString() }),
+                After = Json(new
+                {
+                    unit.Code,
+                    State = nameof(UnitState.Reserved),
+                    Buyer = prospectEmail,
+                    Stage = nameof(ReservationState.PendingFee),
+                    breakdown.TotalGross,
+                    FromHold = hold is not null
+                })
+            });
+
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Two people recording a reservation on the same already-reserved unit. The
+                // guarded UPDATE cannot separate them, because both saw Reserved and both set
+                // Reserved; UX_Reservations_OneOpenPerUnit is what stops the second. Anything
+                // else is a real fault and is rethrown.
+                await transaction.RollbackAsync(ct);
+
+                if (!await HasOpenReservationAsync(unitId, ct))
+                {
+                    throw;
+                }
+
+                return new ReservationOutcome.Refused($"{unit.Code} already has a reservation.");
+            }
+
+            await transaction.CommitAsync(ct);
+
+            logger.LogInformation(
+                "{Actor} started a reservation on {UnitCode} for {Buyer}",
+                actorLabel, unit.Code, prospectEmail);
+
+            return new ReservationOutcome.Created(reservation.Id, reservation.State);
+        });
+    }
+
+    /// <summary>
+    /// Moves a reservation to another stage, taking the unit with it.
+    /// </summary>
+    /// <param name="cancellationReason">Required when moving to Cancelled, ignored otherwise.</param>
+    public async Task<ReservationOutcome> MoveAsync(
+        Guid reservationId,
+        ReservationState target,
+        string? cancellationReason,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync<ReservationOutcome>(async () =>
+        {
+            db.ChangeTracker.Clear();
+
+            var reservation = await db.Reservations
+                .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+
+            if (reservation is null)
+            {
+                return new ReservationOutcome.NotFound();
+            }
+
+            if (reservation.State == target)
+            {
+                return new ReservationOutcome.NoChange();
+            }
+
+            if (ReservationPipeline.Refuse(reservation, target) is { } refusal)
+            {
+                return new ReservationOutcome.Refused(refusal);
+            }
+
+            var unit = await db.Units
+                .AsNoTracking()
+                .Where(u => u.Id == reservation.UnitId)
+                .Select(u => new { u.Code, u.State })
+                .FirstAsync(ct);
+
+            var path = ReservationPipeline.UnitPath(unit.State, reservation.State, target);
+
+            // Check the whole path before changing anything, so a move that cannot finish
+            // does not half-happen.
+            var walked = unit.State;
+            foreach (var next in path)
+            {
+                if (!UnitStateMachine.CanTransition(walked, next))
+                {
+                    return new ReservationOutcome.Refused(
+                        $"{unit.Code} cannot go from {walked.ToString().ToLowerInvariant()} to " +
+                        $"{next.ToString().ToLowerInvariant()}.");
+                }
+
+                walked = next;
+            }
+
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+            var at = unit.State;
+            foreach (var next in path)
+            {
+                var expected = at;
+
+                var rows = await db.Units
+                    .Where(u => u.Id == reservation.UnitId && u.State == expected)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(u => u.State, next)
+                        .SetProperty(u => u.StateChangedAt, now)
+                        .SetProperty(u => u.UpdatedAt, now), ct);
+
+                if (rows == 0)
+                {
+                    await transaction.RollbackAsync(ct);
+
+                    return new ReservationOutcome.Refused(
+                        $"{unit.Code} is no longer {expected.ToString().ToLowerInvariant()}. " +
+                        "Reload and try again.");
+                }
+
+                at = next;
+            }
+
+            var from = reservation.State;
+            StampDates(reservation, target, cancellationReason, now);
+
+            reservation.State = target;
+            reservation.StateChangedAt = now;
+
+            db.AuditLogs.Add(new AuditLog
+            {
+                ActorType = "staff",
+                ActorId = actorId,
+                ActorLabel = actorLabel,
+                EntityType = "reservation",
+                EntityId = reservation.Id,
+                Action = target == ReservationState.Cancelled
+                    ? "reservation.cancelled"
+                    : "reservation.moved",
+                Before = Json(new { Stage = from.ToString(), Unit = unit.State.ToString() }),
+                After = Json(new
+                {
+                    Stage = target.ToString(),
+                    Unit = at.ToString(),
+                    Reason = cancellationReason
+                })
+            });
+
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            logger.LogInformation(
+                "{Actor} moved {UnitCode} from {From} to {To}",
+                actorLabel, unit.Code, from, target);
+
+            return new ReservationOutcome.Moved(from, target, at);
+        });
+    }
+
+    /// <summary>Edits the paperwork fields. Stages move through <see cref="MoveAsync"/>.</summary>
+    public async Task<ReservationOutcome> EditAsync(
+        Guid reservationId,
+        ReservationEdit edit,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var reservation = await db.Reservations
+            .Include(r => r.Unit!).ThenInclude(u => u.Project!).ThenInclude(p => p.PricingRules)
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+
+        if (reservation is null)
+        {
+            return new ReservationOutcome.NotFound();
+        }
+
+        if (reservation.State == ReservationState.Cancelled)
+        {
+            return new ReservationOutcome.Refused("This reservation was cancelled.");
+        }
+
+        var changes = new Dictionary<string, object?>();
+        var before = new Dictionary<string, object?>();
+
+        void ApplyRef<T>(string name, T? current, T? incoming, Action<T?> set) where T : class
+        {
+            if (incoming is null || EqualityComparer<T?>.Default.Equals(current, incoming))
+            {
+                return;
+            }
+
+            before[name] = current;
+            changes[name] = incoming;
+            set(incoming);
+        }
+
+        void ApplyVal<T>(string name, T? current, T? incoming, Action<T> set) where T : struct
+        {
+            if (incoming is null || Nullable.Equals(current, incoming))
+            {
+                return;
+            }
+
+            before[name] = current;
+            changes[name] = incoming;
+            set(incoming.Value);
+        }
+
+        ApplyRef("ContractNumber", reservation.ContractNumber, edit.ContractNumber,
+            v => reservation.ContractNumber = v);
+        ApplyRef("NotaryLocation", reservation.NotaryLocation, edit.NotaryLocation,
+            v => reservation.NotaryLocation = v);
+        ApplyRef("InternalNotes", reservation.InternalNotes, edit.InternalNotes,
+            v => reservation.InternalNotes = v);
+        ApplyVal("NotaryAppointmentAt", reservation.NotaryAppointmentAt, edit.NotaryAppointmentAt,
+            v => reservation.NotaryAppointmentAt = v);
+
+        // Buyer type decides the VAT rate, and the VAT rate is inside the frozen price. Changing
+        // it later would leave the snapshot describing a schedule this buyer was never offered,
+        // so it is only editable while nothing has been agreed — and then the price is redone.
+        if (edit.BuyerType is { } buyerType && buyerType != reservation.BuyerType)
+        {
+            if (reservation.State != ReservationState.PendingFee)
+            {
+                return new ReservationOutcome.Refused(
+                    "The buyer type sets the VAT rate, which is part of the agreed price. " +
+                    "It can only be changed before the reservation fee is paid.");
+            }
+
+            if (!TryResnapshot(reservation, buyerType, out var reason))
+            {
+                return new ReservationOutcome.Refused(reason);
+            }
+
+            before["BuyerType"] = reservation.BuyerType.ToString();
+            changes["BuyerType"] = buyerType.ToString();
+            changes["SnapTotalGross"] = reservation.SnapTotalGross;
+            reservation.BuyerType = buyerType;
+        }
+
+        if (changes.Count == 0)
+        {
+            return new ReservationOutcome.NoChange();
+        }
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "reservation",
+            EntityId = reservation.Id,
+            Action = "reservation.edited",
+            Before = Json(before),
+            After = Json(changes)
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        return new ReservationOutcome.Updated(changes);
+    }
+
+    /// <summary>
+    /// Whether the reduced rate applies to this buyer and this unit.
+    /// </summary>
+    /// <remarks>
+    /// Eligibility is a fact about the unit; it only takes effect for a private buyer. That is
+    /// how the reduced rate works in Romania as far as the documents show, and it is one of the
+    /// things worth putting to Hubix directly.
+    /// </remarks>
+    private static bool ReducedVatApplies(Unit unit, BuyerType buyerType) =>
+        unit.ReducedVatEligible && buyerType == BuyerType.Individual;
+
+    private bool TryResnapshot(Reservation reservation, BuyerType buyerType, out string reason)
+    {
+        var unit = reservation.Unit;
+        var rule = unit?.Project?.PricingRules
+            .Where(r => r.EffectiveFrom <= clock.GetUtcNow())
+            .MaxBy(r => r.EffectiveFrom);
+
+        if (unit is null || rule is null || rule.Tranches.Count == 0)
+        {
+            reason = "This project has no payment schedule, so the price cannot be recalculated.";
+            return false;
+        }
+
+        reservation.ApplySnapshot(TrancheCalculator.Calculate(
+            rule,
+            unit.BasePriceNet,
+            unit.CesiunePriceNet ?? 0m,
+            ReducedVatApplies(unit, buyerType)));
+
+        reason = string.Empty;
+        return true;
+    }
+
+    /// <summary>
+    /// Stamps or clears the dates a move implies.
+    /// </summary>
+    /// <remarks>
+    /// Forward stamps only the stage arrived at. Stages jumped over keep their empty dates,
+    /// which is the truth: nobody knows when they happened. A step back clears the date of the
+    /// stage being left, because that stage did not happen after all.
+    /// </remarks>
+    private static void StampDates(
+        Reservation reservation,
+        ReservationState target,
+        string? cancellationReason,
+        DateTimeOffset now)
+    {
+        if (target == ReservationState.Cancelled)
+        {
+            reservation.CancelledAt = now;
+            reservation.CancellationReason = cancellationReason;
+            return;
+        }
+
+        var forward = ReservationPipeline.IndexOf(target) > ReservationPipeline.IndexOf(reservation.State);
+
+        if (forward)
+        {
+            var stage = ReservationPipeline.For(target);
+
+            if (stage.SetDate is not null && stage.GetDate?.Invoke(reservation) is null)
+            {
+                stage.SetDate(reservation, now);
+            }
+
+            return;
+        }
+
+        ReservationPipeline.For(reservation.State).SetDate?.Invoke(reservation, null);
+    }
+
+    /// <summary>
+    /// Records a buyer staff entered by hand.
+    /// </summary>
+    /// <remarks>
+    /// Separate from the hold service's version on purpose: somebody typed in by a member of
+    /// staff has given no consent through any form here, so none is claimed on their behalf.
+    /// </remarks>
+    private async Task<Prospect> RecordBuyerAsync(ProspectDetails details, CancellationToken ct)
+    {
+        var email = details.Email.Trim();
+
+        var prospect = await db.Prospects.FirstOrDefaultAsync(p => p.Email == email, ct);
+
+        if (prospect is null)
+        {
+            prospect = new Prospect
+            {
+                Email = email,
+                FullName = details.FullName,
+                Phone = details.Phone,
+                Locale = details.Locale,
+                Source = "staff"
+            };
+
+            db.Prospects.Add(prospect);
+        }
+        else
+        {
+            prospect.FullName = details.FullName ?? prospect.FullName;
+            prospect.Phone = details.Phone ?? prospect.Phone;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return prospect;
+    }
+
+    private Task<bool> HasOpenReservationAsync(Guid unitId, CancellationToken ct) =>
+        db.Reservations
+            .AsNoTracking()
+            .AnyAsync(r => r.UnitId == unitId && r.State != ReservationState.Cancelled, ct);
+
+    private static string Json(object value) => JsonSerializer.Serialize(value);
+}

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api, SessionExpired, type Me, type ProjectSummary, type UnitsResponse } from './api';
 import { UnitsGrid } from './UnitsGrid';
+import { PipelineBoard } from './PipelineBoard';
+
+type View = 'units' | 'pipeline';
 
 type Load<T> =
   | { status: 'loading' }
@@ -13,6 +16,7 @@ export function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [units, setUnits] = useState<Load<UnitsResponse> | null>(null);
   const [expired, setExpired] = useState(false);
+  const [view, setView] = useState<View>('units');
 
   useEffect(() => {
     void (async () => {
@@ -121,14 +125,46 @@ export function App() {
           <p className="empty">Choose a project to see its apartments.</p>
         )}
 
-        {units?.status === 'loading' && <p className="empty">Loading apartments…</p>}
-        {units?.status === 'failed' && <p className="banner error">{units.message}</p>}
+        {selected && (
+          <nav className="views">
+            <button
+              className={`view${view === 'units' ? ' view-on' : ''}`}
+              type="button"
+              onClick={() => setView('units')}
+            >
+              Apartments
+            </button>
+            <button
+              className={`view${view === 'pipeline' ? ' view-on' : ''}`}
+              type="button"
+              onClick={() => setView('pipeline')}
+            >
+              Pipeline
+            </button>
+          </nav>
+        )}
 
-        {units?.status === 'ready' && me.status === 'ready' && (
-          <UnitsGrid
-            key={units.data.project.id}
-            units={units.data.units}
-            types={units.data.types}
+        {view === 'units' && (
+          <>
+            {units?.status === 'loading' && <p className="empty">Loading apartments…</p>}
+            {units?.status === 'failed' && <p className="banner error">{units.message}</p>}
+
+            {units?.status === 'ready' && me.status === 'ready' && (
+              <UnitsGrid
+                key={units.data.project.id}
+                units={units.data.units}
+                types={units.data.types}
+                canEdit={me.data.canEdit}
+                onSessionExpired={() => setExpired(true)}
+              />
+            )}
+          </>
+        )}
+
+        {view === 'pipeline' && selected && me.status === 'ready' && (
+          <PipelineBoard
+            key={selected}
+            projectId={selected}
             canEdit={me.data.canEdit}
             onSessionExpired={() => setExpired(true)}
           />

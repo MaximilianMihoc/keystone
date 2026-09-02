@@ -186,7 +186,7 @@ Source material — prospectuses and spreadsheets containing real prices and buy
 | M2 | Public project page and inventory, read-only | ✅ done |
 | M3 | Holds, the Hangfire job, transactional email | ✅ done |
 | M4 | Auth, React admin shell, editable units grid | ✅ done |
-| M5 | Reservation pipeline | 2 wk |
+| M5 | Reservation pipeline and the board | ✅ done |
 | M6 | Waitlist with auto-promotion | 1 wk |
 | M7 | Importer and exporter | 1–2 wk |
 | M8 | Assets — floor plans, RLVs, renders | 1 wk |

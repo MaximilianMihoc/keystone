@@ -114,6 +114,73 @@ export type UnitEdit = Partial<
   >
 >;
 
+/**
+ * A stage of the sales pipeline, as the server describes it.
+ *
+ * Not a union type and not a constant list here. The pipeline was inferred from Hubix's
+ * documents rather than observed, so it will need correcting; a copy in this file would be a
+ * second place to correct and a second place to get it wrong.
+ */
+export interface PipelineStage {
+  state: string;
+  label: string;
+  /** Hubix's own spreadsheet column, where this stage came from one. */
+  sourceColumn: string | null;
+  unitState: string;
+  recordsDate: boolean;
+  /** The reservation field this stage's date lives in, camelCased. */
+  dateField: string | null;
+}
+
+export interface Pipeline {
+  stages: PipelineStage[];
+  cancelled: string;
+}
+
+export interface Reservation {
+  id: string;
+  unitId: string;
+  unitCode: string;
+  unitType: string;
+  floorLevel: number | null;
+  state: string;
+  stateChangedAt: string;
+  buyerEmail: string;
+  buyerName: string | null;
+  buyerType: string;
+  contractNumber: string | null;
+  notaryLocation: string | null;
+  notaryAppointmentAt: string | null;
+  feePaidAt: string | null;
+  agreementSentAt: string | null;
+  signedAgreementAt: string | null;
+  cesiuneSignedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  internalNotes: string | null;
+  reservationFee: number | null;
+  totalGross: number;
+}
+
+/** A unit a reservation could be started on. */
+export interface ReservationCandidate {
+  id: string;
+  code: string;
+  state: string;
+  heldBy: string | null;
+}
+
+export interface ReservationsResponse {
+  project: { id: string; name: string; reservationFee: number | null };
+  reservations: Reservation[];
+  candidates: ReservationCandidate[];
+}
+
+export type ReservationEdit = Partial<
+  Pick<Reservation, 'contractNumber' | 'notaryLocation' | 'notaryAppointmentAt' | 'internalNotes'>
+> & { buyerType?: string };
+
 export const api = {
   me: () => request<Me>('/api/admin/me'),
 
@@ -133,4 +200,30 @@ export const api = {
       `/api/admin/units/${unitId}/withdrawn`,
       { method: 'POST', body: JSON.stringify({ withdrawn }) },
     ),
+
+  pipeline: () => request<Pipeline>('/api/admin/pipeline'),
+
+  reservations: (projectId: string) =>
+    request<ReservationsResponse>(`/api/admin/projects/${projectId}/reservations`),
+
+  startReservation: (
+    unitId: string,
+    buyer?: { email: string; fullName?: string; phone?: string },
+  ) =>
+    request<{ id: string; state: string }>(`/api/admin/units/${unitId}/reservation`, {
+      method: 'POST',
+      body: JSON.stringify(buyer ?? {}),
+    }),
+
+  moveReservation: (id: string, state: string, reason?: string) =>
+    request<{ state: string; unitState: string }>(`/api/admin/reservations/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify({ state, reason }),
+    }),
+
+  editReservation: (id: string, edit: ReservationEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/reservations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(edit),
+    }),
 };

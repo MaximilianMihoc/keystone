@@ -538,6 +538,9 @@ namespace Hubix.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("AgreementSentAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("BuyerType")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -551,6 +554,9 @@ namespace Hubix.Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("CesiuneSignedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("ContractNumber")
@@ -589,6 +595,9 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<decimal>("SnapCesiuneVatRate")
                         .HasColumnType("decimal(6,4)");
 
+                    b.Property<decimal?>("SnapReservationFee")
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<string>("SnapTranches")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -600,6 +609,11 @@ namespace Hubix.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("StateChangedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetimeoffset")
+                        .HasDefaultValueSql("SYSDATETIMEOFFSET()");
 
                     b.Property<Guid>("UnitId")
                         .HasColumnType("uniqueidentifier");

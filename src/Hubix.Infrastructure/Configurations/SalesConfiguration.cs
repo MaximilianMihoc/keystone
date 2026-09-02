@@ -117,6 +117,11 @@ public class ReservationConfiguration : IEntityTypeConfiguration<Reservation>
         builder.Property(r => r.InternalNotes).HasMaxLength(4000);
         builder.Property(r => r.CancellationReason).HasMaxLength(1000);
 
+        // The application always sets this. The database default exists so a row that somehow
+        // arrives without one reads as "just now" rather than as year 1, which the board would
+        // draw as a sale that has been stalled for two thousand years.
+        builder.Property(r => r.StateChangedAt).HasDefaultValueSql("SYSDATETIMEOFFSET()");
+
         builder.HasOne(r => r.Unit)
             .WithMany(u => u.Reservations)
             .HasForeignKey(r => r.UnitId)

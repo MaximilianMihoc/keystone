@@ -35,7 +35,7 @@ public enum UnitState
     /// <summary>A prospect holds it while they decide. Expires automatically.</summary>
     Held,
 
-    /// <summary>Reservation fee paid.</summary>
+    /// <summary>Off the market while a sale runs. ReservationPipeline carries how far along.</summary>
     Reserved,
 
     /// <summary>Cesiune signed at the notary.</summary>

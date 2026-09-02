@@ -317,3 +317,292 @@ main { padding: 22px 20px 60px; }
 }
 
 .btn:hover { background: var(--amber-deep); color: #fff; }
+
+/* ---------- views ---------- */
+
+.views {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.view {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.view:hover { color: var(--ink-2); }
+
+.view-on {
+  color: var(--ink);
+  border-bottom-color: var(--amber);
+}
+
+.btn-small { font-size: 13px; padding: 6px 14px; }
+
+.start-row { flex-wrap: wrap; }
+
+/* ---------- pipeline board ---------- */
+
+/* Columns are fixed width and the board scrolls sideways. Seven stages will not fit a
+   laptop at a readable size, and squeezing them would cost the one thing the board is
+   for: seeing at a glance where everything is. */
+.board {
+  display: flex;
+  gap: 1px;
+  background: var(--rule-soft);
+  border: 1px solid var(--rule-soft);
+  overflow-x: auto;
+  align-items: stretch;
+  min-height: 260px;
+}
+
+.column {
+  flex: 0 0 216px;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
+.column-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.column-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.column-count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.column-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--amber);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-selected { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+.card-busy { opacity: 0.55; }
+
+.card-open {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 9px 10px;
+  width: 100%;
+  color: inherit;
+  font-family: inherit;
+}
+
+.card-code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.card-total {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-buyer,
+.card-waited {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-waited { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; }
+
+/* A fortnight in one stage is the thing worth chasing, and the only thing on the board
+   that shouts. */
+.card-waited.stale { color: var(--red); }
+
+.card-move {
+  display: flex;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.step {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  background: none;
+  border: none;
+  border-right: 1px solid var(--rule-soft);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.step:last-child { border-right: none; }
+.step:hover:not(:disabled) { background: var(--amber-soft); color: var(--amber-deep); }
+.step:disabled { opacity: 0.3; cursor: default; }
+
+.cancelled { margin-top: 14px; }
+
+.cancelled-list {
+  list-style: none;
+  padding: 10px 0 0;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.9;
+}
+
+/* ---------- detail drawer ---------- */
+
+.drawer {
+  position: fixed;
+  top: 54px;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--rule);
+  padding: 18px 20px 40px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.drawer h2 { font-size: 18px; font-weight: 600; margin: 0; }
+.drawer h3 {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 22px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.drawer-sub { margin: 2px 0 0; font-size: 12px; color: var(--ink-3); }
+
+.facts { margin: 0; font-size: 12.5px; }
+.facts dt {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 12px;
+}
+.facts dd { margin: 3px 0 0; color: var(--ink); }
+
+.fact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid var(--rule-soft);
+  padding-bottom: 5px;
+}
+.fact-row dt { margin-top: 8px; }
+.fact-row dd { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+
+.muted { color: var(--ink-3); font-size: 11px; }
+
+.field { display: block; margin-bottom: 12px; }
+.field > span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.field input,
+.field textarea {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+}
+.field input:disabled,
+.field textarea:disabled { opacity: 0.6; }
+
+.project-picker.full { width: 100%; margin-bottom: 14px; }
+
+.danger { color: var(--red); }
+.btn.danger { background: var(--red); color: #fff; }
+
+.cancel-form { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.cancel-form input {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* The drawer is a panel, not a modal, so the board has to move over rather than sit
+   underneath it — otherwise the last column is unreachable while a card is open, which
+   is exactly what happened to the Completed column. */
+@media (min-width: 900px) {
+  body:has(.drawer) main { padding-right: 404px; }
+}
+
+@media (max-width: 899px) {
+  .drawer { width: 100%; }
+}
