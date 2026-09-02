@@ -8,6 +8,7 @@ using Hubix.Infrastructure;
 using Hubix.Infrastructure.Admin;
 using Hubix.Infrastructure.Auth;
 using Hubix.Infrastructure.Email;
+using Hubix.Infrastructure.Import;
 using Hubix.Infrastructure.Sales;
 using Hubix.Web.Api;
 using Hubix.Web.Jobs;
@@ -41,6 +42,9 @@ builder.Services.AddScoped<StaffNotifier>();
 builder.Services.AddScoped<UnitAdminService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<WaitlistPromoter>();
+builder.Services.AddScoped<ImportPlanner>();
+builder.Services.AddScoped<ImportService>();
+builder.Services.AddScoped<InventoryExporter>();
 
 // --- Staff authentication ----------------------------------------------------------
 // Passwordless, for a team of four. No password store means no hashing policy to get

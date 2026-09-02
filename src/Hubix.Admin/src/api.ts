@@ -194,6 +194,98 @@ export type ReservationEdit = Partial<
   Pick<Reservation, 'contractNumber' | 'notaryLocation' | 'notaryAppointmentAt' | 'internalNotes'>
 > & { buyerType?: string };
 
+/** A field the importer can fill from a column. */
+export interface ImportFieldInfo {
+  field: string;
+  label: string;
+  required: boolean;
+  aliases: string[];
+}
+
+export interface SheetColumn {
+  letter: string;
+  header: string | null;
+  /** The header cell holds a record rather than a column name. Needs a person. */
+  looksLikeData: boolean;
+  sample: string[];
+  suggested: string | null;
+}
+
+export interface PlannedRow {
+  sourceRow: number;
+  code: string | null;
+  action: 'Create' | 'Update' | 'Unchanged' | 'Skipped' | 'Failed';
+  reason: string | null;
+  /** Where the file's availability disagrees with what we know. Reported, never applied. */
+  staleNote: string | null;
+  changes: Record<string, { before: unknown; after: unknown }>;
+}
+
+export interface ImportPlan {
+  canCommit: boolean;
+  creates: number;
+  updates: number;
+  unchanged: number;
+  skipped: number;
+  failed: number;
+  problems: string[];
+  newTypes: string[];
+  fileHash: string;
+  notInFile: { code: string; state: string }[];
+  rows: PlannedRow[];
+}
+
+export interface ImportPreview {
+  worksheets: string[];
+  worksheet: string;
+  headerRow: number;
+  columns: SheetColumn[];
+  /** Field key to column letter. */
+  mapping: Record<string, string>;
+  rowCount: number;
+  plan: ImportPlan;
+}
+
+export interface ImportProfile {
+  id: string;
+  name: string;
+  worksheetName: string | null;
+  columns: Record<string, string>;
+  lastUsedAt: string | null;
+}
+
+export interface ImportOutcome {
+  created: number;
+  updated: number;
+  skipped: number;
+  notes: string[];
+}
+
+async function upload<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
+  const body = new FormData();
+  body.append('file', file);
+
+  for (const [key, value] of Object.entries(fields)) {
+    body.append(key, value);
+  }
+
+  // No Content-Type header: the browser sets it with the multipart boundary.
+  const response = await fetch(path, { method: 'POST', body, credentials: 'same-origin' });
+
+  if (response.status === 401) throw new SessionExpired();
+
+  if (!response.ok) {
+    const message = await response
+      .json()
+      .then((b: { error?: string }) => b?.error)
+      .catch(() => undefined);
+
+    throw new ApiError(message ?? `Request failed (${response.status})`);
+  }
+
+  return (await response.json()) as T;
+}
+
 export const api = {
   me: () => request<Me>('/api/admin/me'),
 
@@ -221,6 +313,43 @@ export const api = {
 
   removeFromWaitlist: (entryId: string) =>
     request<{ removed: boolean }>(`/api/admin/waitlist/${entryId}`, { method: 'DELETE' }),
+
+  importFields: () => request<ImportFieldInfo[]>('/api/admin/import/fields'),
+
+  importProfiles: (projectId: string) =>
+    request<ImportProfile[]>(`/api/admin/projects/${projectId}/import/profiles`),
+
+  saveImportProfile: (
+    projectId: string,
+    body: { name: string; columns: Record<string, string>; worksheet: string | null },
+  ) =>
+    request<{ id: string; name: string }>(
+      `/api/admin/projects/${projectId}/import/profiles`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  previewImport: (
+    projectId: string,
+    file: File,
+    options: { mapping?: Record<string, string>; worksheet?: string } = {},
+  ) =>
+    upload<ImportPreview>(`/api/admin/projects/${projectId}/import/preview`, file, {
+      ...(options.mapping ? { mapping: JSON.stringify(options.mapping) } : {}),
+      ...(options.worksheet ? { worksheet: options.worksheet } : {}),
+    }),
+
+  commitImport: (
+    projectId: string,
+    file: File,
+    options: { mapping: Record<string, string>; worksheet?: string; hash: string },
+  ) =>
+    upload<ImportOutcome>(`/api/admin/projects/${projectId}/import/commit`, file, {
+      mapping: JSON.stringify(options.mapping),
+      hash: options.hash,
+      ...(options.worksheet ? { worksheet: options.worksheet } : {}),
+    }),
+
+  exportUrl: (projectId: string) => `/api/admin/projects/${projectId}/export`,
 
   reservations: (projectId: string) =>
     request<ReservationsResponse>(`/api/admin/projects/${projectId}/reservations`),

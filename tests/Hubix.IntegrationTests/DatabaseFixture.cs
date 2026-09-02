@@ -97,15 +97,33 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // Projects other tests created; the fixture's own must survive.
         await db.Projects.Where(p => p.Id != ProjectId).ExecuteDeleteAsync();
 
+        // Units other tests created — the importer makes them by the sheetful.
+        await db.Units.Where(u => u.ProjectId == ProjectId && u.Id != UnitId).ExecuteDeleteAsync();
+        await db.UnitTypes.Where(t => t.ProjectId == ProjectId && !t.Units.Any()).ExecuteDeleteAsync();
+
         var seeded = SeedPrice;
 
+        // Every field a test can write has to be restored, not just the interesting ones.
+        // Leaving one out makes the suite order-dependent, and an order-dependent suite tells
+        // you nothing on the day it matters.
         await db.Units
             .Where(u => u.Id == UnitId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.State, UnitState.Available)
+                .SetProperty(u => u.Crt, (int?)null)
+                .SetProperty(u => u.Building, (string?)null)
+                .SetProperty(u => u.Stair, (string?)null)
+                .SetProperty(u => u.FloorLevel, 1)
+                .SetProperty(u => u.Orientation, (string?)null)
+                .SetProperty(u => u.AreaBuilt, (decimal?)null)
+                .SetProperty(u => u.AreaBalcony, 4.64m)
                 .SetProperty(u => u.BasePriceNet, seeded.Price)
                 .SetProperty(u => u.CesiunePriceNet, seeded.Cesiune)
                 .SetProperty(u => u.AreaUsable, seeded.AreaUsable)
+                .SetProperty(u => u.ReducedVatEligible, false)
+                .SetProperty(u => u.ParkingAvailable, false)
+                .SetProperty(u => u.ParkingPriceNet, (decimal?)null)
+                .SetProperty(u => u.ParkingAdvanceNet, (decimal?)null)
                 .SetProperty(u => u.AdminNotes, (string?)null));
     }
 

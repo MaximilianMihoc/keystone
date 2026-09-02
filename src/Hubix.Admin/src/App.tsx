@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api, SessionExpired, type Me, type ProjectSummary, type UnitsResponse } from './api';
 import { UnitsGrid } from './UnitsGrid';
 import { PipelineBoard } from './PipelineBoard';
 import { WaitlistPanel } from './WaitlistPanel';
+import { ImportPanel } from './ImportPanel';
 
-type View = 'units' | 'pipeline' | 'waitlist';
+type View = 'units' | 'pipeline' | 'waitlist' | 'import';
 
 type Load<T> =
   | { status: 'loading' }
@@ -35,20 +36,23 @@ export function App() {
     })();
   }, []);
 
+  /** Re-reads the grid and the tallies. An import can change most of both at once. */
+  const reload = useCallback(async (projectId: string) => {
+    try {
+      setUnits({ status: 'ready', data: await api.units(projectId) });
+      setProjects({ status: 'ready', data: await api.projects() });
+    } catch (e) {
+      if (e instanceof SessionExpired) setExpired(true);
+      else setUnits({ status: 'failed', message: (e as Error).message });
+    }
+  }, []);
+
   useEffect(() => {
     if (!selected) return;
 
     setUnits({ status: 'loading' });
-
-    void (async () => {
-      try {
-        setUnits({ status: 'ready', data: await api.units(selected) });
-      } catch (e) {
-        if (e instanceof SessionExpired) setExpired(true);
-        else setUnits({ status: 'failed', message: (e as Error).message });
-      }
-    })();
-  }, [selected]);
+    void reload(selected);
+  }, [selected, reload]);
 
   if (expired) {
     return (
@@ -149,6 +153,13 @@ export function App() {
             >
               Waiting list
             </button>
+            <button
+              className={`view${view === 'import' ? ' view-on' : ''}`}
+              type="button"
+              onClick={() => setView('import')}
+            >
+              Import
+            </button>
           </nav>
         )}
 
@@ -184,6 +195,16 @@ export function App() {
             projectId={selected}
             canEdit={me.data.canEdit}
             onSessionExpired={() => setExpired(true)}
+          />
+        )}
+
+        {view === 'import' && selected && me.status === 'ready' && (
+          <ImportPanel
+            key={selected}
+            projectId={selected}
+            canEdit={me.data.canEdit}
+            onSessionExpired={() => setExpired(true)}
+            onImported={() => void reload(selected)}
           />
         )}
       </main>

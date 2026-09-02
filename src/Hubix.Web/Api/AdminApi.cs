@@ -162,6 +162,7 @@ public static class AdminApi
             });
 
         api.MapReservations();
+        api.MapImport();
 
         api.MapGet("/audit", async (
             HubixDbContext db,

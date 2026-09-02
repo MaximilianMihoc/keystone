@@ -302,6 +302,46 @@ namespace Hubix.Infrastructure.Migrations
                     b.ToTable("Holds");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.ImportProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Columns")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("WorksheetName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ImportProfiles_NamePerProject");
+
+                    b.ToTable("ImportProfiles");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.PricingRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1035,6 +1075,17 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Prospect");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("Hubix.Domain.Entities.ImportProfile", b =>
+                {
+                    b.HasOne("Hubix.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Hubix.Domain.Entities.PricingRule", b =>

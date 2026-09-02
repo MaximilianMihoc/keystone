@@ -193,6 +193,37 @@ public class WaitlistEntryConfiguration : IEntityTypeConfiguration<WaitlistEntry
     }
 }
 
+public class ImportProfileConfiguration : IEntityTypeConfiguration<ImportProfile>
+{
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    public void Configure(EntityTypeBuilder<ImportProfile> builder)
+    {
+        builder.Property(p => p.Name).HasMaxLength(120).IsRequired();
+        builder.Property(p => p.WorksheetName).HasMaxLength(120);
+
+        builder.HasOne(p => p.Project)
+            .WithMany()
+            .HasForeignKey(p => p.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Property(p => p.Columns)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonOptions),
+                v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, JsonOptions)
+                     ?? new Dictionary<string, string>())
+            .HasColumnType("nvarchar(max)")
+            .Metadata.SetValueComparer(new ValueComparer<IReadOnlyDictionary<string, string>>(
+                (a, b) => a != null && b != null && a.Count == b.Count && !a.Except(b).Any(),
+                v => v.Aggregate(0, (acc, kv) => HashCode.Combine(acc, kv.Key, kv.Value)),
+                v => v.ToDictionary(kv => kv.Key, kv => kv.Value)));
+
+        builder.HasIndex(p => new { p.ProjectId, p.Name })
+            .IsUnique()
+            .HasDatabaseName("UX_ImportProfiles_NamePerProject");
+    }
+}
+
 public class EnquiryConfiguration : IEntityTypeConfiguration<Enquiry>
 {
     public void Configure(EntityTypeBuilder<Enquiry> builder)
