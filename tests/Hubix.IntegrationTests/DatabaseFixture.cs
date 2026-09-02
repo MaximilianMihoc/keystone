@@ -27,7 +27,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
     public string DatabaseName { get; } = $"HubixTests_{Guid.NewGuid():N}";
 
     public string ConnectionString =>
-        $@"Server=.\SQLEXPRESS;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True";
+        $@"Server=.\SQLEXPRESS;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True";
 
     public Guid ProjectId { get; private set; }
 

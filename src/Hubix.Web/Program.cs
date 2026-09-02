@@ -10,6 +10,7 @@ using Hubix.Web.Jobs;
 using Hubix.Web.Notifications;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,11 +31,28 @@ builder.Services.AddScoped<WaitlistService>();
 builder.Services.AddScoped<HoldNotifier>();
 builder.Services.AddScoped<HoldExpiryJob>();
 
-// Development sender: writes messages to logs and to an outbox folder, and sends nothing.
-// Swap for a real provider before this reaches a buyer.
-builder.Services.AddSingleton<IEmailSender>(sp => new LoggingEmailSender(
+// --- Email -----------------------------------------------------------------------
+// Every message goes through SafeEmailSender, which transmits only when live sending is
+// explicitly enabled and the recipient is neither blocked nor outside the allowlist.
+// Everything else lands in the local outbox, written exactly as it would have been sent.
+//
+// Hubix has not been approached about this system. Their addresses are on the blocked
+// list by default, so wiring up a provider cannot introduce the project to them by
+// emailing them a reservation notice.
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
+
+builder.Services.AddSingleton<LoggingEmailSender>(sp => new LoggingEmailSender(
     sp.GetRequiredService<ILogger<LoggingEmailSender>>(),
     Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox")));
+
+builder.Services.AddSingleton<IEmailSender>(sp => new SafeEmailSender(
+    outbox: sp.GetRequiredService<LoggingEmailSender>(),
+    options: sp.GetRequiredService<IOptions<EmailOptions>>(),
+    logger: sp.GetRequiredService<ILogger<SafeEmailSender>>(),
+
+    // No real provider yet. Register one here when there is, and it still cannot reach
+    // anyone the options above do not permit.
+    live: null));
 
 // --- Background jobs --------------------------------------------------------------
 // Hangfire persists in the same database, so the schedule survives restarts, retries on

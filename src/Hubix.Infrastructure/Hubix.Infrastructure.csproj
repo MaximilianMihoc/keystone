@@ -5,6 +5,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      So the tests can exercise internal helpers directly, rather than widening the public
+      API to suit them. SafeEmailSender.Matches is the case in point: it decides whether an
+      address is blocked, and deserves testing on its own.
+    -->
+    <InternalsVisibleTo Include="Hubix.Tests" />
+    <InternalsVisibleTo Include="Hubix.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
