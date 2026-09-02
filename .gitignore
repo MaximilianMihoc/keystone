@@ -1,0 +1,117 @@
+## ---------------------------------------------------------------------------
+## Build output
+## ---------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+*.dll
+*.exe
+*.pdb
+*.cache
+
+## ---------------------------------------------------------------------------
+## Visual Studio / Rider / VS Code
+## ---------------------------------------------------------------------------
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json.example
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.iml
+*.DotSettings.user
+
+## ---------------------------------------------------------------------------
+## Secrets and local configuration
+##
+## appsettings.Development.json is IGNORED because it will hold the local
+## SQL Server connection string. Use `dotnet user-secrets` for anything
+## genuinely sensitive; the example file below documents the shape.
+## ---------------------------------------------------------------------------
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+!appsettings.Development.example.json
+*.env
+.env
+.env.*
+!.env.example
+secrets.json
+*.pfx
+*.p12
+*.key
+*.pem
+
+## ---------------------------------------------------------------------------
+## Node / React admin client
+## ---------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+
+## Built admin bundle, emitted into the ASP.NET host at build time
+src/Hubix.Web/wwwroot/admin/
+
+## ---------------------------------------------------------------------------
+## Database
+## ---------------------------------------------------------------------------
+*.mdf
+*.ldf
+*.ndf
+*.bak
+*.dbmdl
+*.jfm
+
+## ---------------------------------------------------------------------------
+## Test output
+## ---------------------------------------------------------------------------
+[Tt]est[Rr]esult*/
+coverage/
+*.coverage
+*.coveragexml
+*.trx
+
+## ---------------------------------------------------------------------------
+## Uploaded assets — floor plans, RLVs, renders.
+## These live in blob storage; local copies must never be committed.
+## ---------------------------------------------------------------------------
+uploads/
+storage/
+src/Hubix.Web/wwwroot/uploads/
+
+## ---------------------------------------------------------------------------
+## Hubix source material.
+##
+## The prospectuses and inventory spreadsheets contain real prices, real
+## developer terms and (in the admin columns) real buyer data. They stay
+## out of this repository. Source lives in C:\Repositories\HubixDocs and the
+## derived seed JSON in C:\Repositories\ClaudeLocalDocs\Hubix\seed-data.
+## ---------------------------------------------------------------------------
+*.xlsx
+*.xls
+*.docx
+*.doc
+seed-data/real/
+
+## ---------------------------------------------------------------------------
+## OS noise
+## ---------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
