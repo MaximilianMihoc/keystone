@@ -34,4 +34,7 @@ public static class AuthPolicies
 
     /// <summary>Roles allowed to change data, as opposed to reading it.</summary>
     public const string CanEdit = "can-edit";
+
+    /// <summary>Acts that cannot be undone and are legally significant, such as erasure.</summary>
+    public const string Admin = "admin";
 }

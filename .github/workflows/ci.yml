@@ -1,0 +1,80 @@
+name: build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # The integration tests exist because the behaviour they cover — two transactions racing
+    # for one row, a filtered unique index, a persisted computed column — does not exist in
+    # an in-memory provider. Running them against a real SQL Server is the whole point, so
+    # CI brings one up rather than skipping them.
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Your_Strong_Passw0rd"
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Your_Strong_Passw0rd -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/Hubix.Admin/package-lock.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Unit tests
+        run: dotnet test tests/Hubix.Tests --no-build --configuration Release --verbosity quiet
+
+      - name: Integration tests
+        env:
+          HUBIX_TEST_SQL: "Server=localhost,1433;Database={0};User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
+        run: dotnet test tests/Hubix.IntegrationTests --no-build --configuration Release --verbosity quiet
+
+      # Catches the commit that changes an entity and forgets the migration. Without this the
+      # failure surfaces on deploy, as a schema that does not match the code.
+      - name: Migrations are up to date
+        env:
+          HUBIX_TEST_SQL: "Server=localhost,1433;Database={0};User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
+          ConnectionStrings__HubixDb: "Server=localhost,1433;Database=HubixCiCheck;User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
+        run: |
+          dotnet tool install --global dotnet-ef
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef migrations has-pending-model-changes \
+            --project src/Hubix.Infrastructure \
+            --startup-project src/Hubix.Web
+
+      # The bundle is what actually gets deployed, and it is generated rather than committed.
+      - name: The admin client builds
+        run: |
+          test -f src/Hubix.Web/wwwroot/admin-assets/index.js
+          test -f src/Hubix.Web/wwwroot/admin-assets/index.css

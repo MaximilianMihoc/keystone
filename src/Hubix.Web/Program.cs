@@ -12,11 +12,14 @@ using Hubix.Infrastructure.Assets;
 using Hubix.Infrastructure.Import;
 using Hubix.Infrastructure.Sales;
 using Hubix.Web.Api;
+using Hubix.Infrastructure.Privacy;
+using Hubix.Web.Health;
 using Hubix.Web.Jobs;
 using Hubix.Web.Pages.Admin;
 using Hubix.Web.Notifications;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 
@@ -59,6 +62,17 @@ builder.Services.AddSingleton<IAssetStorage>(sp =>
 });
 
 builder.Services.AddScoped<AssetService>();
+builder.Services.AddScoped<PrivacyService>();
+
+// --- Health ------------------------------------------------------------------------
+// Poll /health for up-or-down and /health/detail for why. The check worth alerting on is
+// hold expiry: a dead job is invisible from outside, and the first person to notice would
+// be a buyer told an apartment was taken when it was not.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"])
+    .AddCheck<HoldExpiryHealthCheck>("hold-expiry", tags: ["ready", "jobs"])
+    .AddCheck<AssetStorageHealthCheck>("asset-storage", tags: ["ready"]);
+
 builder.Services.AddScoped<ImportPlanner>();
 builder.Services.AddScoped<ImportService>();
 builder.Services.AddScoped<InventoryExporter>();
@@ -111,7 +125,10 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthPolicies.Staff, policy => policy.RequireAuthenticatedUser())
     .AddPolicy(AuthPolicies.CanEdit, policy => policy
         .RequireAuthenticatedUser()
-        .RequireRole(nameof(StaffRole.Admin), nameof(StaffRole.Sales)));
+        .RequireRole(nameof(StaffRole.Admin), nameof(StaffRole.Sales)))
+    .AddPolicy(AuthPolicies.Admin, policy => policy
+        .RequireAuthenticatedUser()
+        .RequireRole(nameof(StaffRole.Admin)));
 
 // --- Email -----------------------------------------------------------------------
 // Every message goes through SafeEmailSender, which transmits only when live sending is
@@ -219,6 +236,39 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Up-or-down, no detail, no authentication: a monitor has to be able to poll it, and what
+// is running where is nobody else's business.
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = (context, _) =>
+    {
+        context.Response.ContentType = "text/plain";
+        return context.Response.WriteAsync("ok");
+    }
+});
+
+// Why, in detail, for staff and for whatever is alerting.
+app.MapHealthChecks("/health/detail", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                data = e.Value.Data
+            })
+        });
+    }
+}).RequireAuthorization(AuthPolicies.Staff);
+
 app.MapRazorPages();
 app.MapAdminApi();
 app.MapAssetFiles();
@@ -237,5 +287,9 @@ using (var scope = app.Services.CreateScope())
             job => job.RunAsync(CancellationToken.None),
             "* * * * *");
 }
+
+// Last, so a production instance that is not fit to serve anybody refuses to start rather
+// than starting and being wrong quietly.
+ProductionReadiness.EnsureReady(app);
 
 app.Run();

@@ -22,6 +22,17 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hubix.Domain\Hubix.Domain.csproj" />
     <ProjectReference Include="..\..\src\Hubix.Infrastructure\Hubix.Infrastructure.csproj" />
+
+    <!--
+      The web project, for the production readiness checks. Those only ever run in Production,
+      so a test is the only thing that exercises them before the day they matter.
+    -->
+    <ProjectReference Include="..\..\src\Hubix.Web\Hubix.Web.csproj" />
+  </ItemGroup>
+
+  <!-- Referencing a web project needs its framework. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

@@ -121,3 +121,6 @@ outbox/
 
 # Uploaded project files in development. Real ones live in blob storage.
 asset-store/
+
+# Database backups, taken locally by ops/backup.ps1.
+backups/

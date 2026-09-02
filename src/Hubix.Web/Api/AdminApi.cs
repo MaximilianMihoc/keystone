@@ -164,6 +164,7 @@ public static class AdminApi
         api.MapReservations();
         api.MapImport();
         api.MapAssets();
+        api.MapPrivacy();
 
         api.MapGet("/audit", async (
             HubixDbContext db,

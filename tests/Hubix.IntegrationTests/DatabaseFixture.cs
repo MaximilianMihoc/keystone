@@ -21,13 +21,25 @@ namespace Hubix.IntegrationTests;
 /// </remarks>
 public sealed class DatabaseFixture : IAsyncLifetime
 {
-    private const string Master =
-        @"Server=.\SQLEXPRESS;Database=master;Trusted_Connection=True;TrustServerCertificate=True";
+    /// <summary>
+    /// How to reach a SQL Server, without saying which one.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to the local Express instance so the tests run on this machine with no setup.
+    /// CI sets HUBIX_TEST_SQL to point at a container with a password, because a build agent
+    /// has no Express install and no Windows authentication to offer it.
+    /// </remarks>
+    private static string Template =>
+        Environment.GetEnvironmentVariable("HUBIX_TEST_SQL")
+        ?? @"Server=.\SQLEXPRESS;Database={0};Trusted_Connection=True;TrustServerCertificate=True";
+
+    private static string For(string database) => string.Format(Template, database);
+
+    private static string Master => For("master");
 
     public string DatabaseName { get; } = $"HubixTests_{Guid.NewGuid():N}";
 
-    public string ConnectionString =>
-        $@"Server=.\SQLEXPRESS;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True";
+    public string ConnectionString => For(DatabaseName);
 
     public Guid ProjectId { get; private set; }
 
