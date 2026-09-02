@@ -1,0 +1,104 @@
+@page "/hold/{token}"
+@model Hubix.Web.Pages.HoldModel
+@{
+    ViewData["Title"] = $"{Model.UnitCode} — {T["Hold.Title"].Value}";
+}
+
+<div class="shell">
+    <div class="page-head">
+        <p class="eyebrow">@Model.ProjectName · @Model.TypeDisplay</p>
+        <h1>@Model.UnitCode</h1>
+    </div>
+
+    @if (Model.JustCancelled)
+    {
+        <div class="alert" role="status">@L["Hold.Cancelled"]</div>
+    }
+
+    @if (Model.IsActive)
+    {
+        <div class="countdown" data-seconds="@Model.SecondsRemaining">
+            <p class="countdown-label">@L["Hold.TimeLeft"]</p>
+            <p class="countdown-clock" aria-live="polite">
+                <span data-countdown>—</span>
+            </p>
+            <p class="countdown-until">
+                @L["Hold.Until", Model.Hold.ExpiresAt.ToLocalTime().ToString("dd MMMM yyyy, HH:mm")]
+            </p>
+        </div>
+
+        <div class="section">
+            <p class="section-label">@L["Hold.WhatNext"]</p>
+            <div class="prose">
+                <p>@L["Hold.WhatNextBody"]</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <form method="post" asp-page-handler="Cancel" asp-route-token="@Model.Hold.AccessToken">
+                <p class="note">@L["Hold.CancelWarning"]</p>
+                <button class="btn ghost" type="submit" style="margin-top:16px">
+                    @L["Hold.CancelAction"]
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="alert" role="status">
+            @if (Model.Hold.ReleaseReason == HoldReleaseReason.Converted)
+            {
+                @L["Hold.Converted"]
+            }
+            else if (Model.Hold.ReleaseReason == HoldReleaseReason.Cancelled)
+            {
+                @L["Hold.WasCancelled"]
+            }
+            else
+            {
+                @L["Hold.Expired"]
+            }
+        </div>
+
+        <p style="margin-top:20px">
+            <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@Model.ProjectSlug">
+                @L["Reserve.SeeWhatIsLeft"]
+            </a>
+        </p>
+    }
+</div>
+
+@section Scripts {
+<script>
+    // Counts down from a server-rendered value. Never authoritative: the server decides when
+    // a hold ends, and the page reloads at zero to ask it rather than deciding for itself.
+    (function () {
+        var box = document.querySelector('.countdown');
+        if (!box) return;
+
+        var output = box.querySelector('[data-countdown]');
+        var remaining = parseInt(box.getAttribute('data-seconds'), 10);
+        if (isNaN(remaining)) return;
+
+        function pad(n) { return n < 10 ? '0' + n : String(n); }
+
+        function render() {
+            if (remaining <= 0) {
+                output.textContent = '00:00:00';
+                window.location.reload();
+                return;
+            }
+
+            var hours = Math.floor(remaining / 3600);
+            var minutes = Math.floor((remaining % 3600) / 60);
+            var seconds = remaining % 60;
+
+            output.textContent = pad(hours) + ':' + pad(minutes) + ':' + pad(seconds);
+            remaining -= 1;
+        }
+
+        render();
+        setInterval(render, 1000);
+    })();
+</script>
+}

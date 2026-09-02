@@ -115,3 +115,6 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+## Development email outbox — LoggingEmailSender writes messages here.
+outbox/

@@ -88,10 +88,10 @@
         {
             <p class="note">@L["Reserve.HoldExplainer", Model.HoldDurationHours]</p>
             <p style="margin-top:16px">
-                @* M3 turns this into a real hold. Until then it must not pretend to work. *@
-                <span class="btn" aria-disabled="true" style="opacity:.45; cursor:not-allowed">
+                <a class="btn" asp-page="/Projects/Reserve"
+                   asp-route-slug="@Model.Slug" asp-route-code="@u.Code">
                     @L["Reserve.Action"]
-                </span>
+                </a>
             </p>
         }
         else

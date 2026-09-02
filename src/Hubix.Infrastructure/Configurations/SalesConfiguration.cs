@@ -54,6 +54,13 @@ public class HoldConfiguration : IEntityTypeConfiguration<Hold>
     public void Configure(EntityTypeBuilder<Hold> builder)
     {
         builder.Property(h => h.ReleaseReason).HasConversion<string>().HasMaxLength(32);
+        builder.Property(h => h.AccessToken).HasMaxLength(64).IsRequired();
+
+        // The prospect reaches their hold by this token alone, so it must resolve in one
+        // indexed lookup and must never collide.
+        builder.HasIndex(h => h.AccessToken)
+            .IsUnique()
+            .HasDatabaseName("UX_Holds_AccessToken");
 
         builder.HasOne(h => h.Unit)
             .WithMany(u => u.Holds)

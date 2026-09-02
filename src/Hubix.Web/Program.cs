@@ -1,6 +1,15 @@
+using System.Globalization;
+using System.Threading.RateLimiting;
+using Hangfire;
+using Hangfire.SqlServer;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
+using Hubix.Infrastructure.Email;
+using Hubix.Infrastructure.Sales;
+using Hubix.Web.Jobs;
+using Hubix.Web.Notifications;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +22,55 @@ builder.Services
     .AddDataAnnotationsLocalization();
 
 builder.Services.AddHubixInfrastructure(builder.Configuration);
+
+builder.Services.Configure<HubixOptions>(builder.Configuration.GetSection(HubixOptions.Section));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<HoldService>();
+builder.Services.AddScoped<WaitlistService>();
+builder.Services.AddScoped<HoldNotifier>();
+builder.Services.AddScoped<HoldExpiryJob>();
+
+// Development sender: writes messages to logs and to an outbox folder, and sends nothing.
+// Swap for a real provider before this reaches a buyer.
+builder.Services.AddSingleton<IEmailSender>(sp => new LoggingEmailSender(
+    sp.GetRequiredService<ILogger<LoggingEmailSender>>(),
+    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox")));
+
+// --- Background jobs --------------------------------------------------------------
+// Hangfire persists in the same database, so the schedule survives restarts, retries on
+// failure, and takes a distributed lock rather than double-firing across instances.
+var connectionString = builder.Configuration.GetConnectionString(
+    DependencyInjection.ConnectionStringName);
+
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+    {
+        PrepareSchemaIfNecessary = true,
+        QueuePollInterval = TimeSpan.FromSeconds(15),
+        DisableGlobalLocks = true
+    }));
+
+builder.Services.AddHangfireServer(options => options.WorkerCount = 2);
+
+// --- Rate limiting ----------------------------------------------------------------
+// Taking a hold removes a unit from sale for two days, so the endpoint that does it is
+// worth protecting from a script.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("reserve", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10)
+            }));
+});
 
 // English is the default. A browser sending Accept-Language: ro gets Romanian without
 // doing anything, and an explicit choice from the language switcher persists in a cookie.
@@ -47,7 +105,23 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRequestLocalization();
 app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapRazorPages();
+
+// Every minute. Cheap when there is nothing due, and a two-day countdown does not need
+// finer granularity than this.
+//
+// Registered through IRecurringJobManager from DI rather than the static RecurringJob
+// helper: the static API reads JobStorage.Current, which is not set during startup.
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider
+        .GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<HoldExpiryJob>(
+            HoldExpiryJob.RecurringJobId,
+            job => job.RunAsync(CancellationToken.None),
+            "* * * * *");
+}
 
 app.Run();

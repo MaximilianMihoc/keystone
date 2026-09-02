@@ -6,6 +6,7 @@
     <Project Path="src/Hubix.Web/Hubix.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Hubix.IntegrationTests/Hubix.IntegrationTests.csproj" />
     <Project Path="tests/Hubix.Tests/Hubix.Tests.csproj" />
   </Folder>
 </Solution>

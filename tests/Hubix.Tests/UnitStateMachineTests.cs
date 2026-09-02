@@ -65,6 +65,7 @@ public class HoldTests
     {
         UnitId = Guid.CreateVersion7(),
         ProspectId = Guid.CreateVersion7(),
+        AccessToken = Hold.NewAccessToken(),
         ExpiresAt = expiresAt
     };
 

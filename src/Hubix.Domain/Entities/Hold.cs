@@ -19,6 +19,16 @@ public class Hold : Entity
 
     public Prospect? Prospect { get; set; }
 
+    /// <summary>
+    /// Secret that lets the prospect reach their hold without an account.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not the primary key. Ids here are UUIDv7, which are time-ordered and so
+    /// partially predictable — anyone who took a hold a moment earlier could guess at their
+    /// neighbours. This is 32 bytes from a cryptographic RNG instead.
+    /// </remarks>
+    public required string AccessToken { get; set; }
+
     public DateTimeOffset ExpiresAt { get; set; }
 
     public DateTimeOffset? ReleasedAt { get; set; }
@@ -50,4 +60,11 @@ public class Hold : Entity
     /// </summary>
     public static bool CountsAsLapse(HoldReleaseReason reason) =>
         reason is HoldReleaseReason.Expired or HoldReleaseReason.Cancelled;
+
+    /// <summary>A URL-safe secret, 256 bits from a cryptographic RNG.</summary>
+    public static string NewAccessToken() =>
+        Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
 }

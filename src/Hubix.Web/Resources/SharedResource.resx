@@ -144,4 +144,62 @@
   <!-- Payment schedule -->
   <data name="Tranche.Explainer"><value>VAT shown at {0}% on the apartment and {1}% on the assignment, for an individual buyer. A reduced rate may apply depending on the buyer and the unit; the rate that applies to you is confirmed before you sign.</value></data>
   <data name="Reserve.Unavailable"><value>This apartment is no longer available. Ask to be told if it comes back.</value></data>
+
+  <!-- Reservation form -->
+  <data name="Reserve.Heading"><value>Hold this apartment</value></data>
+  <data name="Reserve.Confirm"><value>Hold it for me</value></data>
+  <data name="Reserve.SeeWhatIsLeft"><value>See what is still available</value></data>
+  <data name="Reserve.FeeNote"><value>If you go ahead, the reservation fee is {0}.</value></data>
+  <data name="Reserve.NoPaymentNow"><value>Nothing is charged now. Someone from Hubix will call you to take it from here.</value></data>
+  <data name="Reserve.LostTheRace"><value>Somebody reserved this apartment a moment before you. Nothing has been charged, and nothing is being held in your name.</value></data>
+  <data name="Reserve.Blocked"><value>An earlier hold in your name ran out without going ahead, so we cannot hold another apartment for you automatically. Email contact@hubix.ro and we will sort it out.</value></data>
+  <data name="Reserve.TooMany"><value>You are already holding {0} apartments in this development. Let one of them go, or go ahead with one, before holding another.</value></data>
+
+  <data name="Form.FullName"><value>Your name</value></data>
+  <data name="Form.Email"><value>Email</value></data>
+  <data name="Form.EmailHint"><value>Your hold link goes here. Check it is right.</value></data>
+  <data name="Form.Phone"><value>Phone (optional)</value></data>
+  <data name="Form.Consent"><value>Hubix may contact me about this reservation and store my details for it. Used for nothing else.</value></data>
+
+  <data name="Validation.NameRequired"><value>Tell us your name so we know who to call.</value></data>
+  <data name="Validation.EmailRequired"><value>We need an email to send your hold link to.</value></data>
+  <data name="Validation.EmailInvalid"><value>That does not look like an email address.</value></data>
+  <data name="Validation.PhoneInvalid"><value>That does not look like a phone number.</value></data>
+  <data name="Validation.ConsentRequired"><value>We need your agreement before we can hold an apartment for you.</value></data>
+
+  <!-- Hold status -->
+  <data name="Hold.Title"><value>Your hold</value></data>
+  <data name="Hold.TimeLeft"><value>Time left to decide</value></data>
+  <data name="Hold.Until"><value>Held until {0}</value></data>
+  <data name="Hold.WhatNext"><value>What happens next</value></data>
+  <data name="Hold.WhatNextBody"><value>Someone from Hubix will call you to answer questions and walk you through the contract. If you decide to go ahead, you pay the reservation fee and the apartment is yours to buy. Nobody else can reserve it while this countdown is running.</value></data>
+  <data name="Hold.CancelWarning"><value>If you let this hold go, the apartment returns to sale immediately and we will not hold another one for you automatically.</value></data>
+  <data name="Hold.CancelAction"><value>Let this apartment go</value></data>
+  <data name="Hold.Cancelled"><value>Released. The apartment is back on sale.</value></data>
+  <data name="Hold.WasCancelled"><value>You released this hold. The apartment is back on sale.</value></data>
+  <data name="Hold.Expired"><value>This hold ran out and the apartment has returned to sale.</value></data>
+  <data name="Hold.Converted"><value>This hold became a reservation. Hubix will be in touch about the next steps.</value></data>
+
+  <!-- Email -->
+  <data name="Email.HoldSubject"><value>{0} is held for you — {1}</value></data>
+  <data name="Email.HoldBody"><value>We are holding apartment {0} at {1} for you.
+
+You have {2} hours to decide. The hold runs out on {3}, and until then nobody else can reserve it.
+
+Track the time and see what happens next here:
+{4}
+
+Someone from Hubix will call you shortly. Nothing has been charged.</value></data>
+
+  <data name="Email.ExpiredSubject"><value>Your hold on {0} has ended</value></data>
+  <data name="Email.ExpiredBody"><value>The hold on apartment {0} at {1} has run out, and it has returned to sale.
+
+If you are still interested, see what is available here:
+{2}</value></data>
+
+  <data name="Email.WaitlistSubject"><value>An apartment came free at {0}</value></data>
+  <data name="Email.WaitlistBody"><value>Apartment {0} at {1} has just returned to sale, and you are next on the waiting list.
+
+It is available to anyone, so it will go to whoever reserves first:
+{2}</value></data>
 </root>

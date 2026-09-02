@@ -130,4 +130,59 @@
 
   <data name="Tranche.Explainer"><value>TVA afișat la {0}% pentru apartament și {1}% pentru cesiune, pentru o persoană fizică. Se poate aplica TVA redus, în funcție de client și de apartament; cota care ți se aplică se confirmă înainte de semnare.</value></data>
   <data name="Reserve.Unavailable"><value>Acest apartament nu mai este disponibil. Poți cere să fii anunțat dacă redevine liber.</value></data>
+
+  <data name="Reserve.Heading"><value>Rezervă acest apartament</value></data>
+  <data name="Reserve.Confirm"><value>Blochează-l pentru mine</value></data>
+  <data name="Reserve.SeeWhatIsLeft"><value>Vezi ce mai este disponibil</value></data>
+  <data name="Reserve.FeeNote"><value>Dacă mergi mai departe, prețul rezervării este {0}.</value></data>
+  <data name="Reserve.NoPaymentNow"><value>Nu se încasează nimic acum. Vei fi sunat de cineva din echipa Hubix.</value></data>
+  <data name="Reserve.LostTheRace"><value>Cineva a rezervat acest apartament cu câteva momente înaintea ta. Nu ți s-a debitat nimic și nu este nimic blocat pe numele tău.</value></data>
+  <data name="Reserve.Blocked"><value>O rezervare anterioară pe numele tău a expirat fără să continue, așa că nu putem bloca automat un alt apartament. Scrie-ne la contact@hubix.ro și rezolvăm.</value></data>
+  <data name="Reserve.TooMany"><value>Ai deja {0} apartamente blocate în acest proiect. Renunță la unul, sau mergi mai departe cu unul dintre ele, înainte de a bloca altul.</value></data>
+
+  <data name="Form.FullName"><value>Numele tău</value></data>
+  <data name="Form.Email"><value>Email</value></data>
+  <data name="Form.EmailHint"><value>Aici primești linkul rezervării. Verifică să fie corect.</value></data>
+  <data name="Form.Phone"><value>Telefon (opțional)</value></data>
+  <data name="Form.Consent"><value>Sunt de acord ca Hubix să mă contacteze despre această rezervare și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
+
+  <data name="Validation.NameRequired"><value>Spune-ne numele tău, ca să știm pe cine sunăm.</value></data>
+  <data name="Validation.EmailRequired"><value>Avem nevoie de un email ca să îți trimitem linkul rezervării.</value></data>
+  <data name="Validation.EmailInvalid"><value>Nu pare o adresă de email validă.</value></data>
+  <data name="Validation.PhoneInvalid"><value>Nu pare un număr de telefon valid.</value></data>
+  <data name="Validation.ConsentRequired"><value>Avem nevoie de acordul tău ca să putem bloca un apartament.</value></data>
+
+  <data name="Hold.Title"><value>Rezervarea ta</value></data>
+  <data name="Hold.TimeLeft"><value>Timp rămas pentru decizie</value></data>
+  <data name="Hold.Until"><value>Blocat până la {0}</value></data>
+  <data name="Hold.WhatNext"><value>Ce urmează</value></data>
+  <data name="Hold.WhatNextBody"><value>Cineva din echipa Hubix te va suna ca să răspundă la întrebări și să îți explice contractul. Dacă decizi să mergi mai departe, achiți prețul rezervării și apartamentul rămâne al tău. Cât timp curge cronometrul, nimeni altcineva nu îl poate rezerva.</value></data>
+  <data name="Hold.CancelWarning"><value>Dacă renunți la această rezervare, apartamentul revine imediat la vânzare și nu vom mai bloca automat altul pentru tine.</value></data>
+  <data name="Hold.CancelAction"><value>Renunț la acest apartament</value></data>
+  <data name="Hold.Cancelled"><value>Eliberat. Apartamentul a revenit la vânzare.</value></data>
+  <data name="Hold.WasCancelled"><value>Ai renunțat la această rezervare. Apartamentul a revenit la vânzare.</value></data>
+  <data name="Hold.Expired"><value>Această rezervare a expirat, iar apartamentul a revenit la vânzare.</value></data>
+  <data name="Hold.Converted"><value>Această rezervare a fost confirmată. Hubix te va contacta pentru pașii următori.</value></data>
+
+  <data name="Email.HoldSubject"><value>{0} este blocat pentru tine — {1}</value></data>
+  <data name="Email.HoldBody"><value>Am blocat apartamentul {0} din {1} pentru tine.
+
+Ai {2} ore ca să te decizi. Rezervarea expiră pe {3}, iar până atunci nimeni altcineva nu îl poate rezerva.
+
+Vezi timpul rămas și ce urmează aici:
+{4}
+
+Vei fi sunat în scurt timp de cineva din echipa Hubix. Nu s-a încasat nimic.</value></data>
+
+  <data name="Email.ExpiredSubject"><value>Rezervarea ta pentru {0} a expirat</value></data>
+  <data name="Email.ExpiredBody"><value>Rezervarea pentru apartamentul {0} din {1} a expirat, iar acesta a revenit la vânzare.
+
+Dacă ești în continuare interesat, vezi ce este disponibil aici:
+{2}</value></data>
+
+  <data name="Email.WaitlistSubject"><value>S-a eliberat un apartament la {0}</value></data>
+  <data name="Email.WaitlistBody"><value>Apartamentul {0} din {1} tocmai a revenit la vânzare, iar tu ești următorul pe lista de așteptare.
+
+Este disponibil pentru oricine, deci va reveni celui care rezervă primul:
+{2}</value></data>
 </root>
