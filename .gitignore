@@ -64,7 +64,7 @@ pnpm-debug.log*
 .eslintcache
 
 ## Built admin bundle, emitted into the ASP.NET host at build time
-src/Hubix.Web/wwwroot/admin/
+src/Hubix.Web/wwwroot/admin-assets/
 
 ## ---------------------------------------------------------------------------
 ## Database

@@ -1,0 +1,132 @@
+using System.ComponentModel.DataAnnotations;
+using Hubix.Infrastructure.Auth;
+using Hubix.Web.Notifications;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace Hubix.Web.Pages.Admin;
+
+[EnableRateLimiting("login")]
+public class LoginModel(
+    StaffAuthService auth,
+    StaffNotifier notifier,
+    IWebHostEnvironment environment,
+    ILogger<LoginModel> logger) : PageModel
+{
+    [BindProperty]
+    [Required(ErrorMessage = "Enter your Hubix email address.")]
+    [EmailAddress(ErrorMessage = "That does not look like an email address.")]
+    public string? Email { get; set; }
+
+    public bool LinkSent { get; private set; }
+
+    /// <summary>
+    /// In development the sign-in link is shown on the page, because there is no mail
+    /// provider and digging through the outbox to log in is a poor way to spend a morning.
+    /// Never populated outside Development.
+    /// </summary>
+    public string? DevelopmentLink { get; private set; }
+
+    public IActionResult OnGet()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToPage("/Admin/Index");
+        }
+
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync(CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        var link = await auth.IssueLoginTokenAsync(
+            Email!, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+
+        // Always the same answer. Telling an unauthenticated visitor whether an address is
+        // a Hubix account hands them a staff list.
+        LinkSent = true;
+
+        if (link is null)
+        {
+            return Page();
+        }
+
+        var url = Url.Page("/Admin/Verify", null, new { token = link.Token }, Request.Scheme)!;
+
+        if (environment.IsDevelopment())
+        {
+            DevelopmentLink = url;
+        }
+
+        try
+        {
+            await notifier.SignInLinkAsync(link, url, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not send the sign-in link to {Email}", link.Email);
+        }
+
+        return Page();
+    }
+}
+
+public class VerifyModel(StaffAuthService auth, ILogger<VerifyModel> logger) : PageModel
+{
+    public async Task<IActionResult> OnGetAsync(string? token, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return RedirectToPage("/Admin/Login");
+        }
+
+        var staff = await auth.ConsumeAsync(token, ct);
+
+        if (staff is null)
+        {
+            TempData["LoginError"] = "That sign-in link has expired or been used already. Ask for a new one.";
+            return RedirectToPage("/Admin/Login");
+        }
+
+        var claims = new List<System.Security.Claims.Claim>
+        {
+            new(System.Security.Claims.ClaimTypes.NameIdentifier, staff.Id.ToString()),
+            new(System.Security.Claims.ClaimTypes.Email, staff.Email),
+            new(System.Security.Claims.ClaimTypes.Name, staff.Name),
+            new(System.Security.Claims.ClaimTypes.Role, staff.Role.ToString())
+        };
+
+        var identity = new System.Security.Claims.ClaimsIdentity(
+            claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new System.Security.Claims.ClaimsPrincipal(identity),
+            new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(12)
+            });
+
+        logger.LogInformation("{Email} signed in as {Role}", staff.Email, staff.Role);
+
+        return RedirectToPage("/Admin/Index");
+    }
+}
+
+public class LogoutModel : PageModel
+{
+    public async Task<IActionResult> OnPostAsync()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return RedirectToPage("/Admin/Login");
+    }
+}

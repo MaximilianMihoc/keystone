@@ -2,12 +2,18 @@ using System.Globalization;
 using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.SqlServer;
+using Hubix.Domain;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
+using Hubix.Infrastructure.Admin;
+using Hubix.Infrastructure.Auth;
 using Hubix.Infrastructure.Email;
 using Hubix.Infrastructure.Sales;
+using Hubix.Web.Api;
 using Hubix.Web.Jobs;
+using Hubix.Web.Pages.Admin;
 using Hubix.Web.Notifications;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
@@ -30,6 +36,59 @@ builder.Services.AddScoped<HoldService>();
 builder.Services.AddScoped<WaitlistService>();
 builder.Services.AddScoped<HoldNotifier>();
 builder.Services.AddScoped<HoldExpiryJob>();
+builder.Services.AddScoped<StaffAuthService>();
+builder.Services.AddScoped<StaffNotifier>();
+builder.Services.AddScoped<UnitAdminService>();
+
+// --- Staff authentication ----------------------------------------------------------
+// Passwordless, for a team of four. No password store means no hashing policy to get
+// wrong, no reset flow to build, and nothing worth stealing if the database leaks.
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "hubix.staff";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+        options.SlidingExpiration = true;
+        options.LoginPath = "/admin/login";
+        options.LogoutPath = "/admin/logout";
+        options.AccessDeniedPath = "/admin/login";
+
+        // The admin client talks JSON. Redirecting its fetch calls to an HTML login page
+        // would surface as a parse error rather than "your session ended".
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AuthPolicies.Staff, policy => policy.RequireAuthenticatedUser())
+    .AddPolicy(AuthPolicies.CanEdit, policy => policy
+        .RequireAuthenticatedUser()
+        .RequireRole(nameof(StaffRole.Admin), nameof(StaffRole.Sales)));
 
 // --- Email -----------------------------------------------------------------------
 // Every message goes through SafeEmailSender, which transmits only when live sending is
@@ -88,6 +147,16 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(10)
             }));
+
+    // Sign-in links are emailed, so a script hammering this endpoint fills an inbox.
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15)
+            }));
 });
 
 // English is the default. A browser sending Accept-Language: ro gets Romanian without
@@ -124,8 +193,11 @@ app.UseStaticFiles();
 app.UseRequestLocalization();
 app.UseRouting();
 app.UseRateLimiter();
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapRazorPages();
+app.MapAdminApi();
 
 // Every minute. Cheap when there is nothing due, and a two-day countdown does not need
 // finer granularity than this.

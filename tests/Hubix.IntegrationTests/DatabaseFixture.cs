@@ -33,6 +33,10 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     public Guid UnitId { get; private set; }
 
+    /// <summary>The values the fixture's unit is restored to between tests.</summary>
+    public static (decimal Price, decimal Cesiune, decimal AreaUsable) SeedPrice
+        => (135_776m, 14_444.62m, 45.71m);
+
     /// <summary>
     /// A context configured the way production is.
     /// </summary>
@@ -87,9 +91,19 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [WaitlistEntries]");
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [Prospects]");
 
+        // Projects other tests created; the fixture's own must survive.
+        await db.Projects.Where(p => p.Id != ProjectId).ExecuteDeleteAsync();
+
+        var seeded = SeedPrice;
+
         await db.Units
             .Where(u => u.Id == UnitId)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Available));
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.State, UnitState.Available)
+                .SetProperty(u => u.BasePriceNet, seeded.Price)
+                .SetProperty(u => u.CesiunePriceNet, seeded.Cesiune)
+                .SetProperty(u => u.AreaUsable, seeded.AreaUsable)
+                .SetProperty(u => u.AdminNotes, (string?)null));
     }
 
     private async Task SeedAsync(HubixDbContext db)

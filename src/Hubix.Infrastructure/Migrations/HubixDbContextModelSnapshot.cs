@@ -623,6 +623,48 @@ namespace Hubix.Infrastructure.Migrations
                     b.ToTable("Reservations");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.StaffLoginToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("RequestedFromIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<Guid>("StaffUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("StaffUserId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("StaffLoginTokens");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.StaffUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1021,6 +1063,17 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Prospect");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("Hubix.Domain.Entities.StaffLoginToken", b =>
+                {
+                    b.HasOne("Hubix.Domain.Entities.StaffUser", "StaffUser")
+                        .WithMany()
+                        .HasForeignKey("StaffUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StaffUser");
                 });
 
             modelBuilder.Entity("Hubix.Domain.Entities.Unit", b =>

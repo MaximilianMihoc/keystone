@@ -48,6 +48,10 @@ if (reset)
         """);
 }
 
+Console.WriteLine("Seeding staff...");
+var staffAdded = await StaffSeeder.SeedAsync(db, CancellationToken.None);
+Console.WriteLine($"  {staffAdded} staff account(s) added.");
+
 Console.WriteLine("Seeding Roka Park View...");
 var seeded = await RokaSeeder.SeedAsync(db, seedFile, CancellationToken.None);
 

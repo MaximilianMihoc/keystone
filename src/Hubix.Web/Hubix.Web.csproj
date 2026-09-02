@@ -17,6 +17,44 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AdminClientDir>$(MSBuildProjectDirectory)\..\Hubix.Admin</AdminClientDir>
   </PropertyGroup>
+
+  <!--
+    Build the React admin client as part of `dotnet build`, so one command produces a
+    working application and nobody has to remember a second one.
+
+    Inputs/Outputs make it incremental: npm runs only when a source file is newer than
+    the bundle. Skipped entirely when npm is unavailable, so a machine without Node can
+    still build and test the .NET side; the admin page then explains what to run.
+  -->
+  <Target Name="BuildAdminClient"
+          BeforeTargets="BeforeBuild"
+          Condition="Exists('$(AdminClientDir)\package.json')"
+          Inputs="@(AdminClientSource)"
+          Outputs="$(MSBuildProjectDirectory)\wwwroot\admin-assets\index.js">
+
+    <ItemGroup>
+      <AdminClientSource Include="$(AdminClientDir)\src\**\*" />
+      <AdminClientSource Include="$(AdminClientDir)\package.json" />
+      <AdminClientSource Include="$(AdminClientDir)\vite.config.ts" />
+    </ItemGroup>
+
+    <Exec Command="npm --version" ContinueOnError="true" StandardOutputImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="NpmExitCode" />
+    </Exec>
+
+    <Message Importance="high"
+             Condition="'$(NpmExitCode)' != '0'"
+             Text="npm not found — skipping the admin client build. Run 'npm install &amp;&amp; npm run build' in src/Hubix.Admin when you have Node." />
+
+    <Exec Condition="'$(NpmExitCode)' == '0' AND !Exists('$(AdminClientDir)\node_modules')"
+          Command="npm install --no-fund --no-audit"
+          WorkingDirectory="$(AdminClientDir)" />
+
+    <Exec Condition="'$(NpmExitCode)' == '0'"
+          Command="npm run build"
+          WorkingDirectory="$(AdminClientDir)" />
+  </Target>
 
 </Project>

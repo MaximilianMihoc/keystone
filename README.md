@@ -51,7 +51,7 @@ hold funds.
 | Data | EF Core → SQL Server / Azure SQL |
 | Public site | Razor Pages — server-rendered and indexable; prospects share these links |
 | Admin | React + TypeScript (Vite) |
-| Auth | ASP.NET Identity for staff, passwordless magic links for prospects |
+| Auth | Passwordless sign-in links, cookie session. No password store for a team of four |
 | Background jobs | Hangfire — hold expiry and waitlist promotion |
 | Email | Transactional, Romanian-first |
 | Storage | Azure Blob — floor plans, RLVs, renders |
@@ -72,7 +72,7 @@ src/
   Hubix.Domain/           entities, the unit state machine, pricing rules
   Hubix.Infrastructure/   EF Core, email, blob storage
   Hubix.Web/              Razor Pages, API, Hangfire host
-  Hubix.Admin/            React + TypeScript admin client
+  Hubix.Admin/            React + TypeScript admin client (built into wwwroot by dotnet build)
   Hubix.Seed/             loads real project data into a local database
 tests/
   Hubix.Tests/            unit tests
@@ -125,8 +125,22 @@ dotnet run --project src/Hubix.Seed          # loads real project data
 dotnet run --project src/Hubix.Web
 ```
 
-`appsettings.Development.json` is gitignored — it holds your local connection string. The `.example`
-file documents its shape.
+`appsettings.Development.json` is gitignored — it holds your local connection string and the
+address test email is redirected to. The `.example` file documents its shape.
+
+`dotnet build` also builds the React admin client, so one command produces a working
+application. It is skipped when npm is unavailable, and the admin page then says what to run.
+
+### Signing in to the admin
+
+Go to `/admin`. Sign-in is passwordless: you ask for a link and follow it.
+
+**No mail leaves the machine.** `Email:LiveSendingEnabled` is `false`, so messages are written to
+`./outbox` instead, and `Email:RedirectAllTo` re-addresses everything to one inbox. Hubix's own
+addresses are on a block list that is checked first. In Development the sign-in link is also shown
+on the page, so you do not have to open the outbox to log in.
+
+Seeded accounts use `.invalid` addresses for the same reason — sign in as `dev@hubix.invalid`.
 
 ---
 
@@ -168,10 +182,10 @@ Source material — prospectuses and spreadsheets containing real prices and buy
 
 | | | |
 |---|---|---|
-| M1 | Schema, EF migrations, seed | 1–2 wk |
-| M2 | Public project page and inventory, read-only | 1–2 wk |
-| M3 | Holds, the Hangfire job, transactional email | 2 wk |
-| M4 | Auth, React admin shell, editable units grid | 2–3 wk |
+| M1 | Schema, EF migrations, seed | ✅ done |
+| M2 | Public project page and inventory, read-only | ✅ done |
+| M3 | Holds, the Hangfire job, transactional email | ✅ done |
+| M4 | Auth, React admin shell, editable units grid | ✅ done |
 | M5 | Reservation pipeline | 2 wk |
 | M6 | Waitlist with auto-promotion | 1 wk |
 | M7 | Importer and exporter | 1–2 wk |

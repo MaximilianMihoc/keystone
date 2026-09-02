@@ -28,6 +28,8 @@ public class HubixDbContext(DbContextOptions<HubixDbContext> options) : DbContex
 
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();
 
+    public DbSet<StaffLoginToken> StaffLoginTokens => Set<StaffLoginToken>();
+
     public DbSet<Reservation> Reservations => Set<Reservation>();
 
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();

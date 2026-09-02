@@ -49,6 +49,24 @@ public class StaffUserConfiguration : IEntityTypeConfiguration<StaffUser>
     }
 }
 
+public class StaffLoginTokenConfiguration : IEntityTypeConfiguration<StaffLoginToken>
+{
+    public void Configure(EntityTypeBuilder<StaffLoginToken> builder)
+    {
+        builder.Property(t => t.TokenHash).HasMaxLength(64).IsRequired();
+        builder.Property(t => t.RequestedFromIp).HasMaxLength(45);
+
+        builder.HasOne(t => t.StaffUser)
+            .WithMany()
+            .HasForeignKey(t => t.StaffUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Sign-in resolves by hash alone, so it must be one indexed lookup.
+        builder.HasIndex(t => t.TokenHash).IsUnique();
+        builder.HasIndex(t => t.ExpiresAt);
+    }
+}
+
 public class HoldConfiguration : IEntityTypeConfiguration<Hold>
 {
     public void Configure(EntityTypeBuilder<Hold> builder)
