@@ -189,7 +189,7 @@ Source material — prospectuses and spreadsheets containing real prices and buy
 | M5 | Reservation pipeline and the board | ✅ done |
 | M6 | Waiting list with auto-promotion | ✅ done |
 | M7 | Importer and exporter | ✅ done |
-| M8 | Assets — floor plans, RLVs, renders | 1 wk |
+| M8 | Assets — floor plans, RLVs, renders | ✅ done |
 | M9 | Hardening and deploy | 2 wk |
 
 ---

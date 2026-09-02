@@ -39,7 +39,15 @@ public class FloorConfiguration : IEntityTypeConfiguration<Floor>
             .HasForeignKey(f => f.FloorPlanAssetId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        builder.HasIndex(f => new { f.ProjectId, f.Building, f.Level }).IsUnique();
+        // HasFilter(null) removes the "[Building] IS NOT NULL" filter EF adds to any unique
+        // index over a nullable column. With that filter, a project with one building — where
+        // Building is null on every row — had no uniqueness at all, so two rows could both
+        // claim floor 1 and "which floor plan?" would have two answers. SQL Server treats
+        // nulls as equal in a unique index, which is exactly the rule wanted here.
+        builder.HasIndex(f => new { f.ProjectId, f.Building, f.Level })
+            .IsUnique()
+            .HasFilter(null)
+            .HasDatabaseName("UX_Floors_OnePerLevel");
     }
 }
 

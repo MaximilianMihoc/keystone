@@ -118,3 +118,6 @@ $RECYCLE.BIN/
 
 ## Development email outbox — LoggingEmailSender writes messages here.
 outbox/
+
+# Uploaded project files in development. Real ones live in blob storage.
+asset-store/

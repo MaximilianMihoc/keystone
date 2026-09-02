@@ -106,6 +106,12 @@
   <data name="Reserve.JoinWaitlist"><value>Join the waiting list</value></data>
 
   <!-- Content fallback -->
+  <data name="Asset.Drawings"><value>Plans and drawings</value></data>
+  <data name="Asset.FloorPlan"><value>Floor plan</value></data>
+  <data name="Asset.Rlv"><value>Apartment plan (RLV)</value></data>
+  <data name="Asset.Render"><value>Render</value></data>
+  <data name="Asset.Document"><value>Document</value></data>
+
   <data name="Content.OnlyInRomanian"><value>This description is only available in Romanian.</value></data>
 
   <!-- Projects register -->

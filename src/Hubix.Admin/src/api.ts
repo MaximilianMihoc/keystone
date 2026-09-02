@@ -194,6 +194,32 @@ export type ReservationEdit = Partial<
   Pick<Reservation, 'contractNumber' | 'notaryLocation' | 'notaryAppointmentAt' | 'internalNotes'>
 > & { buyerType?: string };
 
+export interface ProjectAsset {
+  id: string;
+  kind: string;
+  fileName: string;
+  contentType: string | null;
+  sizeBytes: number;
+  caption: string | null;
+  createdAt: string;
+  unitIds: string[];
+  /** Signed and time-limited. Never a permanent address. */
+  url: string;
+}
+
+export interface FloorRow {
+  building: string | null;
+  level: number;
+  floorPlanAssetId: string | null;
+}
+
+export interface AssetsResponse {
+  assets: ProjectAsset[];
+  floors: FloorRow[];
+  /** Every building-and-level the units actually occupy, whether or not a floor row exists. */
+  levels: { building: string | null; level: number }[];
+}
+
 /** A field the importer can fill from a column. */
 export interface ImportFieldInfo {
   field: string;
@@ -313,6 +339,34 @@ export const api = {
 
   removeFromWaitlist: (entryId: string) =>
     request<{ removed: boolean }>(`/api/admin/waitlist/${entryId}`, { method: 'DELETE' }),
+
+  assets: (projectId: string) =>
+    request<AssetsResponse>(`/api/admin/projects/${projectId}/assets`),
+
+  uploadAsset: (projectId: string, file: File, kind: string, caption?: string) =>
+    upload<{ id: string; fileName: string }>(
+      `/api/admin/projects/${projectId}/assets`,
+      file,
+      { kind, ...(caption ? { caption } : {}) },
+    ),
+
+  setFloorPlan: (
+    projectId: string,
+    body: { building: string | null; level: number; assetId: string | null },
+  ) =>
+    request<{ ok: boolean }>(`/api/admin/projects/${projectId}/floors/plan`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  attachAsset: (unitId: string, assetId: string) =>
+    request<{ ok: boolean }>(`/api/admin/units/${unitId}/assets/${assetId}`, { method: 'POST' }),
+
+  detachAsset: (unitId: string, assetId: string) =>
+    request<{ ok: boolean }>(`/api/admin/units/${unitId}/assets/${assetId}`, { method: 'DELETE' }),
+
+  deleteAsset: (assetId: string) =>
+    request<{ ok: boolean }>(`/api/admin/assets/${assetId}`, { method: 'DELETE' }),
 
   importFields: () => request<ImportFieldInfo[]>('/api/admin/import/fields'),
 

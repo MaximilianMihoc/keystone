@@ -94,6 +94,12 @@ public sealed class DatabaseFixture : IAsyncLifetime
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [WaitlistEntries]");
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [Prospects]");
 
+        // Floors before Assets: a floor points at its plan with NoAction, so the asset
+        // cannot go first.
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [UnitAssets]");
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [Floors]");
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [Assets]");
+
         // Projects other tests created; the fixture's own must survive.
         await db.Projects.Where(p => p.Id != ProjectId).ExecuteDeleteAsync();
 

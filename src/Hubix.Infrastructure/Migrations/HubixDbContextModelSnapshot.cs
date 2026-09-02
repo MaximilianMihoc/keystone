@@ -245,7 +245,7 @@ namespace Hubix.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId", "Building", "Level")
                         .IsUnique()
-                        .HasFilter("[Building] IS NOT NULL");
+                        .HasDatabaseName("UX_Floors_OnePerLevel");
 
                     b.ToTable("Floors");
                 });

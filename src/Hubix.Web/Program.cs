@@ -8,6 +8,7 @@ using Hubix.Infrastructure;
 using Hubix.Infrastructure.Admin;
 using Hubix.Infrastructure.Auth;
 using Hubix.Infrastructure.Email;
+using Hubix.Infrastructure.Assets;
 using Hubix.Infrastructure.Import;
 using Hubix.Infrastructure.Sales;
 using Hubix.Web.Api;
@@ -42,6 +43,22 @@ builder.Services.AddScoped<StaffNotifier>();
 builder.Services.AddScoped<UnitAdminService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<WaitlistPromoter>();
+// --- Asset storage -----------------------------------------------------------------
+// A folder unless blob storage is configured. Both sign their read links and expire them,
+// so nothing above this line can tell which one it is talking to — and a difference between
+// them shows up locally rather than in production.
+builder.Services.Configure<AssetOptions>(builder.Configuration.GetSection(AssetOptions.Section));
+
+builder.Services.AddSingleton<IAssetStorage>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<AssetOptions>>();
+
+    return string.IsNullOrWhiteSpace(settings.Value.BlobConnectionString)
+        ? new LocalAssetStorage(settings, sp.GetRequiredService<TimeProvider>())
+        : new BlobAssetStorage(settings);
+});
+
+builder.Services.AddScoped<AssetService>();
 builder.Services.AddScoped<ImportPlanner>();
 builder.Services.AddScoped<ImportService>();
 builder.Services.AddScoped<InventoryExporter>();
@@ -204,6 +221,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapAdminApi();
+app.MapAssetFiles();
 
 // Every minute. Cheap when there is nothing due, and a two-day countdown does not need
 // finer granularity than this.

@@ -4,8 +4,9 @@ import { UnitsGrid } from './UnitsGrid';
 import { PipelineBoard } from './PipelineBoard';
 import { WaitlistPanel } from './WaitlistPanel';
 import { ImportPanel } from './ImportPanel';
+import { AssetsPanel } from './AssetsPanel';
 
-type View = 'units' | 'pipeline' | 'waitlist' | 'import';
+type View = 'units' | 'pipeline' | 'waitlist' | 'files' | 'import';
 
 type Load<T> =
   | { status: 'loading' }
@@ -154,6 +155,13 @@ export function App() {
               Waiting list
             </button>
             <button
+              className={`view${view === 'files' ? ' view-on' : ''}`}
+              type="button"
+              onClick={() => setView('files')}
+            >
+              Plans &amp; files
+            </button>
+            <button
               className={`view${view === 'import' ? ' view-on' : ''}`}
               type="button"
               onClick={() => setView('import')}
@@ -193,6 +201,16 @@ export function App() {
           <WaitlistPanel
             key={selected}
             projectId={selected}
+            canEdit={me.data.canEdit}
+            onSessionExpired={() => setExpired(true)}
+          />
+        )}
+
+        {view === 'files' && selected && me.status === 'ready' && (
+          <AssetsPanel
+            key={selected}
+            projectId={selected}
+            units={units?.status === 'ready' ? units.data.units : []}
             canEdit={me.data.canEdit}
             onSessionExpired={() => setExpired(true)}
           />

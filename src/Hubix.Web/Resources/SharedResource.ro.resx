@@ -96,6 +96,12 @@
   <data name="Reserve.NoLongerAvailable"><value>Acest apartament a fost rezervat de altcineva acum câteva momente. Nu ți s-a debitat nimic.</value></data>
   <data name="Reserve.JoinWaitlist"><value>Înscrie-te pe lista de așteptare</value></data>
 
+  <data name="Asset.Drawings"><value>Planuri și schițe</value></data>
+  <data name="Asset.FloorPlan"><value>Plan etaj</value></data>
+  <data name="Asset.Rlv"><value>Plan apartament (RLV)</value></data>
+  <data name="Asset.Render"><value>Randare</value></data>
+  <data name="Asset.Document"><value>Document</value></data>
+
   <data name="Content.OnlyInRomanian"><value>Această descriere este disponibilă doar în limba română.</value></data>
 
   <data name="Index.Eyebrow"><value>Proiecte verificate</value></data>
