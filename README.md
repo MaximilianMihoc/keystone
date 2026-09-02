@@ -1,0 +1,178 @@
+# Hubix Portal
+
+Investor portal for [Hubix](https://hubix.ro) real estate hubs — live apartment inventory, atomic
+reservations, waitlists and the sales pipeline, replacing a per-project stack of Word documents,
+Google Sheets and Google Forms.
+
+> **Status: pre-alpha, unsanctioned.** This is an independent side project. Hubix has not been
+> approached about it and has not seen it. Nothing here is an official Hubix product, and the
+> repository is private for that reason.
+
+---
+
+## The problem
+
+Hubix sells apartments in blocks of 20–40 units per development. Today each project is run from five
+artefacts kept in sync by hand:
+
+| Artefact | Today |
+|---|---|
+| Prospectus | A 13–20 page Word document, emailed out |
+| Inventory | One Google Sheet per project, availability a `DA` / `NU` text cell |
+| Reservation | A Google Form, first-come-first-served on the honour system |
+| Waitlist | Separate Google Forms per apartment type |
+| Sales pipeline | Hidden right-hand columns of the same sheet |
+
+The syncing is visibly failing — column layouts have drifted between projects, one live spreadsheet has
+its header row pasted over, and one prospectus states two different unit counts in two places.
+
+**This project's thesis:** enter a project once, render it everywhere.
+
+---
+
+## Scope
+
+**In:** Line A — the "Hubs" business. Apartment inventory, reservations, waitlists, pipeline, documents.
+
+**Out for now:** Hubix Equity. That line is a regulated private placement capped at 149 privately invited
+subscribers per project, and it needs review by a Romanian securities lawyer before any of it is designed,
+let alone built.
+
+**Never:** payments. Money moves by bank transfer and at the notary. This system tracks state; it does not
+hold funds.
+
+---
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Backend | ASP.NET Core (.NET 10) |
+| Data | EF Core → SQL Server / Azure SQL |
+| Public site | Razor Pages — server-rendered and indexable; prospects share these links |
+| Admin | React + TypeScript (Vite) |
+| Auth | ASP.NET Identity for staff, passwordless magic links for prospects |
+| Background jobs | Hangfire — hold expiry and waitlist promotion |
+| Email | Transactional, Romanian-first |
+| Storage | Azure Blob — floor plans, RLVs, renders |
+
+Romanian is the default locale. English is the translation, not the other way round.
+
+---
+
+## Planned layout
+
+```
+src/
+  Hubix.Domain/           entities, the unit state machine, pricing rules
+  Hubix.Infrastructure/   EF Core, email, blob storage
+  Hubix.Web/              Razor Pages, API, Hangfire host
+  Hubix.Admin/            React + TypeScript admin client
+  Hubix.Seed/             loads real project data into a local database
+tests/
+  Hubix.Tests/            unit tests
+  Hubix.IntegrationTests/ includes the hold concurrency test
+```
+
+---
+
+## The bit that matters
+
+A unit moves `Available → Held → Reserved → Contracted → Sold`. The hold is the load-bearing part, and it
+is deliberately a single guarded statement:
+
+```csharp
+var rows = await db.Units
+    .Where(u => u.Id == unitId && u.State == UnitState.Available)   // ← the guard
+    .ExecuteUpdateAsync(s => s
+        .SetProperty(u => u.State,          UnitState.Held)
+        .SetProperty(u => u.StateChangedAt, DateTimeOffset.UtcNow), ct);
+
+if (rows == 0) return HoldResult.NoLongerAvailable;
+```
+
+Two people clicking *Reserve* on the same apartment in the same second: exactly one gets `rows == 1`. No
+entity is loaded first, so there is no read-then-write window to lose the race in. Today this is prevented
+only by a member of staff being quick with a spreadsheet.
+
+An integration test asserting that N concurrent holds produce exactly one winner is a **release gate**, not
+a nice-to-have.
+
+---
+
+## Getting started
+
+Requires the .NET 10 SDK, Node 22+, and SQL Server LocalDB (ships with SQL Server Express).
+
+```powershell
+winget install Microsoft.DotNet.SDK.10
+winget install Microsoft.SQLServer.2022.Express
+```
+
+```powershell
+git clone https://github.com/MaximilianMihoc/hubix-portal.git
+cd hubix-portal
+
+cp src/Hubix.Web/appsettings.Development.example.json src/Hubix.Web/appsettings.Development.json
+dotnet restore
+dotnet ef database update --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+dotnet run --project src/Hubix.Seed          # loads real project data
+dotnet run --project src/Hubix.Web
+```
+
+`appsettings.Development.json` is gitignored — it holds your local connection string. The `.example`
+file documents its shape.
+
+---
+
+## Conventions
+
+- **Money is `decimal`.** Never `double`, anywhere, for any reason.
+- **Money is snapshotted at agreement**, never recomputed. Prices change; signed reservations must not.
+- **Every state transition writes an audit row.** "Who released that hold, and when?" has to be answerable.
+- **Consent is captured with purpose and version** from the first migration. Retrofitting GDPR onto a live
+  prospect table is genuinely painful.
+- **Timestamps are `datetimeoffset`**, stored UTC.
+- **Primary keys are UUIDv7**, generated in the application — SQL Server clusters on the primary key by
+  default, and random GUIDs fragment that index on every insert.
+- **Hubix's vocabulary wins.** A tranche they call *Transa 3* stays `Transa 3` even when it is the second
+  payment. `cesiune` is real Romanian real estate terminology and is used as such.
+
+---
+
+## Documents
+
+Analysis, proposal and the full build specification live outside this repository, at
+`C:\Repositories\ClaudeLocalDocs\Hubix`:
+
+| Document | Contents |
+|---|---|
+| `01-business-analysis` | What Hubix does, both business lines, the current manual process |
+| `02-application-proposal` | Why this system, what is deliberately out of scope, build order |
+| `03-build-spec` | Schema, state machine, routes, milestones, production checklist |
+| `seed-data/` | The five inventory spreadsheets extracted to JSON |
+
+Source material — prospectuses and spreadsheets containing real prices and buyer data — stays in
+`C:\Repositories\HubixDocs` and is gitignored here.
+
+---
+
+## Milestones
+
+| | | |
+|---|---|---|
+| M1 | Schema, EF migrations, seed | 1–2 wk |
+| M2 | Public project page and inventory, read-only | 1–2 wk |
+| M3 | Holds, the Hangfire job, transactional email | 2 wk |
+| M4 | Auth, React admin shell, editable units grid | 2–3 wk |
+| M5 | Reservation pipeline | 2 wk |
+| M6 | Waitlist with auto-promotion | 1 wk |
+| M7 | Importer and exporter | 1–2 wk |
+| M8 | Assets — floor plans, RLVs, renders | 1 wk |
+| M9 | Hardening and deploy | 2 wk |
+
+---
+
+## Licence
+
+None. Private, all rights reserved.
