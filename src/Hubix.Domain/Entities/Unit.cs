@@ -9,11 +9,24 @@ public class UnitType : Entity
 
     public Project? Project { get; set; }
 
+    /// <summary>
+    /// Canonical name, in Hubix's own Romanian. This is what the importer matches on, so it
+    /// stays put; <see cref="Translations"/> only changes what a visitor reads.
+    /// </summary>
     public required string Name { get; set; }
 
     public int SortOrder { get; set; }
 
     public ICollection<Unit> Units { get; set; } = [];
+
+    public ICollection<UnitTypeTranslation> Translations { get; set; } = [];
+
+    /// <summary>
+    /// Display name for a culture, falling back to the canonical Romanian name rather than to
+    /// a translation in some other language.
+    /// </summary>
+    public string DisplayName(string culture) =>
+        Translations.ForCulture(culture, fallBackToAny: false)?.DisplayName ?? Name;
 }
 
 /// <summary>

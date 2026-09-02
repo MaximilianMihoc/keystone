@@ -56,7 +56,12 @@ hold funds.
 | Email | Transactional, Romanian-first |
 | Storage | Azure Blob — floor plans, RLVs, renders |
 
-Romanian is the default locale. English is the translation, not the other way round.
+**English is the default language.** A browser sending `Accept-Language: ro` is served Romanian
+automatically, and a language switcher writes a cookie that overrides the browser. Provider order
+is query string, then cookie, then `Accept-Language`, then the `en-GB` default.
+
+UI strings live in `.resx` files; project prose lives in `ProjectTranslations` rows. Hubix authors
+its content in Romanian, so an untranslated field falls back to Romanian rather than showing blank.
 
 ---
 
@@ -133,6 +138,8 @@ file documents its shape.
 - **Consent is captured with purpose and version** from the first migration. Retrofitting GDPR onto a live
   prospect table is genuinely painful.
 - **Timestamps are `datetimeoffset`**, stored UTC.
+- **Translatable prose goes in a translations table**, never in `FieldEn` / `FieldRo` column pairs.
+  Adding a language is then a data change rather than a migration.
 - **Primary keys are UUIDv7**, generated in the application — SQL Server clusters on the primary key by
   default, and random GUIDs fragment that index on every insert.
 - **Hubix's vocabulary wins.** A tranche they call *Transa 3* stays `Transa 3` even when it is the second

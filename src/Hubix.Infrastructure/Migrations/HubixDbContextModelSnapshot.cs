@@ -343,9 +343,6 @@ namespace Hubix.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("BodyRo")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -380,9 +377,6 @@ namespace Hubix.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("PenaltyClause")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -403,10 +397,6 @@ namespace Hubix.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
-                    b.Property<string>("SummaryRo")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
                     b.Property<int?>("UnitsCommitted")
                         .HasColumnType("int");
 
@@ -426,6 +416,45 @@ namespace Hubix.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Projects_HoldDurationHours", "[HoldDurationHours] > 0 AND [HoldDurationHours] <= 720");
                         });
+                });
+
+            modelBuilder.Entity("Hubix.Domain.Entities.ProjectTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Culture")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("PenaltyClause")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "Culture")
+                        .IsUnique();
+
+                    b.ToTable("ProjectTranslations");
                 });
 
             modelBuilder.Entity("Hubix.Domain.Entities.Prospect", b =>
@@ -787,6 +816,39 @@ namespace Hubix.Infrastructure.Migrations
                     b.ToTable("UnitTypes");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.UnitTypeTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Culture")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("UnitTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UnitTypeId", "Culture")
+                        .IsUnique();
+
+                    b.ToTable("UnitTypeTranslations");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.WaitlistEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -922,6 +984,17 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Developer");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.ProjectTranslation", b =>
+                {
+                    b.HasOne("Hubix.Domain.Entities.Project", "Project")
+                        .WithMany("Translations")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.Reservation", b =>
                 {
                     b.HasOne("Hubix.Domain.Entities.Prospect", "Prospect")
@@ -990,6 +1063,17 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.UnitTypeTranslation", b =>
+                {
+                    b.HasOne("Hubix.Domain.Entities.UnitType", "UnitType")
+                        .WithMany("Translations")
+                        .HasForeignKey("UnitTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UnitType");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.WaitlistEntry", b =>
                 {
                     b.HasOne("Hubix.Domain.Entities.Project", "Project")
@@ -1034,6 +1118,8 @@ namespace Hubix.Infrastructure.Migrations
 
                     b.Navigation("PricingRules");
 
+                    b.Navigation("Translations");
+
                     b.Navigation("UnitTypes");
 
                     b.Navigation("Units");
@@ -1059,6 +1145,8 @@ namespace Hubix.Infrastructure.Migrations
 
             modelBuilder.Entity("Hubix.Domain.Entities.UnitType", b =>
                 {
+                    b.Navigation("Translations");
+
                     b.Navigation("Units");
                 });
 #pragma warning restore 612, 618

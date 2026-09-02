@@ -67,19 +67,15 @@ public class Project : Entity
     /// </summary>
     public int HoldDurationHours { get; set; } = 48;
 
-    /// <summary>
-    /// The late-delivery penalty, as prose. It varies too much between projects to be a
-    /// number: Coresi is 25% plus 1,000 EUR a month, Torontal is 100%, Roka is 50%.
-    /// </summary>
-    public string? PenaltyClause { get; set; }
-
     public string? MapsUrl { get; set; }
 
-    public string? SummaryRo { get; set; }
-
-    public string? BodyRo { get; set; }
-
     public DateTimeOffset? PublishedAt { get; set; }
+
+    /// <summary>
+    /// Prose, per culture. Summary, body and the penalty clause live here rather than on the
+    /// project, so a third language is a data change rather than a migration.
+    /// </summary>
+    public ICollection<ProjectTranslation> Translations { get; set; } = [];
 
     public ICollection<PricingRule> PricingRules { get; set; } = [];
 

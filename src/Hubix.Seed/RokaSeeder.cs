@@ -22,6 +22,19 @@ public static class RokaSeeder
 {
     public const string Slug = "roka-park-view";
 
+    /// <summary>
+    /// English display names for the unit types Hubix uses. "Studio Dublu" is a double-aspect
+    /// studio rather than two studios, hence the wording.
+    /// </summary>
+    private static readonly Dictionary<string, string> EnglishUnitTypeNames =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Studio"] = "Studio",
+            ["Studio Dublu"] = "Double studio",
+            ["2 camere"] = "2 rooms",
+            ["3 camere"] = "3 rooms"
+        };
+
     public static async Task<int> SeedAsync(HubixDbContext db, string seedFilePath, CancellationToken ct)
     {
         if (await db.Projects.AnyAsync(p => p.Slug == Slug, ct))
@@ -60,15 +73,35 @@ public static class RokaSeeder
             ReservationFee = 4_000m,
             Currency = "EUR",
             HoldDurationHours = 48,
-            PenaltyClause =
-                "Dacă dezvoltatorul nu livrează la timp + 6 luni, din culpa lui, clientul poate " +
-                "retrage avansul și primește o penalitate de 50% din avansul achitat.",
             MapsUrl = "https://maps.app.goo.gl/",
-            SummaryRo =
-                "Ansamblu rezidențial premium vizavi de parcul Plumbuita, București. Un imobil " +
-                "2S+P+9E, 58 de apartamente, standard nZEB, fațadă ventilată, parter comercial.",
             PublishedAt = DateTimeOffset.UtcNow
         };
+
+        // Romanian is Hubix's own wording, taken from the prospectus. English is a
+        // translation of it, and is what a visitor sees unless their browser asks for Romanian.
+        project.Translations.Add(new ProjectTranslation
+        {
+            Culture = Cultures.Romanian,
+            Summary =
+                "Ansamblu rezidențial premium vizavi de parcul Plumbuita, București. Un imobil " +
+                "2S+P+9E, 58 de apartamente, standard nZEB, fațadă ventilată, parter comercial.",
+            PenaltyClause =
+                "Dacă dezvoltatorul nu livrează la timp + 6 luni, din culpa lui, clientul poate " +
+                "retrage avansul și primește o penalitate de 50% din avansul achitat."
+        });
+
+        project.Translations.Add(new ProjectTranslation
+        {
+            Culture = Cultures.English,
+            Summary =
+                "Premium residential development facing Plumbuita park, Bucharest. A single " +
+                "2B+G+9 building of 58 apartments, built to nZEB standard, with a ventilated " +
+                "facade and commercial units at ground level.",
+            PenaltyClause =
+                "If the developer fails to deliver within the agreed date plus six months, " +
+                "through its own fault, the buyer may withdraw the advance and receives a " +
+                "penalty of 50% of the advance paid."
+        });
 
         // 15% advance on the developer price (total minus cesiune), 19% VAT on both the
         // apartment and the assignment. Two payments, and the second is called "Transa 3"
@@ -100,6 +133,17 @@ public static class RokaSeeder
             }
 
             var created = new UnitType { Name = name, SortOrder = order++ };
+
+            // The canonical name stays as Hubix writes it; only the display name is translated.
+            if (EnglishUnitTypeNames.TryGetValue(name, out var english))
+            {
+                created.Translations.Add(new UnitTypeTranslation
+                {
+                    Culture = Cultures.English,
+                    DisplayName = english
+                });
+            }
+
             unitTypes[name] = created;
             project.UnitTypes.Add(created);
             return created;

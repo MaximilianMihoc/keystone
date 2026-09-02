@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Romanian. Terms Hubix uses in its own documents are kept verbatim: transa, cesiune. -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Nav.Projects"><value>Proiecte</value></data>
+  <data name="Nav.Contact"><value>Contact</value></data>
+  <data name="Nav.Language"><value>Limbă</value></data>
+
+  <data name="Project.Apartments"><value>Apartamente</value></data>
+  <data name="Project.Developer"><value>Dezvoltator</value></data>
+  <data name="Project.Delivery"><value>Termen de livrare</value></data>
+  <data name="Project.DeliveryGrace"><value>perioadă de grație {0} luni</value></data>
+  <data name="Project.UnitsCommitted"><value>{0} apartamente</value></data>
+  <data name="Project.ReservationFee"><value>Preț rezervare</value></data>
+  <data name="Project.PenaltyClause"><value>Penalitate întârziere livrare</value></data>
+  <data name="Project.RentalProfile"><value>Tip de închiriere</value></data>
+
+  <data name="Unit.Code"><value>Apartament</value></data>
+  <data name="Unit.Type"><value>Tip apartament</value></data>
+  <data name="Unit.Floor"><value>Etaj</value></data>
+  <data name="Unit.Orientation"><value>Orientare</value></data>
+  <data name="Unit.AreaUsable"><value>Suprafață utilă</value></data>
+  <data name="Unit.AreaBalcony"><value>Balcon/logie</value></data>
+  <data name="Unit.AreaTotal"><value>Suprafață utilă totală</value></data>
+  <data name="Unit.Price"><value>Preț</value></data>
+  <data name="Unit.PriceNet"><value>Preț fără TVA</value></data>
+  <data name="Unit.Availability"><value>Disponibil</value></data>
+
+  <data name="State.Available"><value>Disponibil</value></data>
+  <data name="State.Held"><value>Rezervat temporar</value></data>
+  <data name="State.Reserved"><value>Rezervat</value></data>
+  <data name="State.Contracted"><value>Contractat</value></data>
+  <data name="State.Sold"><value>Vândut</value></data>
+  <data name="State.Withdrawn"><value>Retras</value></data>
+
+  <data name="Tranche.Schedule"><value>Grafic de plată</value></data>
+  <data name="Tranche.Net"><value>Fără TVA</value></data>
+  <data name="Tranche.Vat"><value>TVA</value></data>
+  <data name="Tranche.Gross"><value>Total</value></data>
+  <data name="Tranche.DueAtSigning"><value>La semnare</value></data>
+  <data name="Tranche.DueInterim"><value>Intermediar</value></data>
+  <data name="Tranche.DueAtDelivery"><value>La predare</value></data>
+
+  <data name="Reserve.Action"><value>Rezervă</value></data>
+  <data name="Reserve.HoldExplainer"><value>Rezervarea îți blochează acest apartament timp de {0} ore, cât te decizi.</value></data>
+  <data name="Reserve.NoLongerAvailable"><value>Acest apartament a fost rezervat de altcineva acum câteva momente. Nu ți s-a debitat nimic.</value></data>
+  <data name="Reserve.JoinWaitlist"><value>Înscrie-te pe lista de așteptare</value></data>
+
+  <data name="Content.OnlyInRomanian"><value>Această descriere este disponibilă doar în limba română.</value></data>
+</root>

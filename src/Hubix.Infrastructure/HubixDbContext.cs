@@ -14,6 +14,10 @@ public class HubixDbContext(DbContextOptions<HubixDbContext> options) : DbContex
 
     public DbSet<UnitType> UnitTypes => Set<UnitType>();
 
+    public DbSet<ProjectTranslation> ProjectTranslations => Set<ProjectTranslation>();
+
+    public DbSet<UnitTypeTranslation> UnitTypeTranslations => Set<UnitTypeTranslation>();
+
     public DbSet<Floor> Floors => Set<Floor>();
 
     public DbSet<Unit> Units => Set<Unit>();
