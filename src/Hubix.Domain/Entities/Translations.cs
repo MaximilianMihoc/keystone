@@ -18,10 +18,27 @@ public static class Cultures
     /// </summary>
     public const string Source = Romanian;
 
-    public static readonly string[] Supported = [English, Romanian];
+    /// <summary>
+    /// The two languages the switcher offers. Two buttons, not four.
+    /// </summary>
+    public static readonly string[] Offered = [English, Romanian];
+
+    /// <summary>
+    /// Every culture the request pipeline will match, including the neutral language codes.
+    /// </summary>
+    /// <remarks>
+    /// Browsers are inconsistent: some send <c>ro-RO</c>, others just <c>ro</c>.
+    /// <c>FallBackToParentCultures</c> resolves <c>ro-RO</c> down to <c>ro</c>, but never
+    /// promotes <c>ro</c> up to <c>ro-RO</c> — so without the neutral codes listed here, a
+    /// browser asking for plain <c>ro</c> silently gets English.
+    /// </remarks>
+    public static readonly string[] Accepted = [English, "en", Romanian, "ro"];
+
+    [Obsolete("Use Offered for the switcher or Accepted for request localisation.")]
+    public static string[] Supported => Offered;
 
     public static bool IsSupported(string? culture) =>
-        culture is not null && Supported.Contains(culture, StringComparer.OrdinalIgnoreCase);
+        culture is not null && Accepted.Contains(culture, StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary>

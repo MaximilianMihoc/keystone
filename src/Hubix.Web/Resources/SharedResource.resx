@@ -107,4 +107,41 @@
 
   <!-- Content fallback -->
   <data name="Content.OnlyInRomanian"><value>This description is only available in Romanian.</value></data>
+
+  <!-- Projects register -->
+  <data name="Index.Eyebrow"><value>Verified developments</value></data>
+  <data name="Index.Heading"><value>Apartments, bought at a developer's terms</value></data>
+  <data name="Index.Lede"><value>Hubix commits to a block of apartments in each development and passes the volume discount on. Availability below is live.</value></data>
+  <data name="Index.Empty"><value>No projects are open right now.</value></data>
+  <data name="Index.From"><value>From</value></data>
+  <data name="Index.OfAvailable"><value>of {0} available</value></data>
+
+  <!-- Project detail -->
+  <data name="Project.FreeOfTotal"><value>{0} of {1} still available</value></data>
+  <data name="Project.HoldHours"><value>holds the unit {0}h</value></data>
+  <data name="Project.ViewApartments"><value>See all apartments ({0} available)</value></data>
+  <data name="Project.Location"><value>Open in Maps</value></data>
+  <data name="Project.About"><value>About the development</value></data>
+
+  <data name="Rental.ShortTerm"><value>Short stays</value></data>
+  <data name="Rental.MidTerm"><value>Medium stays</value></data>
+  <data name="Rental.LongTerm"><value>Long lets</value></data>
+  <data name="Rental.Mixed"><value>Short and medium stays</value></data>
+
+  <!-- Inventory -->
+  <data name="Apartments.Heading"><value>Every apartment in the block</value></data>
+  <data name="Apartments.Lede"><value>{0} of {1} apartments are still available. Pick one to see what it costs and when each payment falls due.</value></data>
+  <data name="Apartments.Elevation"><value>The building, floor by floor</value></data>
+  <data name="Apartments.AllUnits"><value>All apartments</value></data>
+  <data name="Apartments.Taken"><value>Taken</value></data>
+  <data name="Apartments.NoMatches"><value>No apartments match these filters. Clear one to see more.</value></data>
+  <data name="Unit.FloorN"><value>Floor {0}</value></data>
+  <data name="Unit.FloorUnknown"><value>Floor —</value></data>
+
+  <data name="Filter.AllTypes"><value>All types</value></data>
+  <data name="Filter.AvailableOnly"><value>Available only</value></data>
+
+  <!-- Payment schedule -->
+  <data name="Tranche.Explainer"><value>VAT shown at {0}% on the apartment and {1}% on the assignment, for an individual buyer. A reduced rate may apply depending on the buyer and the unit; the rate that applies to you is confirmed before you sign.</value></data>
+  <data name="Reserve.Unavailable"><value>This apartment is no longer available. Ask to be told if it comes back.</value></data>
 </root>

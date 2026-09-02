@@ -97,4 +97,37 @@
   <data name="Reserve.JoinWaitlist"><value>Înscrie-te pe lista de așteptare</value></data>
 
   <data name="Content.OnlyInRomanian"><value>Această descriere este disponibilă doar în limba română.</value></data>
+
+  <data name="Index.Eyebrow"><value>Proiecte verificate</value></data>
+  <data name="Index.Heading"><value>Apartamente, la condițiile dezvoltatorului</value></data>
+  <data name="Index.Lede"><value>Hubix achiziționează un pachet de apartamente în fiecare proiect și transferă mai departe discountul de volum. Disponibilitatea de mai jos este actualizată în timp real.</value></data>
+  <data name="Index.Empty"><value>Momentan nu este deschis niciun proiect.</value></data>
+  <data name="Index.From"><value>De la</value></data>
+  <data name="Index.OfAvailable"><value>din {0} disponibile</value></data>
+
+  <data name="Project.FreeOfTotal"><value>{0} din {1} încă disponibile</value></data>
+  <data name="Project.HoldHours"><value>blochează apartamentul {0}h</value></data>
+  <data name="Project.ViewApartments"><value>Vezi toate apartamentele ({0} disponibile)</value></data>
+  <data name="Project.Location"><value>Deschide în Maps</value></data>
+  <data name="Project.About"><value>Despre proiect</value></data>
+
+  <data name="Rental.ShortTerm"><value>Închiriere short-term</value></data>
+  <data name="Rental.MidTerm"><value>Închiriere mid-term</value></data>
+  <data name="Rental.LongTerm"><value>Închiriere long-term</value></data>
+  <data name="Rental.Mixed"><value>Short și mid-term</value></data>
+
+  <data name="Apartments.Heading"><value>Toate apartamentele din imobil</value></data>
+  <data name="Apartments.Lede"><value>{0} din {1} apartamente sunt încă disponibile. Alege unul ca să vezi prețul și când se plătește fiecare tranșă.</value></data>
+  <data name="Apartments.Elevation"><value>Imobilul, etaj cu etaj</value></data>
+  <data name="Apartments.AllUnits"><value>Toate apartamentele</value></data>
+  <data name="Apartments.Taken"><value>Indisponibil</value></data>
+  <data name="Apartments.NoMatches"><value>Niciun apartament nu corespunde acestor filtre. Elimină un filtru ca să vezi mai multe.</value></data>
+  <data name="Unit.FloorN"><value>Etaj {0}</value></data>
+  <data name="Unit.FloorUnknown"><value>Etaj —</value></data>
+
+  <data name="Filter.AllTypes"><value>Toate tipurile</value></data>
+  <data name="Filter.AvailableOnly"><value>Doar disponibile</value></data>
+
+  <data name="Tranche.Explainer"><value>TVA afișat la {0}% pentru apartament și {1}% pentru cesiune, pentru o persoană fizică. Se poate aplica TVA redus, în funcție de client și de apartament; cota care ți se aplică se confirmă înainte de semnare.</value></data>
+  <data name="Reserve.Unavailable"><value>Acest apartament nu mai este disponibil. Poți cere să fii anunțat dacă redevine liber.</value></data>
 </root>

@@ -25,10 +25,12 @@ builder.Services.AddHubixInfrastructure(builder.Configuration);
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
     options.SetDefaultCulture(Cultures.English)
-        .AddSupportedCultures(Cultures.Supported)
-        .AddSupportedUICultures(Cultures.Supported);
+        .AddSupportedCultures(Cultures.Accepted)
+        .AddSupportedUICultures(Cultures.Accepted);
 
-    // Fall back en-US -> en-GB, ro -> ro-RO rather than dropping to the default.
+    // Resolves en-US to en and ro-MD to ro, rather than dropping to the default. Note this
+    // only ever walks *down* to a parent, which is why Cultures.Accepted also lists the
+    // neutral codes: a browser sending plain "ro" has no parent to fall back to.
     options.FallBackToParentCultures = true;
     options.FallBackToParentUICultures = true;
 });

@@ -1,51 +1,58 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@using System.Globalization
+@using Hubix.Domain.Entities
+@{
+    var culture = CultureInfo.CurrentUICulture.Name;
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+<!DOCTYPE html>
+<html lang="@culture.Split('-')[0]">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Hubix.Web</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · Hubix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Hubix.Web.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">Hubix.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Hubix.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
+    <header class="masthead">
+        <div class="shell masthead-inner">
+            <a class="wordmark" asp-page="/Index">
+                HUBIX<span class="mark">Portal</span>
+            </a>
+
+            <nav aria-label="Main">
+                <a asp-page="/Index">@L["Nav.Projects"]</a>
+
+                <div class="lang" role="group" aria-label="@L["Nav.Language"]">
+                    @foreach (var option in Cultures.Offered)
+                    {
+                        var isCurrent = culture.Equals(option, StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Language"
+                           asp-route-culture="@option"
+                           asp-route-returnUrl="@returnUrl"
+                           aria-current="@(isCurrent ? "true" : null)"
+                           hreflang="@option">@option.Split('-')[0]</a>
+                    }
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    <footer>
+        <div class="shell">
+            Hubix · AFI Park 1, etaj 2, București · contact@@hubix.ro<br />
+            Prices exclude VAT unless stated. Availability is live; a listing is not an offer.
         </div>
     </footer>
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -1,0 +1,102 @@
+@page "/projects/{slug}/apartments/{code}"
+@model Hubix.Web.Pages.Projects.ApartmentModel
+@{
+    var u = Model.Unit;
+    ViewData["Title"] = $"{u.Code} — {Model.ProjectName}";
+}
+
+<div class="shell">
+    <p class="crumbs">
+        <a asp-page="/Index">@L["Nav.Projects"]</a><span>/</span>
+        <a asp-page="/Projects/Detail" asp-route-slug="@Model.Slug">@Model.ProjectName</a><span>/</span>
+        <a asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug">@L["Project.Apartments"]</a><span>/</span>
+        @u.Code
+    </p>
+
+    <div class="page-head">
+        <p class="eyebrow">@Model.TypeDisplay</p>
+        <h1>@u.Code</h1>
+        <p class="lede">
+            <span class="state @(Model.IsFree ? "is-free" : "")">@L[Display.StateKey(u.State)]</span>
+        </p>
+    </div>
+
+    <dl class="spec">
+        @if (u.FloorLevel is { } level)
+        {
+            <div><dt>@L["Unit.Floor"]</dt><dd>@level</dd></div>
+        }
+        @if (u.Orientation is { Length: > 0 } orientation)
+        {
+            <div><dt>@L["Unit.Orientation"]</dt><dd>@orientation</dd></div>
+        }
+        <div>
+            <dt>@L["Unit.AreaUsable"]</dt>
+            <dd>@Display.Area(u.AreaUsable)</dd>
+        </div>
+        @if (u.AreaBalcony > 0)
+        {
+            <div><dt>@L["Unit.AreaBalcony"]</dt><dd>@Display.Area(u.AreaBalcony)</dd></div>
+        }
+        <div>
+            <dt>@L["Unit.AreaTotal"]</dt>
+            <dd>@Display.Area(u.AreaTotal)</dd>
+        </div>
+        <div>
+            <dt>@L["Unit.PriceNet"]</dt>
+            <dd>@Display.Money(u.BasePriceNet)</dd>
+        </div>
+    </dl>
+
+    @if (Model.Schedule is { } schedule)
+    {
+        <div class="section">
+            <p class="section-label">@L["Tranche.Schedule"]</p>
+
+            <div class="schedule">
+                @* Column headers, desktop only. Below 620px each figure carries its own
+                   label via data-label, because the row stacks. *@
+                <div class="tranche head" aria-hidden="true">
+                    <div class="label"></div>
+                    <div class="amt">@L["Tranche.Net"]</div>
+                    <div class="amt">@L["Tranche.Vat"]</div>
+                    <div class="amt">@L["Tranche.Gross"]</div>
+                </div>
+
+                @foreach (var tranche in schedule.Tranches)
+                {
+                    <div class="tranche">
+                        <div class="label">
+                            @tranche.Label
+                            <small>@L[Display.DueKey(tranche.Due)]</small>
+                        </div>
+                        <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.Net)</div>
+                        <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.Vat)</div>
+                        <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.Gross)</div>
+                    </div>
+                }
+
+                <p class="schedule-foot">
+                    @L["Tranche.Explainer", (schedule.VatRate * 100).ToString("0.#"), (schedule.CesiuneVatRate * 100).ToString("0.#")]
+                </p>
+            </div>
+        </div>
+    }
+
+    <div class="section">
+        @if (Model.IsFree)
+        {
+            <p class="note">@L["Reserve.HoldExplainer", Model.HoldDurationHours]</p>
+            <p style="margin-top:16px">
+                @* M3 turns this into a real hold. Until then it must not pretend to work. *@
+                <span class="btn" aria-disabled="true" style="opacity:.45; cursor:not-allowed">
+                    @L["Reserve.Action"]
+                </span>
+            </p>
+        }
+        else
+        {
+            <p class="note">@L["Reserve.Unavailable"]</p>
+        }
+    </div>
+</div>

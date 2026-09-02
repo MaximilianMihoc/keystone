@@ -86,12 +86,27 @@ public class TranslationTests
     [InlineData("en-GB", true)]
     [InlineData("ro-RO", true)]
     [InlineData("EN-GB", true)]
+    // Neutral language codes are accepted too. Browsers are inconsistent about whether they
+    // send "ro" or "ro-RO", and FallBackToParentCultures only ever walks down to a parent —
+    // it never promotes "ro" to "ro-RO". Without these, a browser asking for plain Romanian
+    // silently gets English.
+    [InlineData("en", true)]
+    [InlineData("ro", true)]
     [InlineData("fr-FR", false)]
-    [InlineData("en", false)] // not a supported culture id, though it resolves by fallback
+    [InlineData("de", false)]
     [InlineData("", false)]
     [InlineData(null, false)]
     public void Only_configured_cultures_are_accepted_from_untrusted_input(string? culture, bool supported)
     {
         Cultures.IsSupported(culture).ShouldBe(supported);
+    }
+
+    [Fact]
+    public void The_switcher_offers_exactly_two_languages()
+    {
+        // Accepted carries neutral variants for negotiation; the switcher must not grow
+        // four buttons because of them.
+        Cultures.Offered.ShouldBe([Cultures.English, Cultures.Romanian]);
+        Cultures.Accepted.Length.ShouldBeGreaterThan(Cultures.Offered.Length);
     }
 }

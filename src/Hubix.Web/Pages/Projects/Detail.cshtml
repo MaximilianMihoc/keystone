@@ -1,0 +1,119 @@
+@page "/projects/{slug}"
+@model Hubix.Web.Pages.Projects.DetailModel
+@{
+    ViewData["Title"] = Model.Project.Name;
+    var p = Model.Project;
+}
+
+<div class="shell">
+    <p class="crumbs">
+        <a asp-page="/Index">@L["Nav.Projects"]</a><span>/</span>@p.Name
+    </p>
+
+    <div class="page-head">
+        <p class="eyebrow">@p.City</p>
+        <h1>@p.Name</h1>
+        @if (Model.Text?.Summary is { Length: > 0 } summary)
+        {
+            <p class="lede">@summary</p>
+        }
+    </div>
+
+    <dl class="spec">
+        @if (Model.DeveloperName is { } developer)
+        {
+            <div>
+                <dt>@L["Project.Developer"]</dt>
+                <dd>@developer</dd>
+            </div>
+        }
+        @if (p.UnitsCommitted is { } committed)
+        {
+            <div>
+                <dt>@L["Project.Apartments"]</dt>
+                <dd>
+                    @committed
+                    <small>@L["Project.FreeOfTotal", Model.FreeUnits, Model.TotalUnits]</small>
+                </dd>
+            </div>
+        }
+        @if (p.DeliveryDate is { } delivery)
+        {
+            <div>
+                <dt>@L["Project.Delivery"]</dt>
+                <dd>
+                    @delivery.ToString("MMMM yyyy")
+                    @if (p.DeliveryGraceMonths > 0)
+                    {
+                        <small>@L["Project.DeliveryGrace", p.DeliveryGraceMonths]</small>
+                    }
+                </dd>
+            </div>
+        }
+        @if (Model.FromPrice is { } from)
+        {
+            <div>
+                <dt>@L["Index.From"]</dt>
+                <dd>
+                    @Display.Money(from)
+                    <small>@L["Unit.PriceNet"]</small>
+                </dd>
+            </div>
+        }
+        @if (p.ReservationFee is { } fee)
+        {
+            <div>
+                <dt>@L["Project.ReservationFee"]</dt>
+                <dd>
+                    @Display.Money(fee)
+                    <small>@L["Project.HoldHours", p.HoldDurationHours]</small>
+                </dd>
+            </div>
+        }
+        @if (p.RentalProfile is { } profile)
+        {
+            <div>
+                <dt>@L["Project.RentalProfile"]</dt>
+                <dd>@L[$"Rental.{profile}"]</dd>
+            </div>
+        }
+    </dl>
+
+    <div class="section" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@p.Slug">
+            @L["Project.ViewApartments", Model.FreeUnits]
+        </a>
+        @if (p.MapsUrl is { Length: > 0 } maps)
+        {
+            <a class="btn ghost" href="@maps" rel="noopener noreferrer" target="_blank">@L["Project.Location"]</a>
+        }
+    </div>
+
+    @if (Model.Text?.Body is { Length: > 0 } body)
+    {
+        <div class="section">
+            <p class="section-label">@L["Project.About"]</p>
+            <div class="prose">
+                @foreach (var paragraph in body.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    <p>@paragraph</p>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Text?.PenaltyClause is { Length: > 0 } penalty)
+    {
+        <div class="section">
+            <p class="section-label">@L["Project.PenaltyClause"]</p>
+            <p class="note">@penalty</p>
+        </div>
+    }
+
+    @if (Model.TextIsFallback)
+    {
+        <div class="section">
+            <p class="note">@L["Content.OnlyInRomanian"]</p>
+        </div>
+    }
+</div>

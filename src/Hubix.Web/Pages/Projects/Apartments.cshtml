@@ -1,0 +1,126 @@
+@page "/projects/{slug}/apartments"
+@model Hubix.Web.Pages.Projects.ApartmentsModel
+@{
+    ViewData["Title"] = $"{Model.ProjectName} — {T["Project.Apartments"].Value}";
+}
+
+<div class="shell">
+    <p class="crumbs">
+        <a asp-page="/Index">@L["Nav.Projects"]</a><span>/</span>
+        <a asp-page="/Projects/Detail" asp-route-slug="@Model.Slug">@Model.ProjectName</a><span>/</span>
+        @L["Project.Apartments"]
+    </p>
+
+    <div class="page-head">
+        <p class="eyebrow">@Model.ProjectName</p>
+        <h1>@L["Apartments.Heading"]</h1>
+        <p class="lede">@L["Apartments.Lede", Model.FreeUnits, Model.TotalUnits]</p>
+    </div>
+</div>
+
+<div class="shell">
+    <p class="section-label">@L["Apartments.Elevation"]</p>
+
+    <div class="elevation">
+        @foreach (var floor in Model.Floors)
+        {
+            <div class="floor">
+                <div class="floor-label">
+                    @(floor.Level is { } level ? T["Unit.FloorN", level].Value : T["Unit.FloorUnknown"].Value)
+                </div>
+                <div class="floor-units">
+                    @foreach (var unit in floor.Units)
+                    {
+                        var free = Display.IsFree(unit.State);
+                        <a class="cell @(free ? "is-free" : "")"
+                           asp-page="/Projects/Apartment"
+                           asp-route-slug="@Model.Slug"
+                           asp-route-code="@unit.Code"
+                           title="@unit.TypeDisplay — @T[Display.StateKey(unit.State)].Value">
+                            <span class="cell-code">@unit.Code</span>
+                            <span class="cell-meta">@Display.Area(unit.AreaTotal)@(unit.Orientation is null ? "" : " · " + unit.Orientation)</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="elevation-key">
+            <span><i class="swatch free"></i> @L["State.Available"]</span>
+            <span><i class="swatch"></i> @L["Apartments.Taken"]</span>
+        </div>
+    </div>
+</div>
+
+<div class="shell section">
+    <p class="section-label">@L["Apartments.AllUnits"]</p>
+
+    <div class="filters">
+        <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
+           asp-route-freeOnly="@Model.FreeOnly"
+           aria-current="@(Model.Type is null ? "true" : null)">@L["Filter.AllTypes"]</a>
+
+        @foreach (var type in Model.Types)
+        {
+            <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
+               asp-route-type="@type.Canonical" asp-route-freeOnly="@Model.FreeOnly"
+               aria-current="@(Model.Type == type.Canonical ? "true" : null)">@type.Label</a>
+        }
+
+        <span style="flex:1"></span>
+
+        <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
+           asp-route-type="@Model.Type" asp-route-freeOnly="@(!Model.FreeOnly)"
+           aria-current="@(Model.FreeOnly ? "true" : null)">@L["Filter.AvailableOnly"]</a>
+    </div>
+
+    <div class="table-wrap">
+        @if (Model.Rows.Count == 0)
+        {
+            <p class="empty">@L["Apartments.NoMatches"]</p>
+        }
+        else
+        {
+            <table>
+                <caption class="visually-hidden">@L["Apartments.AllUnits"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">@L["Unit.Code"]</th>
+                        <th scope="col">@L["Unit.Type"]</th>
+                        <th scope="col">@L["Unit.Floor"]</th>
+                        <th scope="col">@L["Unit.Orientation"]</th>
+                        <th scope="col" class="num">@L["Unit.AreaUsable"]</th>
+                        <th scope="col" class="num">@L["Unit.AreaBalcony"]</th>
+                        <th scope="col" class="num">@L["Unit.AreaTotal"]</th>
+                        <th scope="col" class="num">@L["Unit.PriceNet"]</th>
+                        <th scope="col">@L["Unit.Availability"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var unit in Model.Rows)
+                    {
+                        var free = Display.IsFree(unit.State);
+                        <tr>
+                            <td>
+                                <a class="code" asp-page="/Projects/Apartment"
+                                   asp-route-slug="@Model.Slug" asp-route-code="@unit.Code">@unit.Code</a>
+                            </td>
+                            <td>@unit.TypeDisplay</td>
+                            <td>@(unit.FloorLevel?.ToString() ?? "—")</td>
+                            <td>@(unit.Orientation ?? "—")</td>
+                            <td class="num">@Display.Area(unit.AreaUsable)</td>
+                            <td class="num">@Display.Area(unit.AreaBalcony)</td>
+                            <td class="num">@Display.Area(unit.AreaTotal)</td>
+                            <td class="num">@Display.Money(unit.BasePriceNet)</td>
+                            <td>
+                                <span class="state @(free ? "is-free" : "")">
+                                    @L[Display.StateKey(unit.State)]
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

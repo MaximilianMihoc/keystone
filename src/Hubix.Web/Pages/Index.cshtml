@@ -1,10 +1,60 @@
-﻿@page
+@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "Projects";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="shell">
+    <div class="page-head">
+        <p class="eyebrow">@L["Index.Eyebrow"]</p>
+        <h1>@L["Index.Heading"]</h1>
+        <p class="lede">@L["Index.Lede"]</p>
+    </div>
+
+    @if (Model.Projects.Count == 0)
+    {
+        <div class="table-wrap">
+            <p class="empty">@L["Index.Empty"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="register">
+            @foreach (var project in Model.Projects)
+            {
+                <a class="project-row" asp-page="/Projects/Detail" asp-route-slug="@project.Slug">
+                    <div>
+                        <p class="name">@project.Name</p>
+                        <p class="where">
+                            @project.City@(project.Developer is null ? "" : " · " + project.Developer)
+                        </p>
+                    </div>
+
+                    <p class="facts">
+                        @if (project.DeliveryDate is { } delivery)
+                        {
+                            @L["Project.Delivery"] <text>&nbsp;</text> <b>@delivery.ToString("MMMM yyyy")</b><br />
+                        }
+                        @if (project.FromPrice is { } from)
+                        {
+                            @L["Index.From"] <text>&nbsp;</text> <b>@Display.Money(from)</b>
+                            <text> </text>@L["Unit.PriceNet"]
+                        }
+                    </p>
+
+                    <span class="meter">
+                        <span class="meter-track" aria-hidden="true">
+                            @for (var i = 0; i < project.TotalUnits; i++)
+                            {
+                                <span class="meter-tick @(i < project.FreeUnits ? "free" : "")"></span>
+                            }
+                        </span>
+                        <span class="meter-label">
+                            <b>@project.FreeUnits</b> @L["Index.OfAvailable", project.TotalUnits]
+                        </span>
+                    </span>
+                </a>
+            }
+        </div>
+    }
 </div>
