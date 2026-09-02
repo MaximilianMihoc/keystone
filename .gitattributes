@@ -1,0 +1,58 @@
+# Normalise line endings. Text files are stored LF in the repository and
+# checked out native, so a Windows working copy stays CRLF without polluting
+# diffs for anyone who later works on Linux or in CI.
+* text=auto
+
+# Explicitly text
+*.cs        text diff=csharp
+*.cshtml    text
+*.razor     text
+*.csproj    text
+*.sln       text eol=crlf
+*.props     text
+*.targets   text
+*.json      text
+*.jsonc     text
+*.ts        text
+*.tsx       text
+*.js        text
+*.jsx       text
+*.css       text
+*.scss      text
+*.html      text
+*.md        text
+*.yml       text
+*.yaml      text
+*.sql       text
+*.config    text
+*.gitignore text
+
+# Windows-only scripts must keep CRLF
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# Shell scripts must keep LF or they break
+*.sh        text eol=lf
+
+# Binary — never diff, never normalise
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary
+*.xlsx      binary
+*.docx      binary
+*.snk       binary
+*.pfx       binary
+
+# Generated — collapse in pull request diffs
+package-lock.json  linguist-generated=true
+*.Designer.cs      linguist-generated=true
