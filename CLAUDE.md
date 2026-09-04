@@ -14,6 +14,34 @@ analysis, proposal and full build spec are `docs/01-business-analysis.md`,
 never shared with Hubix. Source material with real prices and buyer data stays in
 `C:\Repositories\HubixDocs`, outside this repo.
 
+## Branching — read before committing
+
+**Never commit to `main`, and never push to `main`.** Work goes on a feature branch and reaches
+`main` only by merging a pull request on GitHub.
+
+```powershell
+git switch -c feat/short-description     # feat/ fix/ chore/ docs/
+# ... work, then commit on the branch ...
+git push -u origin feat/short-description
+gh pr create --fill                      # fills .github/PULL_REQUEST_TEMPLATE.md
+```
+
+Afterwards, catch `main` up the read-only way: `git switch main; git pull`.
+
+Two hooks in `.githooks/` enforce this — `pre-commit` refuses a commit while HEAD is `main`,
+`pre-push` refuses any push to `main`. They are active because the repo sets
+`core.hooksPath=.githooks`. **A fresh clone must run `git config core.hooksPath .githooks` once**,
+since that setting is local and cannot be committed.
+
+Both hooks name `--no-verify` as an escape hatch. Do not reach for it. If a hook blocks you, the
+answer is a branch, not a bypass — ask the user before overriding either hook.
+
+This is enforced locally rather than by GitHub because branch protection and rulesets need GitHub
+Pro on a private repository, and this account is on Free. The hooks are the whole guard; there is
+nothing server-side catching a bypass.
+
+`/pr` takes uncommitted work through this entire flow in one step.
+
 ## Commands
 
 ```powershell

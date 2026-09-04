@@ -36,6 +36,10 @@
 # Shell scripts must keep LF or they break
 *.sh        text eol=lf
 
+# Git hooks are shell scripts without an extension. A CRLF checkout puts a carriage
+# return on the shebang and the hook stops running.
+.githooks/** text eol=lf
+
 # Binary — never diff, never normalise
 *.png       binary
 *.jpg       binary
