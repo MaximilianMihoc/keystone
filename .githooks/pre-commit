@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Refuse a commit made directly on main.
+#
+# Work goes on a feature branch and reaches main through a pull request. This hook is the
+# local guard for that, because GitHub branch protection needs Pro on a private repository
+# and this account is on Free.
+#
+# Not run for merge commits, so "git pull" on main is unaffected.
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+if [ "$branch" != "main" ]; then
+    exit 0
+fi
+
+cat >&2 <<'MSG'
+
+  Commit refused: you are on main.
+
+  Move what you have to a branch, then commit there:
+
+      git switch -c <branch-name>
+
+  Already staged? The staged changes follow you across the switch.
+
+  To open the pull request afterwards:
+
+      git push -u origin <branch-name>
+      gh pr create --fill
+
+  If you genuinely need this one commit on main, bypass with:
+
+      git commit --no-verify
+
+MSG
+
+exit 1
