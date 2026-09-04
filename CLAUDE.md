@@ -9,8 +9,8 @@ the sales pipeline. Pre-alpha and **unsanctioned** — Hubix have not been appro
 fact is load-bearing in code (see "Email cannot escape", below), not just a disclaimer.
 
 Read `README.md` for the business context and `docs/RUNBOOK.md` for operational behaviour. The
-analysis, proposal and full build spec are `docs/01-business-analysis.html`,
-`docs/02-application-proposal.html` and `docs/03-build-spec.html` — internal working documents,
+analysis, proposal and full build spec are `docs/01-business-analysis.md`,
+`docs/02-application-proposal.md` and `docs/03-build-spec.md` — internal working documents,
 never shared with Hubix. Source material with real prices and buyer data stays in
 `C:\Repositories\HubixDocs`, outside this repo.
 

@@ -163,14 +163,14 @@ Seeded accounts use `.invalid` addresses for the same reason — sign in as `dev
 
 ## Documents
 
-Analysis, proposal and the full build specification are in `docs/`. Open them in a browser.
+Analysis, proposal and the full build specification are in `docs/`.
 
 | Document | Contents |
 |---|---|
-| `docs/01-business-analysis.html` | What Hubix does, both business lines, the current manual process |
-| `docs/02-application-proposal.html` | Why this system, what is deliberately out of scope, build order |
-| `docs/03-build-spec.html` | Schema, state machine, routes, milestones, production checklist |
-| `docs/RUNBOOK.md` | Health checks, what to do when something is wrong, the deploy checklist |
+| [`01-business-analysis`](docs/01-business-analysis.md) | What Hubix does, both business lines, the current manual process |
+| [`02-application-proposal`](docs/02-application-proposal.md) | Why this system, what is deliberately out of scope, build order |
+| [`03-build-spec`](docs/03-build-spec.md) | Schema, state machine, routes, milestones, production checklist |
+| [`RUNBOOK`](docs/RUNBOOK.md) | Health checks, what to do when something is wrong, the deploy checklist |
 | `seed-data/` | The five inventory spreadsheets extracted to JSON |
 
 All three are internal working documents and say so on their face. They have not been shared
