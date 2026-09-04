@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hubix Portal Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style>
+</head>
+<body>
+
+<style>
+:root {
+  --paper:#F1F3F5; --raised:#FFFFFF; --ink:#10161C; --ink-2:#3D4A55; --ink-3:#6B7883;
+  --rule:#D3DAE0; --rule-soft:#E4E9ED;
+  --accent:#0F4C75; --accent-soft:#E2EAF1;
+  --lineb:#4A3A6B; --lineb-soft:#EAE6F1;
+  --flag:#8C2F2F; --flag-soft:#F4E7E5;
+  --go:#2C6049; --go-soft:#E2EDE7;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#101418; --raised:#171C22; --ink:#E4EAEF; --ink-2:#AEBBC5; --ink-3:#7C8A95;
+    --rule:#29323B; --rule-soft:#1E252C;
+    --accent:#74AEDC; --accent-soft:#17242F;
+    --lineb:#AC98D4; --lineb-soft:#1F1B2B;
+    --flag:#DD8F85; --flag-soft:#2B1C1A;
+    --go:#7DBF9E; --go-soft:#17241E;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:#101418; --raised:#171C22; --ink:#E4EAEF; --ink-2:#AEBBC5; --ink-3:#7C8A95;
+  --rule:#29323B; --rule-soft:#1E252C;
+  --accent:#74AEDC; --accent-soft:#17242F;
+  --lineb:#AC98D4; --lineb-soft:#1F1B2B;
+  --flag:#DD8F85; --flag-soft:#2B1C1A;
+  --go:#7DBF9E; --go-soft:#17241E;
+}
+
+* { box-sizing:border-box; }
+
+body { background:var(--paper); color:var(--ink); font-family:var(--serif); font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+
+.shell { display:grid; grid-template-columns:1fr; max-width:1300px; margin:0 auto; padding:0 24px; }
+@media (min-width:1040px){ .shell{ grid-template-columns:236px minmax(0,1fr); gap:56px; padding:0 40px; } }
+
+.toc { display:none; }
+@media (min-width:1040px){
+  .toc { display:block; position:sticky; top:0; align-self:start; max-height:100vh; overflow-y:auto;
+         padding:72px 24px 48px 0; border-right:1px solid var(--rule-soft); margin-right:-32px; }
+}
+.toc-label { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); margin:0 0 16px; }
+.toc ol { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.toc a { display:block; font-family:var(--sans); font-size:13px; line-height:1.35; color:var(--ink-3);
+         text-decoration:none; padding:5px 0 5px 12px; border-left:2px solid transparent; transition:color .15s,border-color .15s; }
+.toc a:hover { color:var(--ink); }
+.toc a.is-active { color:var(--ink); border-left-color:var(--accent); font-weight:600; }
+.toc a.sub { padding-left:24px; font-size:12.5px; }
+
+main { padding:72px 0 128px; max-width:80ch; }
+
+.eyebrow { font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0 0 20px; }
+h1 { font-family:var(--sans); font-size:clamp(34px,6vw,48px); font-weight:600; letter-spacing:-.022em; line-height:1.06; text-wrap:balance; margin:0 0 20px; }
+.standfirst { font-size:20px; line-height:1.55; color:var(--ink-2); margin:0 0 40px; max-width:62ch; }
+
+.locked { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px; background:var(--rule-soft); border:1px solid var(--rule-soft); margin:0 0 72px; }
+.locked > div { background:var(--paper); padding:14px 16px; }
+.locked dt { font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3); margin:0 0 5px; }
+.locked dd { font-family:var(--sans); font-size:13.5px; line-height:1.4; color:var(--ink); margin:0; }
+
+section { margin:0 0 72px; scroll-margin-top:24px; }
+h2 { font-family:var(--sans); font-size:27px; font-weight:600; letter-spacing:-.017em; line-height:1.2; text-wrap:balance; margin:0 0 20px; padding-top:22px; border-top:2px solid var(--ink); }
+h3 { font-family:var(--sans); font-size:17px; font-weight:600; letter-spacing:-.005em; margin:44px 0 12px; }
+h4 { font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); margin:34px 0 12px; }
+p { margin:0 0 18px; } p:last-child{ margin-bottom:0; }
+.deck { font-size:17.5px; color:var(--ink-2); margin:0 0 28px; }
+strong { font-weight:600; color:var(--ink); } em{ font-style:italic; }
+a { color:var(--accent); text-underline-offset:2px; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+ul { margin:0 0 18px; padding-left:20px; } li{ margin-bottom:9px; } li:last-child{ margin-bottom:0; }
+ul li::marker { color:var(--ink-3); }
+code { font-family:var(--mono); font-size:.855em; background:var(--rule-soft); padding:1.5px 5px; color:var(--ink); }
+
+pre { margin:0 0 22px; padding:20px 22px; background:var(--raised); border:1px solid var(--rule); overflow-x:auto;
+      font-family:var(--mono); font-size:12.5px; line-height:1.62; color:var(--ink-2); }
+pre code { background:none; padding:0; font-size:inherit; }
+pre .kw { color:var(--accent); font-weight:600; }
+pre .cm { color:var(--ink-3); font-style:italic; }
+pre .hl { color:var(--flag); font-weight:600; }
+pre .ok { color:var(--go); font-weight:600; }
+pre b { color:var(--ink); font-weight:600; }
+
+.filelabel { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+             color:var(--ink-3); background:var(--rule-soft); border:1px solid var(--rule); border-bottom:none;
+             padding:7px 12px; display:inline-block; margin:0; }
+.filelabel + pre { margin-top:0; }
+
+.tw { overflow-x:auto; margin:0 0 24px; border:1px solid var(--rule); background:var(--raised); }
+table { border-collapse:collapse; width:100%; min-width:560px; font-family:var(--sans); font-size:13.5px; font-variant-numeric:tabular-nums; }
+th { text-align:left; font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+     color:var(--ink-3); padding:11px 14px; border-bottom:1px solid var(--rule); vertical-align:bottom; white-space:nowrap; }
+td { padding:11px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.45; color:var(--ink-2); }
+tbody tr:last-child td { border-bottom:none; }
+td:first-child { color:var(--ink); font-weight:500; }
+td.mono, th.mono { font-family:var(--mono); font-size:12px; white-space:nowrap; }
+.tcap { font-family:var(--mono); font-size:10.5px; letter-spacing:.04em; color:var(--ink-3); margin:-12px 0 24px; line-height:1.6; }
+
+.states { overflow-x:auto; margin:0 0 14px; border:1px solid var(--rule); background:var(--raised); padding:24px 22px; }
+.states ol { list-style:none; margin:0; padding:0; display:flex; min-width:680px; }
+.states li { margin:0; flex:1; display:flex; align-items:center; }
+.states .st { flex:1; border:1px solid var(--rule); background:var(--paper); padding:12px 10px; text-align:center; }
+.states .st b { display:block; font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.05em; color:var(--ink); }
+.states .st span { display:block; font-family:var(--sans); font-size:11px; color:var(--ink-3); margin-top:4px; line-height:1.3; }
+.states .st.hold { border-color:var(--accent); background:var(--accent-soft); } .states .st.hold b{ color:var(--accent); }
+.states .st.done { border-color:var(--go); background:var(--go-soft); } .states .st.done b{ color:var(--go); }
+.states .ar { flex:none; width:26px; text-align:center; font-family:var(--mono); font-size:13px; color:var(--ink-3); }
+
+.routes { list-style:none; margin:0 0 24px; padding:0; display:flex; flex-direction:column; gap:1px; background:var(--rule-soft); border:1px solid var(--rule-soft); }
+.routes li { margin:0; background:var(--raised); padding:11px 16px; display:grid; grid-template-columns:minmax(0,1fr); gap:2px; }
+@media (min-width:640px){ .routes li{ grid-template-columns:minmax(0,26rem) minmax(0,1fr); gap:16px; align-items:baseline; } }
+.routes code { background:none; padding:0; font-size:12.5px; color:var(--ink); font-weight:500; }
+.routes span { font-family:var(--sans); font-size:13px; color:var(--ink-3); line-height:1.4; }
+.routes li.auth code::after { content:" 🔒"; font-size:10px; }
+
+.milestones { list-style:none; margin:0; padding:0; counter-reset:ms; display:flex; flex-direction:column; gap:2px; }
+.milestones li { counter-increment:ms; margin:0; background:var(--raised); border:1px solid var(--rule-soft); border-left:3px solid var(--accent);
+                 padding:16px 20px; display:grid; grid-template-columns:minmax(0,1fr); gap:4px; }
+@media (min-width:700px){ .milestones li{ grid-template-columns:52px minmax(0,1fr) 96px; gap:16px; align-items:baseline; } }
+.milestones .n { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--accent); }
+.milestones .n::before { content:"M" counter(ms); }
+.milestones .w { font-family:var(--sans); font-size:14.5px; color:var(--ink); line-height:1.45; }
+.milestones .w em { display:block; font-style:normal; font-size:13px; color:var(--ink-3); margin-top:3px; }
+.milestones .t { font-family:var(--mono); font-size:11px; color:var(--ink-3); }
+
+.checks { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; background:var(--rule-soft); border:1px solid var(--rule-soft); }
+.checks li { margin:0; background:var(--paper); padding:13px 16px; display:grid; grid-template-columns:20px minmax(0,1fr); gap:10px;
+             font-family:var(--sans); font-size:14px; line-height:1.5; color:var(--ink-2); }
+.checks li::before { content:"☐"; font-family:var(--mono); color:var(--ink-3); }
+
+.risks { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.risks li { margin:0; padding:16px 20px; background:var(--flag-soft); border-left:3px solid var(--flag); font-size:15.5px; line-height:1.55; color:var(--ink-2); }
+.risks li strong { color:var(--ink); }
+.risks li code { background:var(--raised); }
+
+.learn { border:1px solid var(--rule); border-left:3px solid var(--go); background:var(--go-soft); padding:18px 22px; margin:0 0 22px; }
+.learn .k { font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--go); display:block; margin-bottom:8px; }
+.learn p { margin:0; font-size:15px; line-height:1.6; color:var(--ink-2); }
+.learn p + p { margin-top:10px; }
+
+footer { margin-top:88px; padding-top:24px; border-top:1px solid var(--rule); font-family:var(--mono); font-size:11px; line-height:1.7; letter-spacing:.03em; color:var(--ink-3); }
+
+@media (prefers-reduced-motion:reduce){ *{ transition:none!important; animation:none!important; scroll-behavior:auto!important; } }
+html { scroll-behavior:smooth; }
+</style>
+
+<div class="shell">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-label">Contents</p>
+    <ol>
+      <li><a href="#scope">What's locked</a></li>
+      <li><a href="#model">Data model</a></li>
+      <li><a href="#core" class="sub">Project &amp; units</a></li>
+      <li><a href="#pricing" class="sub">Pricing &amp; tranches</a></li>
+      <li><a href="#sales" class="sub">Holds &amp; pipeline</a></li>
+      <li><a href="#people" class="sub">People &amp; consent</a></li>
+      <li><a href="#sqlserver" class="sub">As SQL Server</a></li>
+      <li><a href="#machine">State machine</a></li>
+      <li><a href="#hold" class="sub">The hold query</a></li>
+      <li><a href="#routes">Routes</a></li>
+      <li><a href="#import">Importing their sheets</a></li>
+      <li><a href="#milestones">Milestones</a></li>
+      <li><a href="#ready">Production checklist</a></li>
+      <li><a href="#traps">Traps</a></li>
+      <li><a href="#next">Next step</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <p class="eyebrow">Build specification · Line A</p>
+    <h1>Hubix Portal Spec</h1>
+    <p class="standfirst">The schema, the state machine and the build order for a production system that replaces the per-project spreadsheet, form and prospectus with one record.</p>
+
+    <dl class="locked">
+      <div><dt>Target</dt><dd>Production, not a demo</dd></div>
+      <div><dt>Scope</dt><dd>Line A — Hubs only</dd></div>
+      <div><dt>Reveal</dt><dd>After first deploy</dd></div>
+      <div><dt>Pace</dt><dd>Side project, unhurried</dd></div>
+      <div><dt>Stack</dt><dd>.NET · EF Core · SQL Server · React</dd></div>
+    </dl>
+
+    <section id="scope">
+      <h2>What's locked, and what that changes</h2>
+      <p>Choosing production over a demo changes four things immediately, and it's worth being explicit about them because they're the difference between a weekend prototype and something Hubix can actually run a launch on.</p>
+      <ul>
+        <li><strong>Money is snapshotted, never recomputed.</strong> A reservation stores the prices that applied when it was made. Prices change; history must not.</li>
+        <li><strong>Every state change is audited.</strong> Who released that hold, when, and why — that question will be asked, and "the spreadsheet doesn't say" is the current answer.</li>
+        <li><strong>Consent is in the schema from migration one.</strong> Retrofitting GDPR onto a live prospect table is genuinely painful.</li>
+        <li><strong>Romanian is the default locale</strong>, English is the translation. Not the other way round.</li>
+      </ul>
+      <p>Because you have time and want to learn from this, the spec below is deliberately schema-first. Get the model right and most of the application is generated from it; get it wrong and every screen inherits the mistake.</p>
+    </section>
+
+    <section id="model">
+      <h2>Data model</h2>
+      <p class="deck">Written as plain SQL because it reads clearly. The build is <strong>EF Core against SQL Server</strong> — see the translation notes at the end of this section. Every table gets an <code>id uuid</code> primary key, <code>created_at</code> and <code>updated_at</code>; omitted below for brevity.</p>
+
+      <h3 id="core">Projects, buildings, units</h3>
+
+      <p class="filelabel">projects</p>
+<pre><code><span class="kw">CREATE TABLE</span> projects (
+  slug                  <span class="kw">text</span> <span class="kw">UNIQUE NOT NULL</span>,      <span class="cm">-- 'roka-park-view'</span>
+  name                  <span class="kw">text</span> <span class="kw">NOT NULL</span>,
+  city                  <span class="kw">text</span> <span class="kw">NOT NULL</span>,
+  developer_id          <span class="kw">uuid REFERENCES</span> developers,
+  status                project_status <span class="kw">NOT NULL DEFAULT</span> 'draft',
+  <span class="hl">units_committed       int</span>,                         <span class="cm">-- the 20-vs-30 field. ONE place.</span>
+  delivery_date         <span class="kw">date</span>,
+  delivery_grace_months int <span class="kw">DEFAULT</span> 0,                 <span class="cm">-- Roka: 6</span>
+  rental_profile        rental_profile,                <span class="cm">-- short | mid | long | mixed</span>
+  reservation_fee       numeric(12,2),                 <span class="cm">-- 1000 / 4000 / 5000 EUR</span>
+  currency              <span class="kw">char</span>(3) <span class="kw">DEFAULT</span> 'EUR',
+  <span class="hl">hold_duration_hours   int  DEFAULT 48</span>,            <span class="cm">-- their "1-2 days"</span>
+  penalty_clause        <span class="kw">text</span>,                          <span class="cm">-- varies wildly; prose, not a number</span>
+  maps_url              <span class="kw">text</span>,
+  summary_ro            <span class="kw">text</span>,
+  body_ro               <span class="kw">jsonb</span>,                         <span class="cm">-- rich text, renders the prospectus</span>
+  published_at          timestamptz
+);
+
+<span class="kw">CREATE TYPE</span> project_status <span class="kw">AS ENUM</span>
+  ('draft','upcoming','selling','sold_out','delivered','archived');</code></pre>
+
+      <p><code>units_committed</code> is a small field carrying a large point. It exists once, the prospectus reads it, and the "20 apartments here / 30 apartments there" contradiction becomes structurally impossible.</p>
+
+      <p class="filelabel">units</p>
+<pre><code><span class="kw">CREATE TABLE</span> units (
+  project_id      <span class="kw">uuid NOT NULL REFERENCES</span> projects <span class="kw">ON DELETE CASCADE</span>,
+  crt             int,                        <span class="cm">-- their "Nr Crt", kept for cross-reference</span>
+  code            <span class="kw">text NOT NULL</span>,              <span class="cm">-- 'Ap.203'</span>
+  building        <span class="kw">text</span>,                       <span class="cm">-- 'Bloc F'   nullable: not every project has one</span>
+  stair           <span class="kw">text</span>,                       <span class="cm">-- 'Scara 1'  nullable</span>
+  floor_level     int,                        <span class="cm">-- 2          numeric, so it sorts</span>
+  unit_type_id    <span class="kw">uuid NOT NULL REFERENCES</span> unit_types,
+  orientation     <span class="kw">text</span>,                       <span class="cm">-- 'S-W'</span>
+
+  area_built      numeric(8,2),               <span class="cm">-- MPC</span>
+  area_usable     numeric(8,2) <span class="kw">NOT NULL</span>,      <span class="cm">-- MPU</span>
+  area_balcony    numeric(8,2) <span class="kw">DEFAULT</span> 0,
+  <span class="ok">area_total      numeric(8,2) GENERATED ALWAYS AS
+                    (area_usable + COALESCE(area_balcony,0)) STORED</span>,
+
+  base_price_net    numeric(12,2) <span class="kw">NOT NULL</span>,   <span class="cm">-- Pret total apartament fara TVA</span>
+  cesiune_price_net numeric(12,2),              <span class="cm">-- HUBIX's margin on this unit</span>
+  <span class="hl">reduced_vat_eligible boolean DEFAULT false</span>,  <span class="cm">-- their "TVA redus?" column</span>
+
+  parking_available    boolean <span class="kw">DEFAULT</span> false,
+  parking_price_net    numeric(12,2),
+  parking_advance_net  numeric(12,2),
+
+  state             unit_state <span class="kw">NOT NULL DEFAULT</span> 'available',
+  state_changed_at  timestamptz <span class="kw">NOT NULL DEFAULT</span> now(),
+  admin_notes       <span class="kw">text</span>,
+
+  <span class="kw">UNIQUE</span> (project_id, code)
+);
+
+<span class="kw">CREATE TYPE</span> unit_state <span class="kw">AS ENUM</span>
+  ('available','held','reserved','contracted','sold','withdrawn');</code></pre>
+
+      <div class="learn">
+        <span class="k">Worth understanding</span>
+        <p><code>area_total</code> is a <strong>generated column</strong> — Postgres computes and stores it, and it can never disagree with its inputs. Their spreadsheets have this as a typed formula that some rows have lost. Any value that is a pure function of other columns should be generated, not stored.</p>
+      </div>
+
+      <p>Note what is <em>absent</em> from <code>units</code>: no tranche columns. That is deliberate, and it's the fix for the column drift across their five sheets.</p>
+
+      <h3 id="pricing">Pricing and tranches</h3>
+      <p>Roka has <code>Transa 1 / Transa 3</code>. Prima Solis has <code>Transa 1 / Transa 2</code> plus parking columns. Cartierul Vienez has a 18.2% advance with 21% VAT; Coresi has 27%. These aren't five schemas — they're one rule with different parameters.</p>
+
+      <p class="filelabel">pricing_rules — one active per project, versioned</p>
+<pre><code><span class="kw">CREATE TABLE</span> pricing_rules (
+  project_id      <span class="kw">uuid NOT NULL REFERENCES</span> projects,
+  advance_pct     numeric(5,4) <span class="kw">NOT NULL</span>,     <span class="cm">-- 0.1400 | 0.1820 | 0.2700</span>
+  cesiune_vat_pct numeric(5,4) <span class="kw">NOT NULL</span>,     <span class="cm">-- 0.1900 | 0.2100</span>
+  vat_standard    numeric(5,4) <span class="kw">NOT NULL</span>,     <span class="cm">-- 0.1900 | 0.2100</span>
+  vat_reduced     numeric(5,4),                <span class="cm">-- 0.0900, where it applies</span>
+  <span class="hl">tranches        jsonb NOT NULL</span>,
+  effective_from  timestamptz <span class="kw">NOT NULL DEFAULT</span> now()
+);
+
+<span class="cm">-- tranches, for Roka:</span>
+<span class="cm">-- [ {"label":"Transa 1","basis":"advance_pct","with_cesiune":true, "due":"at_signing"},</span>
+<span class="cm">--   {"label":"Transa 3","basis":"remainder",  "with_cesiune":false,"due":"at_delivery"} ]</span></code></pre>
+
+      <p>The <code>label</code> is stored rather than derived so their existing vocabulary survives — a sheet that says <em>Transa 3</em> keeps saying <em>Transa 3</em>, even though it's the second payment. Preserving the client's language costs one string and buys a lot of goodwill.</p>
+
+      <p>Tranche amounts are then <strong>computed, never entered</strong>:</p>
+<pre><code><b>advance_net</b>  = base_price_net × advance_pct
+<b>cesiune_gross</b> = cesiune_price_net × (1 + cesiune_vat_pct)
+<b>tranche_1</b>     = advance_net + cesiune_gross
+<b>remainder_net</b> = base_price_net − advance_net
+<b>vat_rate</b>      = reduced_vat_eligible <span class="kw">AND</span> buyer qualifies
+                    ? vat_reduced : vat_standard   <span class="cm">-- resolved at reservation</span></code></pre>
+
+      <div class="learn">
+        <span class="k">Worth understanding</span>
+        <p>VAT can't be resolved on the unit alone — it depends on the <em>buyer</em> (individual vs company, and whether they qualify for the reduced rate). So the unit stores eligibility; the reservation stores the rate that was actually applied. Modelling "a fact about the thing" separately from "a fact about this transaction" is the move that keeps the schema honest.</p>
+      </div>
+
+      <h3 id="sales">Holds, reservations, waitlist</h3>
+
+      <p class="filelabel">holds — short-lived, one active per unit</p>
+<pre><code><span class="kw">CREATE TABLE</span> holds (
+  unit_id        <span class="kw">uuid NOT NULL REFERENCES</span> units,
+  prospect_id    <span class="kw">uuid NOT NULL REFERENCES</span> prospects,
+  expires_at     timestamptz <span class="kw">NOT NULL</span>,
+  released_at    timestamptz,
+  release_reason hold_release   <span class="cm">-- expired | cancelled | converted | admin</span>
+);
+
+<span class="ok">CREATE UNIQUE INDEX one_active_hold_per_unit
+  ON holds (unit_id) WHERE released_at IS NULL;</span></code></pre>
+
+      <div class="learn">
+        <span class="k">Worth understanding</span>
+        <p>That's a <strong>partial unique index</strong> — uniqueness enforced only over rows matching the <code>WHERE</code>. It makes "a unit can have many historical holds but only one live one" a database guarantee rather than application discipline. Belt and braces alongside the guarded update below.</p>
+      </div>
+
+      <p class="filelabel">reservations — replaces hidden columns AA–AG</p>
+<pre><code><span class="kw">CREATE TABLE</span> reservations (
+  unit_id      <span class="kw">uuid NOT NULL REFERENCES</span> units,
+  prospect_id  <span class="kw">uuid NOT NULL REFERENCES</span> prospects,
+  state        reservation_state <span class="kw">NOT NULL DEFAULT</span> 'pending_fee',
+
+  contract_number            <span class="kw">text</span>,        <span class="cm">-- "Numar contract"</span>
+  fee_paid_at                timestamptz,  <span class="cm">-- "Platit rezervare"</span>
+  signed_agreement_at        timestamptz,  <span class="cm">-- "Trimis rezervarea semnata"</span>
+  cesiune_signed_at          timestamptz,  <span class="cm">-- "Cesiune semnata la NOTAR"</span>
+  notary_location            <span class="kw">text</span>,        <span class="cm">-- "Locatie cesiune"</span>
+  notary_appointment_at      timestamptz,
+
+  buyer_type   buyer_type <span class="kw">NOT NULL</span>,      <span class="cm">-- individual | company</span>
+
+  <span class="hl">-- price snapshot: what applied WHEN THIS WAS AGREED</span>
+  <span class="hl">snap_base_price_net   numeric(12,2) NOT NULL</span>,
+  <span class="hl">snap_cesiune_net      numeric(12,2)</span>,
+  <span class="hl">snap_vat_rate         numeric(5,4)  NOT NULL</span>,
+  <span class="hl">snap_tranches         jsonb         NOT NULL</span>,
+
+  internal_notes      <span class="kw">text</span>,             <span class="cm">-- was "Comments Istratescu"</span>
+  cancelled_at        timestamptz,
+  cancellation_reason <span class="kw">text</span>
+);
+
+<span class="kw">CREATE TYPE</span> reservation_state <span class="kw">AS ENUM</span>
+  ('pending_fee','fee_paid','agreement_sent','agreement_signed',
+   'notary_scheduled','cesiune_signed','completed','cancelled');</code></pre>
+
+      <p>Those eight states are the columns Cristian keeps by hand, turned into a pipeline. Keep them <strong>configurable per project</strong> rather than hardcoded — the proposal flagged that your model of their process is inferred from documents, not observed, and this is the field most likely to be wrong.</p>
+
+      <p class="filelabel">waitlist_entries</p>
+<pre><code><span class="kw">CREATE TABLE</span> waitlist_entries (
+  project_id   <span class="kw">uuid NOT NULL REFERENCES</span> projects,
+  unit_type_id <span class="kw">uuid REFERENCES</span> unit_types,   <span class="cm">-- NULL = any type</span>
+  prospect_id  <span class="kw">uuid NOT NULL REFERENCES</span> prospects,
+  position     int <span class="kw">NOT NULL</span>,                  <span class="cm">-- primul venit, primul servit</span>
+  notified_at  timestamptz,
+  converted_at timestamptz,
+  removed_at   timestamptz
+);
+
+<span class="kw">CREATE UNIQUE INDEX</span> one_waitlist_entry
+  <span class="kw">ON</span> waitlist_entries (project_id, unit_type_id, prospect_id)
+  <span class="kw">WHERE</span> removed_at <span class="kw">IS NULL</span>;</code></pre>
+
+      <h3 id="people">People, consent, audit</h3>
+
+      <p class="filelabel">prospects</p>
+<pre><code><span class="kw">CREATE TABLE</span> prospects (
+  email         citext <span class="kw">UNIQUE NOT NULL</span>,
+  full_name     <span class="kw">text</span>,
+  phone         <span class="kw">text</span>,
+  locale        <span class="kw">text NOT NULL DEFAULT</span> 'ro',
+  source        <span class="kw">text</span>,                     <span class="cm">-- 'website' | 'import' | 'referral'</span>
+
+  <span class="hl">gdpr_consent_at      timestamptz</span>,
+  <span class="hl">gdpr_consent_purpose text[]</span>,          <span class="cm">-- {'reservations'} | {'reservations','marketing'}</span>
+  <span class="hl">gdpr_consent_source  text</span>,            <span class="cm">-- which form, which version</span>
+  deletion_requested_at timestamptz,
+
+  <span class="cm">-- their serial-canceller rule, currently enforced by memory</span>
+  lapsed_hold_count int <span class="kw">NOT NULL DEFAULT</span> 0,
+  can_hold          boolean <span class="kw">NOT NULL DEFAULT</span> true,
+  block_reason      <span class="kw">text</span>
+);</code></pre>
+
+      <p><code>citext</code> matters more than it looks: <code>Ion@example.ro</code> and <code>ion@example.ro</code> are the same person, and a case-sensitive unique index will happily create two prospect records for them.</p>
+
+      <p class="filelabel">audit_log — append-only</p>
+<pre><code><span class="kw">CREATE TABLE</span> audit_log (
+  actor_type  <span class="kw">text NOT NULL</span>,    <span class="cm">-- 'user' | 'prospect' | 'system'</span>
+  actor_id    <span class="kw">uuid</span>,
+  entity_type <span class="kw">text NOT NULL</span>,    <span class="cm">-- 'unit' | 'reservation' | 'hold'</span>
+  entity_id   <span class="kw">uuid NOT NULL</span>,
+  action      <span class="kw">text NOT NULL</span>,    <span class="cm">-- 'hold.created' | 'unit.state_changed'</span>
+  before      <span class="kw">jsonb</span>,
+  after       <span class="kw">jsonb</span>,
+  ip          inet
+);
+<span class="kw">CREATE INDEX ON</span> audit_log (entity_type, entity_id, created_at <span class="kw">DESC</span>);</code></pre>
+
+      <h4>Remaining tables, in brief</h4>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Table</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">developers</td><td>Roka Development, Novarion — name, track record, reused across projects</td></tr>
+            <tr><td class="mono">unit_types</td><td>Studio / Studio Dublu / 2 camere / 3 camere, per project, ordered. Waitlists key off this</td></tr>
+            <tr><td class="mono">floors</td><td>(project, building, level) → floor plan asset. Every unit on the floor inherits it</td></tr>
+            <tr><td class="mono">assets</td><td>Floor plans, RLVs, renders, site plans. Storage key + kind + mime</td></tr>
+            <tr><td class="mono">unit_assets</td><td>Unit ↔ asset, for the per-unit RLV</td></tr>
+            <tr><td class="mono">users</td><td>Hubix staff. Roles: admin | sales | viewer</td></tr>
+            <tr><td class="mono">enquiries</td><td>Replaces the "trimite intrebari" form</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="sqlserver">Reading this as SQL Server</h3>
+      <p>Everything above maps across. The two Postgres features doing real work — persisted computed columns and partial unique indexes — both have direct equivalents, so nothing in the design is lost.</p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>Written above</th><th>SQL Server</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GENERATED … STORED</td><td class="mono">AS (…) PERSISTED</td><td>Direct equivalent</td></tr>
+            <tr><td class="mono">CREATE UNIQUE INDEX … WHERE</td><td class="mono">filtered index</td><td>Near-identical syntax</td></tr>
+            <tr><td class="mono">citext</td><td class="mono">CI collation</td><td>Simpler — it is the default</td></tr>
+            <tr><td class="mono">timestamptz</td><td class="mono">datetimeoffset</td><td>Not <code>datetime2</code>; keep the offset</td></tr>
+            <tr><td class="mono">numeric(12,2)</td><td class="mono">decimal(12,2)</td><td>Same type, and <code>decimal</code> in C# is real</td></tr>
+            <tr><td class="mono">jsonb</td><td class="mono">nvarchar(max)</td><td>With an <code>ISJSON</code> check. EF Core maps owned types to it</td></tr>
+            <tr><td class="mono">text[]</td><td class="mono">child table</td><td>Only consent purposes — a table is cleaner anyway</td></tr>
+            <tr><td class="mono">CREATE TYPE … AS ENUM</td><td class="mono">lookup table + FK</td><td>C# enum in code; a table keeps the database self-describing</td></tr>
+            <tr><td class="mono">gen_random_uuid()</td><td class="mono">UUIDv7 in app</td><td>Random GUIDs fragment the clustered index</td></tr>
+            <tr><td class="mono">inet</td><td class="mono">varchar(45)</td><td>IPv6 maximum length</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tcap">Enable READ_COMMITTED_SNAPSHOT — on by default in Azure SQL — so readers never block on a held row.</p>
+    </section>
+
+    <section id="machine">
+      <h2>The state machine</h2>
+
+      <div class="states">
+        <ol>
+          <li><div class="st"><b>AVAILABLE</b><span>listed</span></div><div class="ar">→</div></li>
+          <li><div class="st hold"><b>HELD</b><span>48h countdown</span></div><div class="ar">→</div></li>
+          <li><div class="st"><b>RESERVED</b><span>fee paid</span></div><div class="ar">→</div></li>
+          <li><div class="st"><b>CONTRACTED</b><span>cesiune at notary</span></div><div class="ar">→</div></li>
+          <li><div class="st done"><b>SOLD</b><span>balance settled</span></div></li>
+        </ol>
+      </div>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>From → To</th><th>Trigger</th><th>Guard</th><th>Effects</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">available → held</td><td>Prospect reserves</td><td><code>can_hold</code>, no live hold</td><td>Create hold, email prospect + sales, start countdown</td></tr>
+            <tr><td class="mono">held → available</td><td>Cron, expiry</td><td><code>expires_at &lt; now()</code></td><td>Release <em>expired</em>, increment lapse count, set <code>can_hold=false</code>, notify waitlist head</td></tr>
+            <tr><td class="mono">held → available</td><td>Prospect cancels</td><td>—</td><td>Same as expiry, minus the wait</td></tr>
+            <tr><td class="mono">held → available</td><td>Admin releases</td><td>role ≥ sales</td><td>Release <em>admin</em>. <strong>No lapse penalty</strong> — staff error isn't the prospect's fault</td></tr>
+            <tr><td class="mono">held → reserved</td><td>Admin marks fee paid</td><td>—</td><td>Create reservation, <strong>snapshot prices</strong>, release hold as <em>converted</em></td></tr>
+            <tr><td class="mono">reserved → contracted</td><td>Cesiune signed</td><td><code>cesiune_signed_at</code> set</td><td>Advance pipeline</td></tr>
+            <tr><td class="mono">contracted → sold</td><td>Balance settled</td><td>—</td><td>Project auto-flips to <em>sold_out</em> when no units remain</td></tr>
+            <tr><td class="mono">any → available</td><td>Admin cancels</td><td>reason required</td><td>Cancel reservation, notify waitlist</td></tr>
+            <tr><td class="mono">available → withdrawn</td><td>Admin</td><td>role = admin</td><td>Delist without deleting</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tcap">Every row above writes an audit_log entry. No exceptions — that's what makes "who released this?" answerable.</p>
+
+      <h3 id="hold">The hold query</h3>
+      <p>This is the load-bearing eight lines of the entire system.</p>
+
+<p class="filelabel">HoldService.cs</p>
+<pre><code><span class="cm">// Two prospects click Reserve on Ap.203 in the same second.</span>
+<span class="cm">// Exactly one gets rows == 1. The other gets 0 and a clean error.</span>
+<span class="kw">var</span> rows = <span class="kw">await</span> db.Units
+    .Where(u =&gt; u.Id == unitId <span class="hl">&amp;&amp; u.State == UnitState.Available</span>)   <span class="cm">// ← the guard</span>
+    .ExecuteUpdateAsync(s =&gt; s
+        .SetProperty(u =&gt; u.State,          UnitState.Held)
+        .SetProperty(u =&gt; u.StateChangedAt, DateTimeOffset.UtcNow), ct);
+
+<span class="kw">if</span> (rows == 0)
+    <span class="kw">return</span> HoldResult.NoLongerAvailable;</code></pre>
+
+      <div class="learn">
+        <span class="k">Worth understanding</span>
+        <p>This works because the UPDATE takes an exclusive row lock. The second transaction blocks, then re-evaluates its predicate against the committed row, sees <code>Held</code>, and matches nothing. No application locks, no <code>SERIALIZABLE</code>, no retry loop.</p>
+        <p><code>ExecuteUpdateAsync</code> issues one statement and returns the affected row count — no entity is loaded first, so there is no read-then-write window to lose the race in. Wrap it and the <code>holds</code> insert in one transaction so a crash between them can't leave a held unit with no hold record.</p>
+        <p>To <em>see</em> the race, open two SSMS query windows, <code>BEGIN TRAN</code> in both, run the update in each — the second hangs until you commit the first. That is a genuinely useful hour, and the test that proves it belongs in the suite before you move on.</p>
+      </div>
+
+      <p>The expiry job runs once a minute under Hangfire, and must be idempotent — a scaled-out app can fire it twice:</p>
+<pre><code><span class="kw">UPDATE</span> holds <span class="kw">SET</span> released_at = SYSDATETIMEOFFSET(), release_reason = 'expired'
+<span class="kw">OUTPUT</span> inserted.unit_id, inserted.prospect_id
+ <span class="kw">WHERE</span> released_at <span class="kw">IS NULL AND</span> expires_at &lt; SYSDATETIMEOFFSET();
+<span class="cm">-- then: units → available, prospects.lapsed_hold_count += 1, notify waitlist head</span></code></pre>
+      <p>Hangfire persists its own state in the same database, so the job survives restarts, retries on failure and takes a distributed lock rather than double-firing across instances. Its dashboard also satisfies the "monitor the expiry job" line on the production checklist without extra work.</p>
+    </section>
+
+    <section id="routes">
+      <h2>Routes</h2>
+      <p class="deck">Romanian paths — they're the ones real buyers will see and share. 🔒 marks authenticated.</p>
+
+      <h4>Public</h4>
+      <ul class="routes">
+        <li><code>/</code><span>Projects index, filterable by city and availability</span></li>
+        <li><code>/proiecte/[slug]</code><span>The prospectus, rendered from the record</span></li>
+        <li><code>/proiecte/[slug]/apartamente</code><span>Live inventory — the sheet replacement</span></li>
+        <li><code>/proiecte/[slug]/apartamente/[code]</code><span>Unit detail: plan, RLV, tranche breakdown</span></li>
+        <li><code>/proiecte/[slug]/rezervare/[code]</code><span>Reservation flow with consent capture</span></li>
+        <li><code>/proiecte/[slug]/lista-asteptare</code><span>Waitlist, per unit type</span></li>
+        <li class="auth"><code>/contul-meu</code><span>Prospect's holds, countdown, documents</span></li>
+        <li><code>/intrebari</code><span>Replaces the questions form</span></li>
+      </ul>
+
+      <h4>Admin</h4>
+      <ul class="routes">
+        <li class="auth"><code>/admin</code><span>Portfolio roll-up — units by state across all projects</span></li>
+        <li class="auth"><code>/admin/proiecte/[id]/unitati</code><span>Editable grid. This is what replaces the spreadsheet</span></li>
+        <li class="auth"><code>/admin/proiecte/[id]/import</code><span>XLSX upload → column mapping → dry-run diff → commit</span></li>
+        <li class="auth"><code>/admin/pipeline</code><span>Board by reservation state, with the notary fields</span></li>
+        <li class="auth"><code>/admin/prospecti</code><span>People, consent status, lapse history</span></li>
+        <li class="auth"><code>/admin/lista-asteptare</code><span>Queues, manual promotion</span></li>
+        <li class="auth"><code>/admin/audit</code><span>Filterable log</span></li>
+      </ul>
+
+      <h4>API</h4>
+      <ul class="routes">
+        <li><code>POST /api/units/:id/hold</code><span>Rate-limited by IP and by email</span></li>
+        <li><code>DELETE /api/holds/:id</code><span>Prospect-initiated cancel</span></li>
+        <li><code>POST /api/waitlist</code><span>Join queue</span></li>
+        <li><code>POST /api/cron/expire-holds</code><span>Cron-secret guarded, idempotent</span></li>
+      </ul>
+    </section>
+
+    <section id="import">
+      <h2>Importing their sheets</h2>
+      <p class="deck">Non-negotiable. Nobody is retyping 180 units, and the importer is also how you'll seed your own development database.</p>
+      <p>Because every project's columns differ, the importer can't assume a layout. Three steps:</p>
+      <ul>
+        <li><strong>Upload and detect.</strong> Parse the XLSX, show the detected header row and let the user correct it — Cartierul Vienez's A1 is <em>already</em> corrupted, so this is a real case, not a defensive one.</li>
+        <li><strong>Map columns.</strong> A UI mapping sheet columns to schema fields, with a saved mapping profile per project. Fuzzy-suggest from the known Romanian headers: <code>Disponibil?</code>, <code>MPU</code>, <code>Cod Apartament</code>, <code>Pret total apartament fara TVA</code>.</li>
+        <li><strong>Dry-run diff, then commit.</strong> Show creates / updates / conflicts before writing anything. Re-running the import must be safe — key on <code>(project_id, code)</code> and never touch a unit that is <code>held</code>, <code>reserved</code> or beyond.</li>
+      </ul>
+      <p>That last rule is the one that will save you: an import must never silently free a unit somebody has paid a reservation fee on.</p>
+      <p>Build the export at the same time. A one-click XLSX in their existing column order costs a day and removes the single biggest objection to adoption.</p>
+    </section>
+
+    <section id="milestones">
+      <h2>Milestones</h2>
+      <p class="deck">Ordered so the risky, interesting parts come early and the tedium is spread out. Weeks assume evenings and weekends.</p>
+      <ol class="milestones">
+        <li><span class="n"></span><span class="w">Schema, EF migrations, seed<em>All tables, lookups, indexes. Roka's 20 units loaded by a throwaway console app</em></span><span class="t">1–2 wk</span></li>
+        <li><span class="n"></span><span class="w">Public project page + inventory, read-only<em>Razor Pages, Romanian, real data. Nothing interactive yet</em></span><span class="t">1–2 wk</span></li>
+        <li><span class="n"></span><span class="w">Holds, the Hangfire job, transactional email<em>The hard part. Write the concurrency test first, with Testcontainers</em></span><span class="t">2 wk</span></li>
+        <li><span class="n"></span><span class="w">Auth + React admin shell + editable units grid<em>Identity for staff, magic links for prospects, the spreadsheet replacement</em></span><span class="t">2–3 wk</span></li>
+        <li><span class="n"></span><span class="w">Reservation pipeline<em>The eight states, notary fields, price snapshotting</em></span><span class="t">2 wk</span></li>
+        <li><span class="n"></span><span class="w">Waitlist with auto-promotion<em>Queue, notification, conversion tracking</em></span><span class="t">1 wk</span></li>
+        <li><span class="n"></span><span class="w">Importer and exporter<em>Column mapping, dry-run diff, XLSX out</em></span><span class="t">1–2 wk</span></li>
+        <li><span class="n"></span><span class="w">Assets<em>Floor plans per floor, RLVs per unit, renders</em></span><span class="t">1 wk</span></li>
+        <li><span class="n"></span><span class="w">Hardening and deploy<em>The checklist below, then load all six projects</em></span><span class="t">2 wk</span></li>
+      </ol>
+      <p>Roughly 13–17 weeks of evenings. Milestone 3 is where you'll learn the most and where the schedule is least predictable — budget generously and don't move on until the concurrency test is green.</p>
+    </section>
+
+    <section id="ready">
+      <h2>Production checklist</h2>
+      <p class="deck">"Production" is a claim you make to Hubix. These are what back it.</p>
+      <ul class="checks">
+        <li>Automated database backups, and a restore you have actually performed once</li>
+        <li>Migrations run in CI, never by hand against production</li>
+        <li>Error tracking and an alert on the Hangfire expiry job specifically — a silently dead expiry job is invisible and corrosive</li>
+        <li>Rate limiting on hold creation, waitlist signup and magic-link requests</li>
+        <li>A concurrency test that fires N simultaneous holds at one unit and asserts exactly one wins</li>
+        <li>Email delivery verified from a real domain with SPF, DKIM and DMARC — reservation confirmations landing in spam is a business failure</li>
+        <li>GDPR: consent captured with purpose and version, export and deletion paths, a written retention period</li>
+        <li>All money as <code>decimal</code>, never <code>double</code>. Rounding rule decided once and tested</li>
+        <li>Romanian copy reviewed by a Romanian speaker, diacritics correct throughout</li>
+        <li>Staging environment with production-shaped data</li>
+        <li>Audit log covering every state transition</li>
+        <li>A documented runbook: how to release a stuck hold, how to reverse a wrong state change</li>
+      </ul>
+    </section>
+
+    <section id="traps">
+      <h2>Traps</h2>
+      <ul class="risks">
+        <li><strong>Don't let the importer touch sold units.</strong> Re-importing a corrected sheet must never reset a unit somebody has paid for. Guard on state, loudly.</li>
+        <li><strong>Don't compute prices for historical reservations.</strong> Snapshot at agreement. When Hubix raises prices mid-launch — and they will, the Lake Home document describes exactly this — existing reservations must not move.</li>
+        <li><strong>Don't hardcode the pipeline states.</strong> Your model of their process comes from reading files, not watching Cristian work. Make the states data, so the first correction is a config change and not a migration.</li>
+        <li><strong>Don't trust the job to run.</strong> An expired hold that never releases silently blocks a sale. Alert on the Hangfire job's last-success timestamp, and treat "expired but still held" as a recoverable condition the admin UI surfaces.</li>
+      <li><strong>Don't use random GUIDs as clustered primary keys.</strong> SQL Server clusters on the PK by default, and <code>Guid.NewGuid()</code> inserts into the middle of the index every time. Generate UUIDv7 in the application, or cluster on a separate identity column.</li>
+        <li><strong>Don't build the prospectus editor first.</strong> Rich text is a swamp and it's the least valuable surface. Start with Markdown or structured blocks, and only go further if they ask.</li>
+      </ul>
+    </section>
+
+    <section id="next">
+      <h2>Next step</h2>
+      <p>Milestone 1 is the schema, and it's ready to write. I'd scaffold the solution — an ASP.NET Core host, an EF Core model with the migrations above, Hangfire wired up, a React admin app under <code>ClientApp</code>, and a seed console project that reads the real Roka XLSX with ClosedXML — so you begin from a running database holding their actual units rather than an empty migration.</p>
+      <p>A sensible layout: <code>Hubix.Domain</code> (entities and the state machine), <code>Hubix.Infrastructure</code> (EF Core, email, storage), <code>Hubix.Web</code> (Razor Pages, API, Hangfire host), <code>Hubix.Admin</code> (React + TypeScript), <code>Hubix.Seed</code>, and <code>Hubix.Tests</code> with Testcontainers for the concurrency test.</p>
+      <p>One thing to settle before that: where the code lives. Your standing rule is that everything goes under <code>C:\Repositories\ClaudeLocalDocs</code>, so I'd put the application at <code>C:\Repositories\ClaudeLocalDocs\Hubix\portal\</code> and keep these documents beside it. If you'd rather the app be a normal top-level repository at <code>C:\Repositories\hubix-portal</code>, say so and I'll use that instead.</p>
+    </section>
+
+    <footer>
+      Build specification · 31 August 2026 · follows 01-business-analysis and 02-application-proposal<br>
+      Line A only. Equity is out of scope until reviewed by a Romanian securities lawyer.
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+  function sync() {
+    var best = 0;
+    for (var i = 0; i < targets.length; i++) {
+      if (targets[i] && targets[i].getBoundingClientRect().top <= 120) best = i;
+    }
+    links.forEach(function (a, i) { a.classList.toggle('is-active', i === best); });
+  }
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(function () { sync(); ticking = false; });
+  }, { passive: true });
+  sync();
+})();
+</script>
+
+</body>
+</html>

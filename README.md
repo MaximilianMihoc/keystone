@@ -163,15 +163,18 @@ Seeded accounts use `.invalid` addresses for the same reason — sign in as `dev
 
 ## Documents
 
-Analysis, proposal and the full build specification live outside this repository, at
-`C:\Repositories\ClaudeLocalDocs\Hubix`:
+Analysis, proposal and the full build specification are in `docs/`. Open them in a browser.
 
 | Document | Contents |
 |---|---|
-| `01-business-analysis` | What Hubix does, both business lines, the current manual process |
-| `02-application-proposal` | Why this system, what is deliberately out of scope, build order |
-| `03-build-spec` | Schema, state machine, routes, milestones, production checklist |
+| `docs/01-business-analysis.html` | What Hubix does, both business lines, the current manual process |
+| `docs/02-application-proposal.html` | Why this system, what is deliberately out of scope, build order |
+| `docs/03-build-spec.html` | Schema, state machine, routes, milestones, production checklist |
+| `docs/RUNBOOK.md` | Health checks, what to do when something is wrong, the deploy checklist |
 | `seed-data/` | The five inventory spreadsheets extracted to JSON |
+
+All three are internal working documents and say so on their face. They have not been shared
+with Hubix.
 
 Source material — prospectuses and spreadsheets containing real prices and buyer data — stays in
 `C:\Repositories\HubixDocs` and is gitignored here.

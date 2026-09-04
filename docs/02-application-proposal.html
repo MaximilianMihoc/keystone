@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hubix Portal Proposal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style>
+</head>
+<body>
+
+<style>
+:root {
+  --paper:        #F1F3F5;
+  --raised:       #FFFFFF;
+  --ink:          #10161C;
+  --ink-2:        #3D4A55;
+  --ink-3:        #6B7883;
+  --rule:         #D3DAE0;
+  --rule-soft:    #E4E9ED;
+  --accent:       #0F4C75;
+  --accent-soft:  #E2EAF1;
+  --lineb:        #4A3A6B;
+  --lineb-soft:   #EAE6F1;
+  --flag:         #8C2F2F;
+  --flag-soft:    #F4E7E5;
+  --go:           #2C6049;
+  --go-soft:      #E2EDE7;
+
+  --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --serif: "Spectral", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:       #101418;
+    --raised:      #171C22;
+    --ink:         #E4EAEF;
+    --ink-2:       #AEBBC5;
+    --ink-3:       #7C8A95;
+    --rule:        #29323B;
+    --rule-soft:   #1E252C;
+    --accent:      #74AEDC;
+    --accent-soft: #17242F;
+    --lineb:       #AC98D4;
+    --lineb-soft:  #1F1B2B;
+    --flag:        #DD8F85;
+    --flag-soft:   #2B1C1A;
+    --go:          #7DBF9E;
+    --go-soft:     #17241E;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:       #101418;
+  --raised:      #171C22;
+  --ink:         #E4EAEF;
+  --ink-2:       #AEBBC5;
+  --ink-3:       #7C8A95;
+  --rule:        #29323B;
+  --rule-soft:   #1E252C;
+  --accent:      #74AEDC;
+  --accent-soft: #17242F;
+  --lineb:       #AC98D4;
+  --lineb-soft:  #1F1B2B;
+  --flag:        #DD8F85;
+  --flag-soft:   #2B1C1A;
+  --go:          #7DBF9E;
+  --go-soft:     #17241E;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { display: grid; grid-template-columns: 1fr; max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+
+@media (min-width: 1040px) {
+  .shell { grid-template-columns: 232px minmax(0, 1fr); gap: 56px; padding: 0 40px; }
+}
+
+/* ---------- toc ---------- */
+
+.toc { display: none; }
+
+@media (min-width: 1040px) {
+  .toc {
+    display: block; position: sticky; top: 0; align-self: start;
+    max-height: 100vh; overflow-y: auto; padding: 72px 24px 48px 0;
+    border-right: 1px solid var(--rule-soft); margin-right: -32px;
+  }
+}
+
+.toc-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 16px;
+}
+
+.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.toc a {
+  display: block; font-family: var(--sans); font-size: 13px; line-height: 1.35;
+  color: var(--ink-3); text-decoration: none; padding: 5px 0 5px 12px;
+  border-left: 2px solid transparent; transition: color .15s, border-color .15s;
+}
+
+.toc a:hover { color: var(--ink); }
+.toc a.is-active { color: var(--ink); border-left-color: var(--accent); font-weight: 600; }
+
+/* ---------- masthead ---------- */
+
+main { padding: 72px 0 128px; max-width: 74ch; }
+
+.eyebrow {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin: 0 0 20px;
+}
+
+h1 {
+  font-family: var(--sans); font-size: clamp(34px, 6vw, 50px); font-weight: 600;
+  letter-spacing: -0.022em; line-height: 1.06; text-wrap: balance; margin: 0 0 20px;
+}
+
+.standfirst { font-size: 20px; line-height: 1.55; color: var(--ink-2); margin: 0 0 44px; max-width: 62ch; }
+
+.thesis {
+  border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  background: var(--raised); padding: 26px 28px; margin: 0 0 72px;
+}
+
+.thesis p { margin: 0; font-size: 18.5px; line-height: 1.55; color: var(--ink); }
+.thesis .k { font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 12px; }
+
+/* ---------- sections ---------- */
+
+section { margin: 0 0 72px; scroll-margin-top: 24px; }
+
+h2 {
+  font-family: var(--sans); font-size: 27px; font-weight: 600; letter-spacing: -0.017em;
+  line-height: 1.2; text-wrap: balance; margin: 0 0 20px; padding-top: 22px;
+  border-top: 2px solid var(--ink);
+}
+
+h3 { font-family: var(--sans); font-size: 17px; font-weight: 600; letter-spacing: -0.005em; margin: 44px 0 12px; }
+
+h4 {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.11em;
+  text-transform: uppercase; color: var(--ink-3); margin: 36px 0 12px;
+}
+
+p { margin: 0 0 18px; }
+p:last-child { margin-bottom: 0; }
+.deck { font-size: 17.5px; color: var(--ink-2); margin: 0 0 28px; }
+
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+a { color: var(--accent); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+ul { margin: 0 0 18px; padding-left: 20px; }
+li { margin-bottom: 9px; }
+li:last-child { margin-bottom: 0; }
+ul li::marker { color: var(--ink-3); }
+
+code {
+  font-family: var(--mono); font-size: 0.855em; background: var(--rule-soft);
+  padding: 1.5px 5px; color: var(--ink);
+}
+
+/* ---------- fan-out diagram ---------- */
+
+.fan { margin: 0 0 26px; }
+
+.fan-src {
+  background: var(--accent); color: #fff; padding: 16px 20px;
+  font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+}
+
+.fan-src span { display: block; font-family: var(--sans); font-weight: 400; font-size: 12px; opacity: .82; margin-top: 4px; letter-spacing: 0; }
+
+.fan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; background: var(--rule-soft); border: 1px solid var(--rule-soft); border-top: none; }
+
+.fan-list li {
+  margin: 0; background: var(--raised); padding: 13px 20px 13px 34px; position: relative;
+  font-family: var(--sans); font-size: 14px; line-height: 1.45; color: var(--ink);
+}
+
+.fan-list li::before {
+  content: ""; position: absolute; left: 16px; top: 0; bottom: 0; width: 1px; background: var(--accent); opacity: .5;
+}
+
+.fan-list li::after {
+  content: ""; position: absolute; left: 16px; top: 21px; width: 10px; height: 1px; background: var(--accent); opacity: .5;
+}
+
+.fan-list li:last-child::before { bottom: 50%; }
+.fan-list li em { font-style: normal; display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+.fan-list li.new em { color: var(--go); }
+
+/* ---------- state machine ---------- */
+
+.states { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--rule); background: var(--raised); padding: 24px 22px; }
+
+.states ol { list-style: none; margin: 0; padding: 0; display: flex; align-items: stretch; gap: 0; min-width: 640px; }
+
+.states li { margin: 0; flex: 1; display: flex; align-items: center; gap: 0; }
+
+.states .st {
+  flex: 1; border: 1px solid var(--rule); background: var(--paper); padding: 12px 10px; text-align: center;
+}
+
+.states .st b {
+  display: block; font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.05em; color: var(--ink);
+}
+
+.states .st span { display: block; font-family: var(--sans); font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.3; }
+
+.states .st.hold { border-color: var(--accent); background: var(--accent-soft); }
+.states .st.hold b { color: var(--accent); }
+.states .st.done { border-color: var(--go); background: var(--go-soft); }
+.states .st.done b { color: var(--go); }
+
+.states .ar { flex: none; width: 26px; text-align: center; font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+
+.states-note { font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--ink-3); margin: 0 0 26px; line-height: 1.6; }
+
+/* ---------- code ---------- */
+
+pre {
+  margin: 0 0 20px; padding: 20px 22px; background: var(--raised); border: 1px solid var(--rule);
+  overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--ink-2);
+}
+
+pre code { background: none; padding: 0; font-size: inherit; }
+pre .kw { color: var(--accent); font-weight: 600; }
+pre .cm { color: var(--ink-3); font-style: italic; }
+pre .hl { color: var(--flag); font-weight: 600; }
+
+/* ---------- phases ---------- */
+
+.phases { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; counter-reset: ph -1; }
+
+.phases > li {
+  counter-increment: ph; margin: 0; background: var(--raised);
+  border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+}
+
+.phases > li.gated { border-left-color: var(--lineb); }
+
+.ph-head { padding: 20px 24px 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+
+.ph-head .n {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--accent);
+}
+
+.gated .ph-head .n { color: var(--lineb); }
+.ph-head .n::before { content: "PHASE " counter(ph); }
+
+.ph-head h3 { margin: 0; font-size: 18px; flex: 1 1 auto; }
+
+.ph-head .dur {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--ink-3);
+  border: 1px solid var(--rule); padding: 3px 8px; white-space: nowrap;
+}
+
+.ph-body { padding: 10px 24px 22px; }
+.ph-body .goal { font-size: 15.5px; color: var(--ink-2); margin: 0 0 14px; }
+.ph-body ul { margin: 0; font-size: 14.5px; }
+.ph-body ul li { margin-bottom: 6px; color: var(--ink-2); }
+
+/* ---------- scope in/out ---------- */
+
+.scope { display: grid; gap: 20px; margin: 0 0 20px; }
+@media (min-width: 680px) { .scope { grid-template-columns: 1fr 1fr; } }
+
+.scope > div { border: 1px solid var(--rule); background: var(--raised); padding: 20px 22px; }
+.scope > div.out { border-color: var(--flag); background: var(--flag-soft); }
+
+.scope h4 { margin: 0 0 12px; }
+.scope > div.out h4 { color: var(--flag); }
+.scope ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+.scope ul li { margin-bottom: 7px; color: var(--ink-2); line-height: 1.45; }
+
+/* ---------- stack table ---------- */
+
+.tw { overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--rule); background: var(--raised); }
+
+table { border-collapse: collapse; width: 100%; min-width: 520px; font-family: var(--sans); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+
+th {
+  text-align: left; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  padding: 11px 14px; border-bottom: 1px solid var(--rule); vertical-align: bottom; white-space: nowrap;
+}
+
+td { padding: 11px 14px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; line-height: 1.45; color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+td.mono { font-family: var(--mono); font-size: 12.5px; }
+
+/* ---------- risk list ---------- */
+
+.risks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.risks li {
+  margin: 0; padding: 16px 20px; background: var(--flag-soft);
+  border-left: 3px solid var(--flag); font-size: 15.5px; line-height: 1.55; color: var(--ink-2);
+}
+
+.risks li strong { color: var(--ink); }
+.risks li code { background: var(--raised); }
+
+/* ---------- decisions ---------- */
+
+.decisions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; counter-reset: dec; }
+
+.decisions li {
+  counter-increment: dec; margin: 0; padding: 20px 24px;
+  background: var(--raised); border: 1px solid var(--rule); border-top: 3px solid var(--lineb);
+}
+
+.decisions h3 { margin: 0 0 8px; font-size: 16.5px; display: flex; gap: 10px; align-items: baseline; }
+.decisions h3::before {
+  content: counter(dec, decimal-leading-zero); font-family: var(--mono);
+  font-size: 11px; font-weight: 600; color: var(--lineb); flex: none;
+}
+.decisions p { margin: 0; font-size: 15px; color: var(--ink-2); }
+.decisions p + p { margin-top: 10px; }
+.decisions .rec {
+  display: inline-block; font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--go);
+  background: var(--go-soft); border: 1px solid var(--go); padding: 2px 7px; margin-top: 10px;
+}
+
+footer {
+  margin-top: 88px; padding-top: 24px; border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 11px; line-height: 1.7; letter-spacing: 0.03em; color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="shell">
+
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-label">Contents</p>
+    <ol>
+      <li><a href="#thesis">The thesis</a></li>
+      <li><a href="#shape">One record, six surfaces</a></li>
+      <li><a href="#engine">The three hard parts</a></li>
+      <li><a href="#scope">In scope / out of scope</a></li>
+      <li><a href="#phases">Build order</a></li>
+      <li><a href="#stack">Stack</a></li>
+      <li><a href="#risks">What will bite</a></li>
+      <li><a href="#pitch">How to land it</a></li>
+      <li><a href="#decisions">Your calls</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <p class="eyebrow">Proposal · Working title: Hubix Portal</p>
+    <h1>A single source of truth per project</h1>
+    <p class="standfirst">Hubix runs six live projects out of Word documents, Google Sheets, Google Forms and WhatsApp. The proposal is not to digitise that. It is to collapse it.</p>
+
+    <div class="thesis">
+      <span class="k">The thesis</span>
+      <p>Every project fact is currently typed into five places and kept in sync by hand. Enter it once, render it everywhere — prospectus, live inventory, reservation, waitlist, pipeline, portfolio. Everything else in this proposal follows from that one move.</p>
+    </div>
+
+    <section id="thesis">
+      <h2>Why this, and why now</h2>
+      <p>The analysis turned up two contradictions sitting in <em>live</em> files: the Roka prospectus says 20 apartments in one section and 30 in another, and the Cartierul Vienez spreadsheet has its header row pasted over. Neither is carelessness. Both are the arithmetic of hand-syncing five artefacts across six projects.</p>
+      <p>That failure mode gets worse, not better, as they scale. They expect <strong>6–9 more Equity projects this year</strong> and 15–25 SPVs within two years. The manual process is already at its ceiling.</p>
+      <p>Meanwhile the thing that actually protects revenue — a unit being genuinely locked when someone reserves it — is enforced today by a person remembering to type <code>NU</code> in a cell. That is the gap worth closing first.</p>
+    </section>
+
+    <section id="shape">
+      <h2>One record, six surfaces</h2>
+      <p class="deck">The whole architecture is this diagram. A project is entered once; every artefact is a rendering of it.</p>
+
+      <div class="fan">
+        <div class="fan-src">
+          PROJECT RECORD
+          <span>Development, units, pricing rules, VAT regime, documents, timeline</span>
+        </div>
+        <ul class="fan-list">
+          <li>Public prospectus page<em>replaces the 13–20 page .docx</em></li>
+          <li>Live unit inventory<em>replaces the per-project Google Sheet</em></li>
+          <li>Reservation flow<em>replaces the Google Form and the honour system</em></li>
+          <li>Waitlist<em>replaces three separate forms per project</em></li>
+          <li>Admin pipeline<em>replaces hidden columns AA–AG</em></li>
+          <li class="new">Portfolio roll-up<em>does not exist today at all</em></li>
+        </ul>
+      </div>
+
+      <p>The last one matters more than it looks. Because every sheet has a different column layout, Hubix currently <strong>cannot answer "how many units are unsold across all six projects"</strong> without opening six files and reading them by eye. One schema makes that a query.</p>
+    </section>
+
+    <section id="engine">
+      <h2>The three hard parts</h2>
+      <p class="deck">Most of this application is CRUD. Three pieces are not, and they are where the value concentrates.</p>
+
+      <h3>1. The unit state machine</h3>
+      <p>This is the revenue-protecting piece and the thing to demo first.</p>
+
+      <div class="states">
+        <ol>
+          <li>
+            <div class="st"><b>AVAILABLE</b><span>listed publicly</span></div>
+            <div class="ar">→</div>
+          </li>
+          <li>
+            <div class="st hold"><b>HELD</b><span>48h countdown</span></div>
+            <div class="ar">→</div>
+          </li>
+          <li>
+            <div class="st"><b>RESERVED</b><span>fee paid</span></div>
+            <div class="ar">→</div>
+          </li>
+          <li>
+            <div class="st"><b>CONTRACTED</b><span>cesiune at notary</span></div>
+            <div class="ar">→</div>
+          </li>
+          <li>
+            <div class="st done"><b>SOLD</b><span>balance settled</span></div>
+          </li>
+        </ol>
+      </div>
+      <p class="states-note">HELD expires automatically → back to AVAILABLE, and the waitlist is notified in position order.<br>A prospect who lets a hold lapse is flagged — the documents already describe this rule, enforced by memory today.</p>
+
+      <p>The entire trick is that the hold must be atomic. One conditional write, and you check whether it actually changed a row:</p>
+
+<pre><code><span class="cm">-- two people click Reserve on Ap.203 in the same second.</span>
+<span class="cm">-- exactly one of them gets a rowcount of 1.</span>
+<span class="kw">UPDATE</span> units
+   <span class="kw">SET</span> state      = 'held',
+       held_by    = $1,
+       held_until = now() + interval '48 hours'
+ <span class="kw">WHERE</span> id = $2
+   <span class="hl">AND state = 'available'</span>;   <span class="cm">-- the guard. everything depends on this line.</span></code></pre>
+
+      <p>A scheduled job every minute expires lapsed holds and promotes the waitlist. That is the complete mechanism — perhaps 150 lines including the notifications, and it removes an entire class of double-booking that today is prevented only by Cristian being fast.</p>
+
+      <h3>2. The pricing engine</h3>
+      <p>Column drift between the five spreadsheets is not a formatting problem; it is a symptom of every tranche being typed by hand. The fix is to make those columns <strong>derived, never entered</strong>.</p>
+      <p>A project carries a pricing rule — advance percentage, cesiune basis, VAT regime, tranche count. A unit carries a base price, its own square metres, and any override. Tranche 1, the cesiune price and the balance are computed. Roka's <code>Transa 1 / Transa 3</code> and Prima Solis's <code>Transa 1 / Transa 2</code> stop being different schemas and become the same rule with a different tranche count.</p>
+      <p>VAT deserves calling out: 9% / 19% / 21% depending on unit and buyer type, and it is a real column in their sheets. It has to be modelled per unit with the buyer type resolved at reservation, not assumed globally.</p>
+
+      <h3>3. Documents bound to units, not pasted per row</h3>
+      <p>Every row in every sheet carries hand-pasted Drive links — <code>Plan Etaj</code>, <code>RLV Apartament</code>, <code>Plan de situatie</code>, renders. These belong to the unit and the floor, not to a cell. Upload the floor plan once against the floor; every unit on it inherits the link. This is unglamorous and it deletes a large share of the manual work.</p>
+    </section>
+
+    <section id="scope">
+      <h2>In scope, and firmly out</h2>
+      <p class="deck">The out-of-scope list is the more useful half. Each of these is a plausible-sounding feature that would sink a solo build.</p>
+
+      <div class="scope">
+        <div>
+          <h4>Build</h4>
+          <ul>
+            <li>Project and unit records with a real schema</li>
+            <li>Public project pages, Romanian-first</li>
+            <li>Live inventory with atomic holds</li>
+            <li>Reservation and waitlist with auto-promotion</li>
+            <li>Admin pipeline board</li>
+            <li>Document vault per project and floor</li>
+            <li>Transactional email in Romanian</li>
+            <li>Portfolio dashboard</li>
+            <li>Audit log on every state change</li>
+          </ul>
+        </div>
+        <div class="out">
+          <h4>Do not build</h4>
+          <ul>
+            <li><strong>Payments.</strong> Money moves by bank transfer and notary. Track state, never hold funds — that is a licensing question.</li>
+            <li><strong>A WhatsApp replacement.</strong> It is load-bearing for their community. Link out to it.</li>
+            <li><strong>Property management operations.</strong> Different product, different buyer.</li>
+            <li><strong>A CRM.</strong> A few hundred prospects. The pipeline board covers it.</li>
+            <li><strong>E-signature.</strong> The cesiune is signed at a notary by law.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="phases">
+      <h2>Build order</h2>
+      <p class="deck">Sequenced for one person building alone, with a demonstrable artefact at every stop. Durations assume evenings and weekends, not full-time.</p>
+
+      <ol class="phases">
+        <li>
+          <div class="ph-head">
+            <span class="n"></span>
+            <h3>The moment</h3>
+            <span class="dur">2–3 weeks</span>
+          </div>
+          <div class="ph-body">
+            <p class="goal">One project, their real data, one screen that makes the point. This is a pitch artefact, not a product — hardcode whatever you like.</p>
+            <ul>
+              <li>Load Roka Park View's actual 20 units from the spreadsheet</li>
+              <li>Public project page and live inventory grid</li>
+              <li>Reserve a unit → it locks, greys out for everyone, countdown starts</li>
+              <li>Bare-bones admin to watch it happen from the other side</li>
+            </ul>
+          </div>
+        </li>
+
+        <li>
+          <div class="ph-head">
+            <span class="n"></span>
+            <h3>One project, end to end</h3>
+            <span class="dur">4–6 weeks</span>
+          </div>
+          <div class="ph-body">
+            <p class="goal">Everything Hubix does for a single project, done in the app instead of across five artefacts.</p>
+            <ul>
+              <li>Spreadsheet importer — they will not retype 180 units, and should not have to</li>
+              <li>Waitlist with automatic promotion on hold expiry</li>
+              <li>Pipeline board replacing columns AA–AG, including the notary fields</li>
+              <li>Document vault, transactional email, full audit log</li>
+              <li>Magic-link accounts for prospects — no passwords</li>
+            </ul>
+          </div>
+        </li>
+
+        <li>
+          <div class="ph-head">
+            <span class="n"></span>
+            <h3>All six projects</h3>
+            <span class="dur">4–6 weeks</span>
+          </div>
+          <div class="ph-body">
+            <p class="goal">Multi-project, and the prospectus stops being a Word file.</p>
+            <ul>
+              <li>Prospectus rendered from the project record — the 20-vs-30 problem becomes impossible</li>
+              <li>Portfolio dashboard across all projects</li>
+              <li>Sheets export, so they can leave whenever they want and know it</li>
+              <li>Project templating from the existing six as the model</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="gated">
+          <div class="ph-head">
+            <span class="n"></span>
+            <h3>Equity — gated on legal advice</h3>
+            <span class="dur">not yet</span>
+          </div>
+          <div class="ph-body">
+            <p class="goal">Do not start this until a Romanian securities lawyer has reviewed the design. The 149-subscriber cap is a regulatory boundary, not a business rule, and a browsable deal page could constitute a public offer.</p>
+            <ul>
+              <li>Invitation-only access, granted per project, logged per view</li>
+              <li>Hard-stop subscriber counter — refuses the 150th, does not warn</li>
+              <li>Subscription windows and the allocation queue by priority tier</li>
+              <li>Capital call tracking and semi-annual shareholder reporting</li>
+            </ul>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section id="stack">
+      <h2>Stack</h2>
+      <p class="deck">Chosen for the constraint that matters most on a solo build: fluency. This is a .NET stack because that is where the developer is fastest, and on a side project the largest risk is stalling.</p>
+
+      <div class="tw">
+        <table>
+          <thead><tr><th>Layer</th><th>Choice</th><th>Why this one</th></tr></thead>
+          <tbody>
+            <tr><td>Backend</td><td class="mono">ASP.NET Core (.NET 10)</td><td>One host serves the public site, the admin API and the background worker</td></tr>
+            <tr><td>Database</td><td class="mono">Azure SQL / SQL Server</td><td>The atomic hold needs real row locks. Filtered indexes and persisted computed columns cover everything the schema needs</td></tr>
+            <tr><td>Data access</td><td class="mono">EF Core</td><td>Strong migrations; <code>ExecuteUpdateAsync</code> returns a row count, so the hold guard stays explicit</td></tr>
+            <tr><td>Public pages</td><td class="mono">Razor Pages</td><td>Server-rendered, indexable, fast first load — prospects share these links</td></tr>
+            <tr><td>Admin UI</td><td class="mono">React + TypeScript (Vite)</td><td>The units grid and pipeline board are genuinely app-like; this is where React earns its place</td></tr>
+            <tr><td>Auth</td><td class="mono">ASP.NET Identity + magic links</td><td>Staff sign in properly; prospects get passwordless links. Per-view access logging comes free, which Equity will need</td></tr>
+            <tr><td>Jobs</td><td class="mono">Hangfire</td><td>Hold expiry and waitlist promotion. Persists in the same database, retries, distributed lock, dashboard included</td></tr>
+            <tr><td>Email</td><td class="mono">Postmark or Azure Comms</td><td>Romanian templates, deliverability that can be verified</td></tr>
+            <tr><td>Files</td><td class="mono">Azure Blob Storage</td><td>Floor plans and renders. SAS URLs matter for Equity later</td></tr>
+            <tr><td>Hosting</td><td class="mono">Azure App Service</td><td>Cheap, boring, and the database sits next to it</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The only choice that carries real weight is a database with proper row locking, which SQL Server and Postgres both provide. Everything else is substitutable — including running the whole front end as a React SPA, at the cost of needing prerendering for the public routes later.</p>
+    </section>
+
+    <section id="risks">
+      <h2>What will bite</h2>
+      <ul class="risks">
+        <li><strong>Romanian first, not "i18n later".</strong> Every buyer, every document, every legal term is Romanian — <em>cesiune</em>, <em>transa</em>, <em>promisiune de vanzare-cumparare</em>. Retrofitting language is expensive; starting Romanian and adding English is not. Diacritics in names and cities need to work on day one.</li>
+        <li><strong>They will not abandon Sheets on trust.</strong> Import <em>and</em> export from the first week. The export is a comfort blanket that costs a day and removes the main objection.</li>
+        <li><strong>GDPR is already on their mind.</strong> The Equity document explicitly promises the prospect database is used only for that purpose. Consent capture, purpose tagging and deletion need to be in the schema from the start, not bolted on.</li>
+        <li><strong>Equity is a regulated private placement.</strong> Max 149 privately invited subscribers per project, and Hubix deliberately refuses to disclose deals in advance. A public listing page there is a legal problem, not a design one. This is why it is last.</li>
+        <li><strong>You are building without a client.</strong> Every assumption about their process comes from reading documents, not from watching Cristian work. Expect the pipeline model to be wrong in at least one important way, and design the schema so states are configurable.</li>
+      </ul>
+    </section>
+
+    <section id="pitch">
+      <h2>How to land it</h2>
+      <p class="deck">You are an investor building unsolicited software for a company that has not asked for it. That shapes the first conversation more than any feature does.</p>
+      <p><strong>Lead with the two errors, not the demo.</strong> Open by showing that the Roka prospectus says 20 apartments in one place and 30 in another, and that Cartierul Vienez's header row is corrupted. You found those by reading files they sent to real prospects. It establishes that you understand their operation before you propose changing it.</p>
+      <p><strong>Then show one screen.</strong> Their own Roka units, live. Click reserve. Watch it lock with a countdown on a second device. Say nothing while it happens.</p>
+      <p><strong>Ask for one project, not the business.</strong> Propose running the next launch in parallel — the app alongside the spreadsheet, both maintained, for one project. It is a small ask, it de-risks the decision entirely, and the spreadsheet quietly stops being updated within two weeks.</p>
+      <p>Keep Equity out of the first conversation. It is the bigger prize and the reason to build this, but leading with the regulated product invites a legal objection before anyone has seen the thing work.</p>
+    </section>
+
+    <section id="decisions">
+      <h2>Your calls</h2>
+      <p class="deck">Three things I would not decide for you.</p>
+
+      <ol class="decisions">
+        <li>
+          <h3>Is this a pitch demo or a production system?</h3>
+          <p>It changes almost everything about how Phase 0 gets built. A demo can hardcode, skip auth and fake the emails; a production system cannot, and the cost difference in the first month is roughly threefold.</p>
+          <p class="rec">I'd build the demo first</p>
+        </li>
+        <li>
+          <h3>Line A only, or both lines?</h3>
+          <p>Hubs is the operational pain and the safe demo. Equity is the strategically interesting product — recurring subscriptions, shareholder reporting, a real moat — and the one you have personal exposure to as an investor. But it needs a securities lawyer before design, not after.</p>
+          <p class="rec">Line A first, Equity designed in parallel on paper</p>
+        </li>
+        <li>
+          <h3>Do you tell Hubix before or after Phase 0?</h3>
+          <p>Building further in silence risks modelling their process wrong for months. Telling them now costs you the demo's impact and invites a committee. There is a middle path: two weeks to the Roka screen, then show it.</p>
+          <p class="rec">Show them at the end of Phase 0</p>
+        </li>
+      </ol>
+    </section>
+
+    <footer>
+      Proposal prepared 31 August 2026 · builds on 01-business-analysis<br>
+      Estimates assume a single developer working part-time. No Hubix input has informed this document.
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
+
+  function sync() {
+    var best = 0;
+    for (var i = 0; i < targets.length; i++) {
+      if (targets[i] && targets[i].getBoundingClientRect().top <= 120) best = i;
+    }
+    links.forEach(function (a, i) { a.classList.toggle('is-active', i === best); });
+  }
+
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(function () { sync(); ticking = false; });
+  }, { passive: true });
+
+  sync();
+})();
+</script>
+
+</body>
+</html>
