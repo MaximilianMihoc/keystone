@@ -73,7 +73,6 @@ public static class RokaSeeder
             ReservationFee = 4_000m,
             Currency = "EUR",
             HoldDurationHours = 48,
-            MapsUrl = "https://maps.app.goo.gl/",
             PublishedAt = DateTimeOffset.UtcNow
         };
 
