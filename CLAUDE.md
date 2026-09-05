@@ -177,3 +177,18 @@ admin bundle.
   `RecurringJob` helper — the static API reads `JobStorage.Current`, which is unset during startup.
 - Never change `Units.State` with SQL. Route through the services so the hold or reservation and the
   audit row move with it.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `MaximilianMihoc/hubix-portal`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, unchanged: `needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
