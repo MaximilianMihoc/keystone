@@ -63,11 +63,15 @@
                     <div class="amt">@L["Tranche.Gross"]</div>
                 </div>
 
-                @foreach (var tranche in schedule.Tranches)
+                @* The number comes from the position, not from the stored label: it is the
+                   only way to say "Instalment 2" in the reader's language. *@
+                @for (var i = 0; i < schedule.Tranches.Count; i++)
                 {
+                    var tranche = schedule.Tranches[i];
+
                     <div class="tranche">
                         <div class="label">
-                            @tranche.Label
+                            @L["Tranche.Number", i + 1]
                             <small>@L[Display.DueKey(tranche.Due)]</small>
                         </div>
                         <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.Net)</div>

@@ -8,7 +8,7 @@ namespace Hubix.Tests;
 public class TrancheCalculatorTests
 {
     /// <summary>
-    /// Roka Park View: 15% advance on the developer price, 19% VAT, Transa 1 then Transa 3.
+    /// Roka Park View: 15% advance on the developer price, 19% VAT, two instalments.
     /// </summary>
     /// <remarks>
     /// The prospectus advertises "~14%", which is 14% of the gross total. The spreadsheet's
@@ -23,7 +23,7 @@ public class TrancheCalculatorTests
         Tranches =
         [
             new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
-            new TrancheDefinition("Transa 3", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
+            new TrancheDefinition("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
         ]
     };
 

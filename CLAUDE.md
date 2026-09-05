@@ -128,7 +128,10 @@ from ids — use `AccessToken.New()` (32 bytes CSPRNG), because UUIDv7 is partly
 **Translatable prose goes in translation tables** (`ProjectTranslation`, `UnitTypeTranslation`),
 never `FieldEn` / `FieldRo` pairs. Adding a language is then a data change.
 
-**Hubix's vocabulary wins.** `Transa 3` stays `Transa 3`; `cesiune` is real terminology.
+**Hubix's vocabulary wins, spelling mistakes aside.** `cesiune` is real terminology and stays.
+Their sheet's `Transa 3` for the second of two payments was a numbering slip, corrected to
+`Transa 2`. Public pages number the payments by position and translate the word, so the stored
+label is only what the spreadsheet export prints.
 
 ## Email cannot escape
 

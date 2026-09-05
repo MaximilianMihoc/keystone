@@ -30,9 +30,8 @@ public class PricingRule : Entity
     public decimal? VatReduced { get; set; }
 
     /// <summary>
-    /// The payment schedule, stored as JSON. A list rather than columns, which is what lets
-    /// Roka's <c>Transa 1 / Transa 3</c> and Prima Solis's <c>Transa 1 / Transa 2</c> share
-    /// one schema.
+    /// The payment schedule, stored as JSON. A list rather than columns, so a project
+    /// paying in two instalments and one paying in three share a schema.
     /// </summary>
     public IReadOnlyList<TrancheDefinition> Tranches { get; set; } = [];
 

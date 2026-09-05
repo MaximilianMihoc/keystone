@@ -156,8 +156,10 @@ Seeded accounts use `.invalid` addresses for the same reason — sign in as `dev
   Adding a language is then a data change rather than a migration.
 - **Primary keys are UUIDv7**, generated in the application — SQL Server clusters on the primary key by
   default, and random GUIDs fragment that index on every insert.
-- **Hubix's vocabulary wins.** A tranche they call *Transa 3* stays `Transa 3` even when it is the second
-  payment. `cesiune` is real Romanian real estate terminology and is used as such.
+- **Hubix's vocabulary wins, spelling mistakes aside.** `cesiune` is real Romanian real estate
+  terminology and is used as such. Their sheet numbered the second of two payments *Transa 3*; that
+  was a slip and is stored as `Transa 2`. The public pages number payments by position so the word
+  can be translated.
 
 ---
 

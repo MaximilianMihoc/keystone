@@ -79,8 +79,10 @@ public sealed class InventoryExporter(HubixDbContext db)
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Apartamente");
 
-        // Hubix's headings, verbatim. "Transa 1" and "Transa 3" are their names for the two
-        // payments on Roka, and they stay their names.
+        // Hubix's headings, verbatim. The tranche columns are named from each project's own
+        // stored labels, which is why the label is stored at all — the public pages number the
+        // payments by position instead. Roka's sheet numbered its second payment "Transa 3";
+        // that slip is corrected here, so this export no longer matches that column name.
         string[] headers =
         [
             "Nr Crt", "Disponibil?", "Bloc", "Scara", "Etaj", "Cod Apartament", "Tip Apartament",
