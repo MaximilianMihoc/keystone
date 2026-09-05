@@ -84,6 +84,7 @@
   <data name="State.Withdrawn"><value>Retras</value></data>
 
   <data name="Tranche.Schedule"><value>Grafic de plată</value></data>
+  <data name="Tranche.Number"><value>Tranșa {0}</value></data>
   <data name="Tranche.Net"><value>Fără TVA</value></data>
   <data name="Tranche.Vat"><value>TVA</value></data>
   <data name="Tranche.Gross"><value>Total</value></data>

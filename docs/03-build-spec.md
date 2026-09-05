@@ -142,12 +142,14 @@ CREATE TABLE pricing_rules (
 
 -- tranches, for Roka:
 -- [ {"label":"Transa 1","basis":"advance_pct","with_cesiune":true, "due":"at_signing"},
---   {"label":"Transa 3","basis":"remainder",  "with_cesiune":false,"due":"at_delivery"} ]
+--   {"label":"Transa 2","basis":"remainder",  "with_cesiune":false,"due":"at_delivery"} ]
 ```
 
-The `label` is stored rather than derived so their existing vocabulary survives — a sheet that says
-*Transa 3* keeps saying *Transa 3*, even though it's the second payment. Preserving the client's
-language costs one string and buys a lot of goodwill.
+The `label` is stored rather than derived so their existing vocabulary survives in the spreadsheet
+export, which mirrors their column headings. Their sheet numbered the second of two payments
+*Transa 3*; that was a numbering slip, is stored as `Transa 2`, and so that one exported heading no
+longer matches their sheet. The public pages never print the label — they number the payments by
+position, which is the only way to say *Instalment 2* in the visitor's language.
 
 Tranche amounts are then **computed, never entered**:
 

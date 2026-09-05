@@ -57,8 +57,8 @@ public class PricingRuleConfiguration : IEntityTypeConfiguration<PricingRule>
             .HasForeignKey(r => r.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // The tranche schedule is a list, not columns. This is what lets Roka's
-        // "Transa 1 / Transa 3" and Prima Solis's "Transa 1 / Transa 2" share one schema.
+        // The tranche schedule is a list, not columns. That is what lets
+        // a project paying in two instalments and one paying in three share a schema.
         builder.Property(r => r.Tranches)
             .HasConversion(
                 v => JsonSerializer.Serialize(v, JsonOptions),

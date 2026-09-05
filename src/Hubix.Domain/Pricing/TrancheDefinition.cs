@@ -4,9 +4,9 @@ namespace Hubix.Domain.Pricing;
 /// One payment in a project's schedule.
 /// </summary>
 /// <param name="Label">
-/// Hubix's own name for it. Stored rather than derived, because Roka's second payment is
-/// called <c>Transa 3</c> and it stays <c>Transa 3</c>. Preserving the client's vocabulary
-/// costs one string.
+/// Hubix's own name for it, kept for the spreadsheet export, which mirrors their column
+/// headings. Not what the public pages show — those number the payments by position, so the
+/// label can be read in the visitor's language.
 /// </param>
 /// <param name="Basis">How the apartment portion is calculated.</param>
 /// <param name="IncludesCesiune">

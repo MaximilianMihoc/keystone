@@ -92,6 +92,7 @@
 
   <!-- Tranches -->
   <data name="Tranche.Schedule"><value>Payment schedule</value></data>
+  <data name="Tranche.Number"><value>Instalment {0}</value></data>
   <data name="Tranche.Net"><value>Net</value></data>
   <data name="Tranche.Vat"><value>VAT</value></data>
   <data name="Tranche.Gross"><value>Total</value></data>

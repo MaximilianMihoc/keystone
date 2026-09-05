@@ -105,8 +105,8 @@ public static class RokaSeeder
         });
 
         // 15% advance on the developer price (total minus cesiune), 19% VAT on both the
-        // apartment and the assignment. Two payments, and the second is called "Transa 3"
-        // because that is what Hubix calls it.
+        // apartment and the assignment. Two payments, numbered 1 and 2. The source spreadsheet
+        // labelled the second one "Transa 3", a numbering slip in the sheet rather than a name.
         //
         // The prospectus advertises "~14%". That is 14% of the gross total; the spreadsheet's
         // arithmetic is exactly 15% of (total - cesiune), on every row. The sheet wins.
@@ -119,7 +119,7 @@ public static class RokaSeeder
             Tranches =
             [
                 new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
-                new TrancheDefinition("Transa 3", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
+                new TrancheDefinition("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
             ]
         });
 
