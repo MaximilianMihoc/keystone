@@ -14,6 +14,9 @@ public class DetailModel(HubixDbContext db) : PageModel
 
     public ProjectTranslation? Text { get; private set; }
 
+    /// <summary>The city in the visitor's language, or Hubix's own spelling of it.</summary>
+    public string City { get; private set; } = "";
+
     public string? DeveloperName { get; private set; }
 
     public int TotalUnits { get; private set; }
@@ -41,6 +44,7 @@ public class DetailModel(HubixDbContext db) : PageModel
         // Prose falls back to Romanian when no English translation exists — Hubix authors
         // in Romanian, and Romanian beats a blank panel.
         Text = project.Translations.ForCulture(CultureInfo.CurrentUICulture.Name);
+        City = project.Translations.CityFor(CultureInfo.CurrentUICulture.Name, project.City);
 
         var counts = await db.Units
             .AsNoTracking()

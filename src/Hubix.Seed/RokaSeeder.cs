@@ -82,6 +82,7 @@ public static class RokaSeeder
         project.Translations.Add(new ProjectTranslation
         {
             Culture = Cultures.Romanian,
+            City = "București",
             Summary =
                 "Ansamblu rezidențial premium vizavi de parcul Plumbuita, București. Un imobil " +
                 "2S+P+9E, 58 de apartamente, standard nZEB, fațadă ventilată, parter comercial.",
@@ -93,6 +94,7 @@ public static class RokaSeeder
         project.Translations.Add(new ProjectTranslation
         {
             Culture = Cultures.English,
+            City = "Bucharest",
             Summary =
                 "Premium residential development facing Plumbuita park, Bucharest. A single " +
                 "2B+G+9 building of 58 apartments, built to nZEB standard, with a ventilated " +

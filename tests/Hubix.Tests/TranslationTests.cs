@@ -18,6 +18,38 @@ public class TranslationTests
         Both().ForCulture(Cultures.Romanian)!.Summary.ShouldBe("Ansamblu rezidențial premium");
     }
 
+    [Fact]
+    public void City_uses_the_translated_name_for_the_culture()
+    {
+        List<ProjectTranslation> both =
+        [
+            new() { Culture = Cultures.Romanian, City = "București" },
+            new() { Culture = Cultures.English, City = "Bucharest" }
+        ];
+
+        both.CityFor(Cultures.English, "București").ShouldBe("Bucharest");
+        both.CityFor(Cultures.Romanian, "București").ShouldBe("București");
+        both.CityFor("en", "București").ShouldBe("Bucharest");
+    }
+
+    [Fact]
+    public void City_falls_back_to_the_canonical_name_rather_than_another_language()
+    {
+        // A city name is not prose: an English reader sees the project's own Romanian name
+        // rather than whatever translation happens to exist.
+        List<ProjectTranslation> romanianOnly =
+            [new() { Culture = Cultures.Romanian, City = "București" }];
+
+        romanianOnly.CityFor(Cultures.English, "București").ShouldBe("București");
+
+        // A translation row carrying prose but no city falls back the same way.
+        List<ProjectTranslation> proseOnly =
+            [new() { Culture = Cultures.English, Summary = "Premium residential development" }];
+
+        proseOnly.CityFor(Cultures.English, "București").ShouldBe("București");
+        new List<ProjectTranslation>().CityFor(Cultures.English, "București").ShouldBe("București");
+    }
+
     [Theory]
     [InlineData("ro", "Ansamblu rezidențial premium")]
     [InlineData("ro-MD", "Ansamblu rezidențial premium")] // Romanian as spoken in Moldova

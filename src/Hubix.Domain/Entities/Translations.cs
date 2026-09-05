@@ -58,6 +58,12 @@ public class ProjectTranslation : Entity
     /// <summary>An entry from <see cref="Cultures.Supported"/>.</summary>
     public required string Culture { get; set; }
 
+    /// <summary>
+    /// The city as it is written in this culture — "Bucharest" against "București". Optional:
+    /// a missing one falls back to <see cref="Project.City"/>, which is Hubix's own spelling.
+    /// </summary>
+    public string? City { get; set; }
+
     public string? Summary { get; set; }
 
     public string? Body { get; set; }
@@ -122,6 +128,17 @@ public static class TranslationExtensions
             ? Match(all, Cultures.Source) ?? all[0]
             : null;
     }
+
+    /// <summary>
+    /// The city name for a culture, falling back to the project's canonical spelling rather
+    /// than to a translation in some other language — the same rule as
+    /// <see cref="UnitType.DisplayName"/>, and for the same reason.
+    /// </summary>
+    public static string CityFor(
+        this IEnumerable<ProjectTranslation> translations,
+        string culture,
+        string canonicalCity) =>
+        translations.ForCulture(culture, fallBackToAny: false)?.City ?? canonicalCity;
 
     private static T? Match<T>(IReadOnlyList<T> all, string culture) where T : class =>
         all.FirstOrDefault(t => string.Equals(CultureOf(t), culture, StringComparison.OrdinalIgnoreCase));

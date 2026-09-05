@@ -476,6 +476,10 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<string>("Body")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
