@@ -4,15 +4,22 @@
    apartments as cells, the ones still available lit amber.
    ========================================================================== */
 
+/* Each colour is stated once, light value first. light-dark() reads whichever half the
+   element's color-scheme selects, so the three states below are the whole switch: no second
+   palette to keep in step, and no way for one to drift from the other. */
 :root {
-    --paper:        #F1F2F3;  /* cool concrete */
-    --surface:      #FFFFFF;
-    --surface-2:    #F7F8F9;
-    --ink:          #15191E;  /* blue-black */
-    --ink-2:        #4A5560;
-    --ink-3:        #78838E;
-    --slate:        #33404C;  /* structure: rules and secondary text */
-    --slate-2:      #55636F;
+    /* Auto by default; an explicit choice overrides it and takes the form controls and
+       scrollbars with it. The server stamps data-theme from the visitor's cookie. */
+    color-scheme: light dark;
+
+    --paper:        light-dark(#F1F2F3, #13171B);  /* cool concrete, or the same at dusk */
+    --surface:      light-dark(#FFFFFF, #1A1F25);
+    --surface-2:    light-dark(#F7F8F9, #20262D);
+    --ink:          light-dark(#15191E, #E7EBEE);  /* blue-black */
+    --ink-2:        light-dark(#4A5560, #AFBAC4);
+    --ink-3:        light-dark(#78838E, #7C8792);
+    --slate:        light-dark(#33404C, #C3CDD6);  /* structure: rules and secondary text */
+    --slate-2:      light-dark(#55636F, #94A1AC);
 
     /* The elevation board stays dark in BOTH themes. It is a drawing of the building at
        dusk with lit windows, so it does not invert — and --slate cannot be reused here,
@@ -21,11 +28,11 @@
     --board-line:   rgba(255, 255, 255, 0.13);
     --board-fill:   rgba(255, 255, 255, 0.06);
     --board-text:   rgba(255, 255, 255, 0.58);
-    --amber:        #C77C29;  /* available — a light left on */
-    --amber-deep:   #9A5C17;
-    --amber-soft:   #F7EBDA;
-    --rule:         #D8DCDF;
-    --rule-soft:    #E7EAEC;
+    --amber:        light-dark(#C77C29, #E39B4A);  /* available — a light left on */
+    --amber-deep:   light-dark(#9A5C17, #F0B36B);
+    --amber-soft:   light-dark(#F7EBDA, #2E2418);
+    --rule:         light-dark(#D8DCDF, #2C343C);
+    --rule-soft:    light-dark(#E7EAEC, #222930);
 
     --display: "Archivo", "Segoe UI", system-ui, sans-serif;
     --body:    "Source Serif 4", Georgia, serif;
@@ -34,23 +41,9 @@
     --shell: 1220px;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --paper:      #13171B;  /* the same elevation, at dusk */
-        --surface:    #1A1F25;
-        --surface-2:  #20262D;
-        --ink:        #E7EBEE;
-        --ink-2:      #AFBAC4;
-        --ink-3:      #7C8792;
-        --slate:      #C3CDD6;
-        --slate-2:    #94A1AC;
-        --amber:      #E39B4A;
-        --amber-deep: #F0B36B;
-        --amber-soft: #2E2418;
-        --rule:       #2C343C;
-        --rule-soft:  #222930;
-    }
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -152,7 +145,8 @@ a { color: inherit; }
 .masthead nav a { color: var(--ink-2); text-decoration: none; }
 .masthead nav a:hover { color: var(--ink); }
 
-.lang {
+.lang,
+.segmented {
     display: inline-flex;
     border: 1px solid var(--rule);
     font-family: var(--mono);
@@ -160,16 +154,20 @@ a { color: inherit; }
     letter-spacing: 0.04em;
 }
 
-.lang a {
+.lang a,
+.segmented a {
     padding: 5px 10px;
     text-decoration: none;
     color: var(--ink-3);
     text-transform: uppercase;
 }
 
-.lang a + a { border-left: 1px solid var(--rule); }
-.lang a:hover { color: var(--ink); }
-.lang a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a + a,
+.segmented a + a { border-left: 1px solid var(--rule); }
+.lang a:hover,
+.segmented a:hover { color: var(--ink); }
+.lang a[aria-current="true"],
+.segmented a[aria-current="true"] { background: var(--ink); color: var(--paper); }
 
 /* ---------- generic page furniture -------------------------------------- */
 
