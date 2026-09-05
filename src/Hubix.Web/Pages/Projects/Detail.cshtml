@@ -83,10 +83,8 @@
         <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@p.Slug">
             @L["Project.ViewApartments", Model.FreeUnits]
         </a>
-        @if (p.MapsUrl is { Length: > 0 } maps)
-        {
-            <a class="btn ghost" href="@maps" rel="noopener noreferrer" target="_blank">@L["Project.Location"]</a>
-        }
+        <a class="btn ghost" href="@Display.MapsLink(p.MapsUrl, p.Name, p.City)"
+           rel="noopener noreferrer" target="_blank">@L["Project.Location"]</a>
     </div>
 
     @if (Model.Text?.Body is { Length: > 0 } body)
