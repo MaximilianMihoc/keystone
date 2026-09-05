@@ -671,6 +671,12 @@ main { padding: 22px 20px 60px; }
 .queue-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .queue-who strong { font-weight: 600; color: var(--ink); }
 
+/* The file name links to the asset. It is the one anchor in this client without a class of
+   its own, so without this it falls through to the browser's default link blue, which is
+   unreadable on the dark surface. The underline still says it is a link. */
+.queue-who strong a { color: inherit; }
+.queue-who strong a:hover { color: var(--amber-deep); }
+
 .queue-email {
   font-family: var(--mono);
   font-size: 10.5px;
