@@ -9,6 +9,7 @@ public class ProjectTranslationConfiguration : IEntityTypeConfiguration<ProjectT
     public void Configure(EntityTypeBuilder<ProjectTranslation> builder)
     {
         builder.Property(t => t.Culture).HasMaxLength(10).IsRequired();
+        builder.Property(t => t.City).HasMaxLength(120);
         builder.Property(t => t.Summary).HasMaxLength(2000);
         builder.Property(t => t.Body).HasColumnType("nvarchar(max)");
         builder.Property(t => t.PenaltyClause).HasMaxLength(2000);

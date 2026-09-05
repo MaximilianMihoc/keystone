@@ -38,25 +38,35 @@ public class IndexModel(HubixDbContext db) : PageModel
                     .Where(u => u.State == UnitState.Available)
                     .Min(u => (decimal?)u.BasePriceNet),
                 Translations = p.Translations
-                    .Select(t => new { t.Culture, t.Summary })
+                    .Select(t => new { t.Culture, t.City, t.Summary })
                     .ToList()
             })
             .ToListAsync(ct);
 
-        Projects = projects.Select(p => new ProjectRow(
-            p.Slug,
-            p.Name,
-            p.City,
-            p.Status,
-            p.DeveloperName,
-            p.DeliveryDate,
-            p.Total,
-            p.Free,
-            p.FromPrice,
-            p.Translations
-                .Select(t => new ProjectTranslation { Culture = t.Culture, Summary = t.Summary })
-                .ForCulture(culture)?.Summary))
-            .ToList();
+        Projects = projects.Select(p =>
+        {
+            var translations = p.Translations
+                .Select(t => new ProjectTranslation
+                {
+                    Culture = t.Culture,
+                    City = t.City,
+                    Summary = t.Summary
+                })
+                .ToList();
+
+            return new ProjectRow(
+                p.Slug,
+                p.Name,
+                translations.CityFor(culture, p.City),
+                p.Status,
+                p.DeveloperName,
+                p.DeliveryDate,
+                p.Total,
+                p.Free,
+                p.FromPrice,
+                translations.ForCulture(culture)?.Summary);
+        })
+        .ToList();
     }
 
     public sealed record ProjectRow(

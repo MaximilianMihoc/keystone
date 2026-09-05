@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Security.Claims;
 using Hubix.Domain;
+using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
 using Hubix.Infrastructure.Admin;
 using Hubix.Web.Pages.Admin;
@@ -31,25 +33,47 @@ public static class AdminApi
 
         api.MapGet("/projects", async (HubixDbContext db, CancellationToken ct) =>
         {
-            var projects = await db.Projects
+            var culture = CultureInfo.CurrentUICulture.Name;
+
+            var rows = await db.Projects
                 .AsNoTracking()
                 .OrderBy(p => p.Name)
                 .Select(p => new
                 {
-                    id = p.Id,
-                    slug = p.Slug,
-                    name = p.Name,
-                    city = p.City,
-                    status = p.Status.ToString(),
-                    unitsCommitted = p.UnitsCommitted,
-                    total = p.Units.Count,
-                    available = p.Units.Count(u => u.State == UnitState.Available),
-                    held = p.Units.Count(u => u.State == UnitState.Held),
-                    reserved = p.Units.Count(u => u.State == UnitState.Reserved),
-                    sold = p.Units.Count(u => u.State == UnitState.Sold ||
-                                              u.State == UnitState.Contracted)
+                    p.Id,
+                    p.Slug,
+                    p.Name,
+                    p.City,
+                    p.Status,
+                    p.UnitsCommitted,
+                    Total = p.Units.Count,
+                    Available = p.Units.Count(u => u.State == UnitState.Available),
+                    Held = p.Units.Count(u => u.State == UnitState.Held),
+                    Reserved = p.Units.Count(u => u.State == UnitState.Reserved),
+                    Sold = p.Units.Count(u => u.State == UnitState.Sold ||
+                                              u.State == UnitState.Contracted),
+                    Cities = p.Translations
+                        .Select(t => new { t.Culture, t.City })
+                        .ToList()
                 })
                 .ToListAsync(ct);
+
+            var projects = rows.Select(p => new
+            {
+                id = p.Id,
+                slug = p.Slug,
+                name = p.Name,
+                city = p.Cities
+                    .Select(t => new ProjectTranslation { Culture = t.Culture, City = t.City })
+                    .CityFor(culture, p.City),
+                status = p.Status.ToString(),
+                unitsCommitted = p.UnitsCommitted,
+                total = p.Total,
+                available = p.Available,
+                held = p.Held,
+                reserved = p.Reserved,
+                sold = p.Sold
+            });
 
             return Results.Ok(projects);
         });
