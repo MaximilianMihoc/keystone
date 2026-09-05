@@ -59,6 +59,10 @@
   <data name="Nav.Projects"><value>Projects</value></data>
   <data name="Nav.Contact"><value>Contact</value></data>
   <data name="Nav.Language"><value>Language</value></data>
+  <data name="Nav.Theme"><value>Appearance</value></data>
+  <data name="Theme.light"><value>Light</value></data>
+  <data name="Theme.dark"><value>Dark</value></data>
+  <data name="Theme.system"><value>Auto</value></data>
 
   <!-- Project pages -->
   <data name="Project.Apartments"><value>Apartments</value></data>

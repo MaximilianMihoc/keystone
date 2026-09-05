@@ -3,9 +3,10 @@
 @{
     var culture = CultureInfo.CurrentUICulture.Name;
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var theme = Theme.FromRequest(Context.Request);
 }
 <!DOCTYPE html>
-<html lang="@culture.Split('-')[0]">
+<html lang="@culture.Split('-')[0]" data-theme="@(theme ?? Theme.System)">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -37,6 +38,18 @@
                            asp-route-returnUrl="@returnUrl"
                            aria-current="@(isCurrent ? "true" : null)"
                            hreflang="@option">@option.Split('-')[0]</a>
+                    }
+                </div>
+
+                <div class="segmented" role="group" aria-label="@L["Nav.Theme"]">
+                    @foreach (var option in Theme.Offered)
+                    {
+                        var isCurrent = option == (theme ?? Theme.System);
+                        <a asp-page="/Theme"
+                           asp-route-theme="@option"
+                           asp-route-returnUrl="@returnUrl"
+                           rel="nofollow"
+                           aria-current="@(isCurrent ? "true" : null)">@L["Theme." + option]</a>
                     }
                 </div>
             </nav>

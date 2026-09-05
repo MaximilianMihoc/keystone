@@ -19,8 +19,16 @@ public class IndexModel(IWebHostEnvironment environment) : PageModel
     /// </summary>
     public bool BundleExists { get; private set; }
 
+    /// <summary>
+    /// The colour scheme the visitor chose, stamped on the document before anything paints so
+    /// the client never flashes the wrong theme. Null follows the browser.
+    /// </summary>
+    public string? Theme { get; private set; }
+
     public void OnGet()
     {
+        Theme = Web.Theme.FromRequest(Request);
+
         // Fully qualified: PageModel already has a File() method.
         BundleExists = System.IO.File.Exists(
             Path.Combine(environment.WebRootPath, "admin-assets", "index.js"));

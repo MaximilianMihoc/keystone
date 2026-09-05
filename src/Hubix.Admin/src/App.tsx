@@ -5,6 +5,7 @@ import { PipelineBoard } from './PipelineBoard';
 import { WaitlistPanel } from './WaitlistPanel';
 import { ImportPanel } from './ImportPanel';
 import { AssetsPanel } from './AssetsPanel';
+import { ThemeSwitch } from './ThemeSwitch';
 
 type View = 'units' | 'pipeline' | 'waitlist' | 'files' | 'import';
 
@@ -93,6 +94,8 @@ export function App() {
         )}
 
         <div className="spacer" />
+
+        <ThemeSwitch />
 
         <a className="link" href="/" target="_blank" rel="noreferrer">
           View the site
