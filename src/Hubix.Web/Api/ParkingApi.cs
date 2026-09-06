@@ -158,7 +158,10 @@ public static class ParkingApi
                    HubixDbContext db,
                    CancellationToken ct) =>
             {
-                var space = await db.ParkingSpaces.FirstOrDefaultAsync(s => s.Id == spaceId, ct);
+                var space = await db.ParkingSpaces
+                    .Include(s => s.Hold!).ThenInclude(h => h.Unit)
+                    .Include(s => s.Reservation!).ThenInclude(r => r.Unit)
+                    .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
 
                 if (space is null)
                 {
@@ -173,11 +176,7 @@ public static class ParkingApi
 
                 if (space.State is not UnitState.Available && describes)
                 {
-                    return Results.BadRequest(new
-                    {
-                        error = $"{space.Code} is {space.State.ToString().ToLowerInvariant()} " +
-                                "and cannot be renumbered or reclassified. Free it first."
-                    });
+                    return Results.BadRequest(new { error = InUse(space, "changed") });
                 }
 
                 if (edit.Kind is { Length: > 0 } rawKind)
@@ -219,6 +218,76 @@ public static class ParkingApi
                 }
 
                 return Results.Ok(new { changed = new { space.Code, Kind = space.Kind.ToString(), space.Level } });
+            });
+
+        editable.MapDelete("/parking/{spaceId:guid}",
+            async (Guid spaceId, HubixDbContext db, CancellationToken ct) =>
+            {
+                var space = await db.ParkingSpaces
+                    .Include(s => s.Hold!).ThenInclude(h => h.Unit)
+                    .Include(s => s.Reservation!).ThenInclude(r => r.Unit)
+                    .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
+
+                if (space is null)
+                {
+                    return Results.NotFound();
+                }
+
+                if (space.State is not UnitState.Available)
+                {
+                    return Results.BadRequest(new { error = InUse(space, "removed") });
+                }
+
+                db.ParkingSpaces.Remove(space);
+                await db.SaveChangesAsync(ct);
+
+                return Results.NoContent();
+            });
+
+        editable.MapDelete("/projects/{projectId:guid}/parking",
+            async (Guid projectId,
+                   string prefix,
+                   int from,
+                   int to,
+                   HubixDbContext db,
+                   CancellationToken ct) =>
+            {
+                if (from < 0 || to < from || (long)to - from >= 500)
+                {
+                    return Results.BadRequest(new { error = "That is not a range of space numbers." });
+                }
+
+                // Matched by code rather than by recomputing the padding: a range may have been
+                // added at one width and extended at another, and the codes are what exist.
+                var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                for (var i = from; i <= to; i++)
+                {
+                    var n = i.ToString(CultureInfo.InvariantCulture);
+                    wanted.Add(prefix.Trim() + n);
+                    wanted.Add(prefix.Trim() + n.PadLeft(2, '0'));
+                    wanted.Add(prefix.Trim() + n.PadLeft(3, '0'));
+                }
+
+                var spaces = await db.ParkingSpaces
+                    .Include(s => s.Hold!).ThenInclude(h => h.Unit)
+                    .Include(s => s.Reservation!).ThenInclude(r => r.Unit)
+                    .Where(s => s.ProjectId == projectId && wanted.Contains(s.Code))
+                    .ToListAsync(ct);
+
+                // A range is a blunt instrument, so the ones somebody is using are kept and
+                // named rather than the whole request being refused because of one.
+                var kept = spaces.Where(s => s.State is not UnitState.Available).ToList();
+                var removable = spaces.Where(s => s.State is UnitState.Available).ToList();
+
+                db.ParkingSpaces.RemoveRange(removable);
+                await db.SaveChangesAsync(ct);
+
+                return Results.Ok(new
+                {
+                    removed = removable.Count,
+                    kept = kept.Select(s => s.Code).Order(StringComparer.Ordinal).ToList()
+                });
             });
 
         editable.MapPut("/projects/{projectId:guid}/parking-prices",
@@ -288,6 +357,20 @@ public static class ParkingApi
 
                 return rows == 0 ? Results.NotFound() : Results.NoContent();
             });
+    }
+
+    /// <summary>
+    /// Why a space cannot be touched, naming the apartment it went with. "It is held" leaves an
+    /// admin hunting; "it is held with Ap.105" tells them what to release.
+    /// </summary>
+    private static string InUse(ParkingSpace space, string verb)
+    {
+        var unit = space.Reservation?.Unit?.Code ?? space.Hold?.Unit?.Code;
+        var state = space.State.ToString().ToLowerInvariant();
+
+        return unit is null
+            ? $"{space.Code} is {state} and cannot be {verb}."
+            : $"{space.Code} is {state} with {unit} and cannot be {verb}. Free it first.";
     }
 
     public sealed record AddSpacesRequest(string Prefix, int From, int To, string Kind, int Level);

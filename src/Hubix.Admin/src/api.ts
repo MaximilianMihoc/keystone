@@ -380,6 +380,16 @@ export const api = {
       body: JSON.stringify(edit),
     }),
 
+  removeParkingSpace: (spaceId: string) =>
+    request<void>(`/api/admin/parking/${spaceId}`, { method: 'DELETE' }),
+
+  removeParkingSpaces: (projectId: string, prefix: string, from: number, to: number) =>
+    request<{ removed: number; kept: string[] }>(
+      `/api/admin/projects/${projectId}/parking` +
+        `?prefix=${encodeURIComponent(prefix)}&from=${from}&to=${to}`,
+      { method: 'DELETE' },
+    ),
+
   setParkingPrice: (projectId: string, price: ParkingPrice) =>
     request<void>(`/api/admin/projects/${projectId}/parking-prices`, {
       method: 'PUT',

@@ -144,10 +144,10 @@ export function ParkingPanel({ projectId, canEdit, onSessionExpired }: Props) {
           </section>
 
           <section className="panel">
-            <h2>Add spaces</h2>
+            <h2>Add or remove spaces</h2>
             <p className="hint">
-              A range at a time, the way a car park is laid out. Codes already in use are skipped
-              rather than failing the rest.
+              A range at a time, the way a car park is laid out. Adding skips codes already in
+              use; removing keeps any space somebody is holding or has bought, and names it.
             </p>
             <div className="row">
               <label>
@@ -216,6 +216,28 @@ export function ParkingPanel({ projectId, canEdit, onSessionExpired }: Props) {
               >
                 Add
               </button>
+
+              {/* Same range, the other direction: a mistyped A01–A100 is undone here rather
+                  than a hundred times in the grid. */}
+              <button
+                className="btn ghost"
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    const result = await api.removeParkingSpaces(projectId, prefix, from, to);
+
+                    setNotice(
+                      `Removed ${result.removed}.` +
+                        (result.kept.length > 0
+                          ? ` In use, kept: ${result.kept.join(', ')}.`
+                          : ''),
+                    );
+                  })
+                }
+              >
+                Remove
+              </button>
             </div>
           </section>
         </>
@@ -233,37 +255,121 @@ export function ParkingPanel({ projectId, canEdit, onSessionExpired }: Props) {
               <th>State</th>
               <th>Taken with</th>
               <th>Notes</th>
+              {canEdit && <th aria-label="Remove" />}
             </tr>
           </thead>
           <tbody>
-            {data.spaces.map((space) => (
-              <tr key={space.id}>
-                <td>{space.code}</td>
-                <td>{KIND_LABELS[space.kind]}</td>
-                <td className="num">{levelLabel(space.level)}</td>
-                <td>
-                  <span className={`state state-${space.state.toLowerCase()}`}>{space.state}</span>
-                </td>
-                <td>{space.heldForUnit ?? '—'}</td>
-                <td>
-                  {canEdit ? (
-                    <input
-                      defaultValue={space.adminNotes ?? ''}
-                      placeholder="—"
-                      disabled={busy}
-                      onBlur={(e) => {
-                        if (e.target.value === (space.adminNotes ?? '')) return;
-                        void run(() =>
-                          api.editParkingSpace(space.id, { adminNotes: e.target.value }),
-                        );
-                      }}
-                    />
-                  ) : (
-                    (space.adminNotes ?? '—')
+            {data.spaces.map((space) => {
+              // A space somebody is holding or has bought describes something they were
+              // quoted, so only its note stays open. The server refuses the rest anyway; this
+              // is so an admin sees why rather than being told after the fact.
+              const free = space.state === 'Available';
+              const editable = canEdit && free;
+
+              return (
+                <tr key={space.id}>
+                  <td>
+                    {editable ? (
+                      <input
+                        className="cell-in code-in"
+                        defaultValue={space.code}
+                        disabled={busy}
+                        onBlur={(e) => {
+                          if (e.target.value === space.code) return;
+                          void run(() =>
+                            api.editParkingSpace(space.id, { code: e.target.value }),
+                          );
+                        }}
+                      />
+                    ) : (
+                      space.code
+                    )}
+                  </td>
+                  <td>
+                    {editable ? (
+                      <select
+                        className="cell-in"
+                        value={space.kind}
+                        disabled={busy}
+                        onChange={(e) =>
+                          void run(() =>
+                            api.editParkingSpace(space.id, {
+                              kind: e.target.value as ParkingSpaceKind,
+                            }),
+                          )
+                        }
+                      >
+                        {PARKING_SPACE_KINDS.map((k) => (
+                          <option key={k} value={k}>
+                            {KIND_LABELS[k]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      KIND_LABELS[space.kind]
+                    )}
+                  </td>
+                  <td className="num">
+                    {editable ? (
+                      <input
+                        type="number"
+                        className="cell-in level-in num"
+                        defaultValue={space.level}
+                        disabled={busy}
+                        onBlur={(e) => {
+                          const next = Number(e.target.value);
+                          if (next === space.level) return;
+                          void run(() => api.editParkingSpace(space.id, { level: next }));
+                        }}
+                      />
+                    ) : (
+                      levelLabel(space.level)
+                    )}
+                  </td>
+                  <td>
+                    <span className={`state state-${space.state.toLowerCase()}`}>{space.state}</span>
+                  </td>
+                  <td>{space.heldForUnit ?? '—'}</td>
+                  <td>
+                    {canEdit ? (
+                      <input
+                        className="cell-in"
+                        defaultValue={space.adminNotes ?? ''}
+                        placeholder="—"
+                        disabled={busy}
+                        onBlur={(e) => {
+                          if (e.target.value === (space.adminNotes ?? '')) return;
+                          void run(() =>
+                            api.editParkingSpace(space.id, { adminNotes: e.target.value }),
+                          );
+                        }}
+                      />
+                    ) : (
+                      (space.adminNotes ?? '—')
+                    )}
+                  </td>
+                  {canEdit && (
+                    <td>
+                      <button
+                        className="btn-small danger"
+                        type="button"
+                        disabled={busy || !free}
+                        title={
+                          free
+                            ? `Remove ${space.code}`
+                            : `${space.code} is ${space.state.toLowerCase()}${
+                                space.heldForUnit ? ` with ${space.heldForUnit}` : ''
+                              }`
+                        }
+                        onClick={() => void run(() => api.removeParkingSpace(space.id))}
+                      >
+                        ✕
+                      </button>
+                    </td>
                   )}
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

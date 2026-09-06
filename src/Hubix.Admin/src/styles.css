@@ -810,3 +810,31 @@ main { padding: 22px 20px 60px; }
 .row input[type="number"] { width: 92px; }
 
 .row-label { min-width: 180px; font-size: 13px; color: var(--ink-2); }
+
+/* A destructive control should not be the loudest thing in a row of data. */
+.btn-small.danger {
+  color: var(--ink-3);
+  border-color: var(--rule);
+  background: none;
+  padding: 2px 7px;
+  line-height: 1.4;
+}
+
+.btn-small.danger:hover:not(:disabled) { color: #d24b3e; border-color: #d24b3e; }
+.btn-small.danger:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* The units grid shows an input only while a cell is being edited, so its inputs are
+   loud on purpose. The parking grid leaves its fields open, which would make every row
+   look mid-edit. These read as text until you go near them. */
+.grid td > .cell-in,
+.grid td > .cell-in:not([type="checkbox"]) {
+  border-color: transparent;
+  background: none;
+  padding: 6px 8px;
+}
+
+.grid td > .cell-in:hover { border-color: var(--rule); }
+.grid td > .cell-in:focus { border-color: var(--amber); background: var(--surface); }
+
+.grid td > input.code-in { width: 90px; font-family: var(--mono); font-size: 12.5px; }
+.grid td > input.level-in { width: 66px; }

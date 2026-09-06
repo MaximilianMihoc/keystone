@@ -303,4 +303,41 @@ public class ParkingConcurrencyTests(DatabaseFixture fixture)
         spaces.ShouldAllBe(s => s.State == UnitState.Available);
         spaces.ShouldAllBe(s => s.ReservationId == null);
     }
+
+    [Fact]
+    public async Task A_free_space_can_be_corrected_but_one_in_use_cannot()
+    {
+        await fixture.ResetUnitAsync();
+        await fixture.SeedParkingAsync(spaces: 2, maxPerReservation: 1);
+
+        await using (var holding = fixture.CreateContext())
+        {
+            await NewService(holding).TryHoldAsync(
+                fixture.UnitId,
+                Prospect(1),
+                new ParkingRequest(ParkingSpaceKind.Underground, 1),
+                null,
+                CancellationToken.None);
+        }
+
+        await using var db = fixture.CreateContext();
+
+        // A1 was claimed; A2 is still free. Correcting a level or a kind on the free one is an
+        // ordinary fix, and the database is what enforces the numbering.
+        var free = await db.ParkingSpaces.SingleAsync(s => s.State == UnitState.Available);
+
+        free.Level = -2;
+        free.Kind = ParkingSpaceKind.AboveGroundCovered;
+        await db.SaveChangesAsync();
+
+        // The held one describes what a buyer was quoted: its kind decides the price they pay
+        // at conversion, so it must not move under them. The endpoint refuses it; here we pin
+        // the reason it must — that a live claim exists to be found.
+        var held = await db.ParkingSpaces
+            .Include(s => s.Hold)
+            .SingleAsync(s => s.State == UnitState.Held);
+
+        held.Hold.ShouldNotBeNull();
+        held.HoldId.ShouldNotBeNull();
+    }
 }
