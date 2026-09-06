@@ -412,6 +412,12 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<Guid?>("ReservationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("SnapDepositNet")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal?>("SnapPriceNet")
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(32)

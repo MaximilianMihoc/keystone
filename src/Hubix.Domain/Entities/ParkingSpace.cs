@@ -49,6 +49,19 @@ public class ParkingSpace : Entity
 
     public Reservation? Reservation { get; set; }
 
+    /// <summary>
+    /// What was agreed for this space, net, on the day it joined its reservation. Null while it
+    /// is unsold.
+    /// </summary>
+    /// <remarks>
+    /// Per space rather than only summed on the reservation, because a space can be added or
+    /// dropped later: taking one off a sale has to subtract what that space actually cost,
+    /// which a single total cannot say once the car park has been repriced.
+    /// </remarks>
+    public decimal? SnapPriceNet { get; set; }
+
+    public decimal? SnapDepositNet { get; set; }
+
     public string? AdminNotes { get; set; }
 }
 

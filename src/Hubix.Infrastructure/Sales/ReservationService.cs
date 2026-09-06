@@ -155,6 +155,7 @@ public sealed class ReservationService(
             // for the reason the rest of the money is: a project may reprice its car park, and
             // what this buyer agreed to must not move with it.
             var parkingSpaceCount = 0;
+            var parkingPrices = new Dictionary<Guid, (decimal Price, decimal Deposit)>();
 
             if (hold is not null)
             {
@@ -181,6 +182,11 @@ public sealed class ReservationService(
                                 $"{unit.Project.Name} has no price for a {space.Kind} space, " +
                                 "so there is nothing to agree to. Set one first.");
                         }
+
+                        // Kept per space as well as summed. Dropping one of these later has to
+                        // subtract what that space cost, which the total alone cannot say once
+                        // the car park has been repriced.
+                        parkingPrices[space.Id] = (price.PriceNet, price.DepositNet);
 
                         reservation.SnapParkingNet += price.PriceNet;
                         reservation.SnapParkingDepositNet += price.DepositNet;
@@ -246,14 +252,25 @@ public sealed class ReservationService(
             // key, and it does not exist until here.
             if (hold is not null)
             {
-                var moved = await db.ParkingSpaces
-                    .Where(s => s.HoldId == hold.Id && s.State == UnitState.Held)
-                    .ExecuteUpdateAsync(s => s
-                        .SetProperty(p => p.State, UnitState.Reserved)
-                        .SetProperty(p => p.ReservationId, reservation.Id)
-                        .SetProperty(p => p.HoldId, (Guid?)null)
-                        .SetProperty(p => p.StateChangedAt, now)
-                        .SetProperty(p => p.UpdatedAt, now), ct);
+                var moved = 0;
+
+                // One statement per space rather than one for all of them: each carries the
+                // price agreed for its own kind, and a single UPDATE cannot say two things.
+                foreach (var (spaceId, agreed) in parkingPrices)
+                {
+                    moved += await db.ParkingSpaces
+                        .Where(s => s.Id == spaceId
+                                    && s.HoldId == hold.Id
+                                    && s.State == UnitState.Held)
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(p => p.State, UnitState.Reserved)
+                            .SetProperty(p => p.ReservationId, reservation.Id)
+                            .SetProperty(p => p.HoldId, (Guid?)null)
+                            .SetProperty(p => p.SnapPriceNet, agreed.Price)
+                            .SetProperty(p => p.SnapDepositNet, agreed.Deposit)
+                            .SetProperty(p => p.StateChangedAt, now)
+                            .SetProperty(p => p.UpdatedAt, now), ct);
+                }
 
                 // The price was summed from a read taken earlier in this transaction, and the
                 // expiry job could have released the hold in between. Fewer spaces here than
@@ -629,6 +646,257 @@ public sealed class ReservationService(
         db.Reservations
             .AsNoTracking()
             .AnyAsync(r => r.UnitId == unitId && r.State != ReservationState.Cancelled, ct);
+
+    /// <summary>
+    /// The last stage at which what was bought can still change.
+    /// </summary>
+    /// <remarks>
+    /// Up to the notary signing, nothing legally binding names a space. The cesiune does, so
+    /// after it a quiet admin edit would leave the record disagreeing with the deed.
+    /// </remarks>
+    private static bool ParkingCanChange(ReservationState state) =>
+        state is ReservationState.PendingFee
+            or ReservationState.FeePaid
+            or ReservationState.AgreementSent
+            or ReservationState.AgreementSigned
+            or ReservationState.NotaryScheduled;
+
+    /// <summary>
+    /// Puts a free space on an open reservation, at today's price.
+    /// </summary>
+    /// <remarks>
+    /// The buyer is agreeing to it now, so it takes the price now, and that price is written
+    /// onto the space rather than only added to the reservation's total — removing it later has
+    /// to subtract what this space actually cost.
+    /// </remarks>
+    public async Task<ReservationOutcome> AddParkingAsync(
+        Guid reservationId,
+        Guid spaceId,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+
+        var reservation = await db.Reservations
+            .Include(r => r.Unit)
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+
+        if (reservation is null)
+        {
+            return new ReservationOutcome.NotFound();
+        }
+
+        if (!ParkingCanChange(reservation.State))
+        {
+            return new ReservationOutcome.Refused(
+                $"This sale has reached {reservation.State}. Parking can only change up to " +
+                "the notary signing, because the cesiune names the space.");
+        }
+
+        var space = await db.ParkingSpaces
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
+
+        if (space is null)
+        {
+            return new ReservationOutcome.NotFound();
+        }
+
+        if (space.ProjectId != reservation.Unit!.ProjectId)
+        {
+            return new ReservationOutcome.Refused($"{space.Code} belongs to another development.");
+        }
+
+        var price = await db.ParkingPrices
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.ProjectId == space.ProjectId && p.Kind == space.Kind, ct);
+
+        if (price is null)
+        {
+            return new ReservationOutcome.Refused(
+                $"There is no price for a {space.Kind} space, so there is nothing to agree to.");
+        }
+
+        var priceNet = price.PriceNet;
+        var depositNet = price.DepositNet;
+        var target = ReservationPipeline.For(reservation.State).Unit;
+
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync<ReservationOutcome>(async () =>
+        {
+            db.ChangeTracker.Clear();
+
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+            // The same guard that claims a space for a hold. Sales and a visitor can reach for
+            // the same free bay in the same second, and exactly one of them may have it.
+            var rows = await db.ParkingSpaces
+                .Where(s => s.Id == spaceId && s.State == UnitState.Available)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.State, target)
+                    .SetProperty(p => p.ReservationId, reservationId)
+                    .SetProperty(p => p.SnapPriceNet, priceNet)
+                    .SetProperty(p => p.SnapDepositNet, depositNet)
+                    .SetProperty(p => p.StateChangedAt, now)
+                    .SetProperty(p => p.UpdatedAt, now), ct);
+
+            if (rows == 0)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return new ReservationOutcome.Refused(
+                    $"{space.Code} is no longer free. Reload and pick another.");
+            }
+
+            await db.Reservations
+                .Where(r => r.Id == reservationId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.SnapParkingNet, r => r.SnapParkingNet + priceNet)
+                    .SetProperty(r => r.SnapParkingDepositNet,
+                        r => r.SnapParkingDepositNet + depositNet)
+                    .SetProperty(r => r.UpdatedAt, now), ct);
+
+            db.AuditLogs.Add(new AuditLog
+            {
+                ActorType = "staff",
+                ActorId = actorId,
+                ActorLabel = actorLabel,
+                EntityType = "reservation",
+                EntityId = reservationId,
+                Action = "reservation.parking.added",
+                After = Json(new
+                {
+                    space.Code,
+                    Kind = space.Kind.ToString(),
+                    PriceNet = priceNet,
+                    DepositNet = depositNet
+                })
+            });
+
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            logger.LogInformation(
+                "{Actor} added parking {Code} to the reservation on {UnitCode}",
+                actorLabel, space.Code, reservation.Unit.Code);
+
+            return new ReservationOutcome.Updated(new Dictionary<string, object?>
+            {
+                ["ParkingAdded"] = space.Code,
+                ["SnapParkingNet"] = priceNet
+            });
+        });
+    }
+
+    /// <summary>
+    /// Takes a space off an open reservation and returns it to the market.
+    /// </summary>
+    /// <remarks>
+    /// The reservation's total loses exactly what this space cost, read from the space itself.
+    /// Subtracting a share of the summed figure would be wrong the moment the car park has been
+    /// repriced since.
+    /// </remarks>
+    public async Task<ReservationOutcome> RemoveParkingAsync(
+        Guid reservationId,
+        Guid spaceId,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+
+        var reservation = await db.Reservations
+            .Include(r => r.Unit)
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct);
+
+        if (reservation is null)
+        {
+            return new ReservationOutcome.NotFound();
+        }
+
+        if (!ParkingCanChange(reservation.State))
+        {
+            return new ReservationOutcome.Refused(
+                $"This sale has reached {reservation.State}. Parking can only change up to " +
+                "the notary signing, because the cesiune names the space.");
+        }
+
+        var space = await db.ParkingSpaces
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == spaceId && s.ReservationId == reservationId, ct);
+
+        if (space is null)
+        {
+            return new ReservationOutcome.NotFound();
+        }
+
+        // What this space contributed. Null means it joined before prices were kept per space;
+        // taking nothing off is better than taking off a guess.
+        var priceNet = space.SnapPriceNet ?? 0m;
+        var depositNet = space.SnapDepositNet ?? 0m;
+        var code = space.Code;
+
+        var strategy = db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync<ReservationOutcome>(async () =>
+        {
+            db.ChangeTracker.Clear();
+
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+            var rows = await db.ParkingSpaces
+                .Where(s => s.Id == spaceId && s.ReservationId == reservationId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.State, UnitState.Available)
+                    .SetProperty(p => p.ReservationId, (Guid?)null)
+                    .SetProperty(p => p.SnapPriceNet, (decimal?)null)
+                    .SetProperty(p => p.SnapDepositNet, (decimal?)null)
+                    .SetProperty(p => p.StateChangedAt, now)
+                    .SetProperty(p => p.UpdatedAt, now), ct);
+
+            if (rows == 0)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return new ReservationOutcome.Refused(
+                    $"{code} is no longer on this reservation. Reload and try again.");
+            }
+
+            await db.Reservations
+                .Where(r => r.Id == reservationId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.SnapParkingNet, r => r.SnapParkingNet - priceNet)
+                    .SetProperty(r => r.SnapParkingDepositNet,
+                        r => r.SnapParkingDepositNet - depositNet)
+                    .SetProperty(r => r.UpdatedAt, now), ct);
+
+            db.AuditLogs.Add(new AuditLog
+            {
+                ActorType = "staff",
+                ActorId = actorId,
+                ActorLabel = actorLabel,
+                EntityType = "reservation",
+                EntityId = reservationId,
+                Action = "reservation.parking.removed",
+                Before = Json(new { Code = code, PriceNet = priceNet, DepositNet = depositNet })
+            });
+
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            logger.LogInformation(
+                "{Actor} removed parking {Code} from the reservation on {UnitCode}",
+                actorLabel, code, reservation.Unit!.Code);
+
+            return new ReservationOutcome.Updated(new Dictionary<string, object?>
+            {
+                ["ParkingRemoved"] = code,
+                ["SnapParkingNet"] = -priceNet
+            });
+        });
+    }
 
     private static string Json(object value) => JsonSerializer.Serialize(value);
 }

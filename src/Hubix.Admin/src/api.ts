@@ -194,6 +194,28 @@ export interface Reservation {
   internalNotes: string | null;
   reservationFee: number | null;
   totalGross: number;
+  parkingNet: number;
+  parkingDepositNet: number;
+  parking: ReservationParking[];
+}
+
+/** One space on a sale, with what was agreed for it. */
+export interface ReservationParking {
+  id: string;
+  code: string;
+  kind: ParkingSpaceKind;
+  level: number;
+  /** Null only for a space that joined before prices were kept per space. */
+  priceNet: number | null;
+}
+
+/** A free bay this buyer could still add, at today's price. */
+export interface AvailableParking {
+  id: string;
+  code: string;
+  kind: ParkingSpaceKind;
+  level: number;
+  priceNet: number;
 }
 
 /** Somebody waiting for an apartment type. */
@@ -379,6 +401,21 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(edit),
     }),
+
+  reservationParkingAvailable: (reservationId: string) =>
+    request<AvailableParking[]>(`/api/admin/reservations/${reservationId}/parking-available`),
+
+  addReservationParking: (reservationId: string, spaceId: string) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/reservations/${reservationId}/parking/${spaceId}`,
+      { method: 'POST' },
+    ),
+
+  removeReservationParking: (reservationId: string, spaceId: string) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/reservations/${reservationId}/parking/${spaceId}`,
+      { method: 'DELETE' },
+    ),
 
   removeParkingSpace: (spaceId: string) =>
     request<void>(`/api/admin/parking/${spaceId}`, { method: 'DELETE' }),

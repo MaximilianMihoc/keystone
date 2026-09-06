@@ -838,3 +838,14 @@ main { padding: 22px 20px 60px; }
 
 .grid td > input.code-in { width: 90px; font-family: var(--mono); font-size: 12.5px; }
 .grid td > input.level-in { width: 66px; }
+
+/* Parking on a sale: a short list with a control each, inside the facts list. */
+.space-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.space-list li { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; }
+.space-list li strong { font-family: var(--mono); font-size: 12.5px; }
+.space-list .link { font-size: 11px; margin-left: auto; }
+
+.add-space { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.add-space select { flex: 1; min-width: 0; }
+
+.hint-line { display: block; margin-top: 6px; font-size: 11px; }

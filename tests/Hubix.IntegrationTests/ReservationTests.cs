@@ -568,4 +568,167 @@ public class ReservationTests(DatabaseFixture fixture)
         await using var verify = fixture.CreateContext();
         (await verify.Reservations.CountAsync()).ShouldBe(0);
     }
+
+    /// <summary>Reserves the fixture's unit with one space and returns both ids.</summary>
+    private async Task<(Guid ReservationId, Guid SpaceId)> ReserveWithParkingAsync()
+    {
+        await fixture.SeedParkingAsync(spaces: 3, maxPerReservation: 2);
+
+        await using (var holding = fixture.CreateContext())
+        {
+            await Holds(holding).TryHoldAsync(
+                fixture.UnitId, Buyer(), new ParkingRequest(ParkingSpaceKind.Underground, 1),
+                null, CancellationToken.None);
+        }
+
+        await using var db = fixture.CreateContext();
+
+        var created = (ReservationOutcome.Created)await Service(db).CreateAsync(
+            fixture.UnitId, null, BuyerType.Individual, Actor, "dev", CancellationToken.None);
+
+        var spaceId = await db.ParkingSpaces
+            .Where(s => s.ReservationId == created.ReservationId)
+            .Select(s => s.Id)
+            .SingleAsync();
+
+        return (created.ReservationId, spaceId);
+    }
+
+    [Fact]
+    public async Task A_buyer_can_add_parking_after_reserving_at_todays_price()
+    {
+        await fixture.ResetUnitAsync();
+        var (reservationId, _) = await ReserveWithParkingAsync();
+
+        // The car park is repriced after they reserved. A space added now is agreed now, so it
+        // takes the new price; the one they already have keeps the old one.
+        await using (var reprice = fixture.CreateContext())
+        {
+            await reprice.ParkingPrices
+                .Where(p => p.ProjectId == fixture.ProjectId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.PriceNet, 12_000m));
+        }
+
+        Guid freeSpaceId;
+        await using (var db = fixture.CreateContext())
+        {
+            freeSpaceId = await db.ParkingSpaces
+                .Where(s => s.State == UnitState.Available)
+                .OrderBy(s => s.Code)
+                .Select(s => s.Id)
+                .FirstAsync();
+
+            (await Service(db).AddParkingAsync(
+                    reservationId, freeSpaceId, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ReservationOutcome.Updated>();
+        }
+
+        await using var verify = fixture.CreateContext();
+
+        // 8,000 agreed in January plus 12,000 agreed today.
+        (await verify.Reservations.SingleAsync(r => r.Id == reservationId))
+            .SnapParkingNet.ShouldBe(20_000m);
+
+        var added = await verify.ParkingSpaces.SingleAsync(s => s.Id == freeSpaceId);
+        added.SnapPriceNet.ShouldBe(12_000m);
+        added.State.ShouldBe(UnitState.Reserved);
+    }
+
+    [Fact]
+    public async Task Removing_parking_subtracts_what_that_space_cost_not_a_share_of_the_total()
+    {
+        await fixture.ResetUnitAsync();
+        var (reservationId, spaceId) = await ReserveWithParkingAsync();
+
+        // A second space at a different price, so a naive "divide the total" would be wrong.
+        await using (var reprice = fixture.CreateContext())
+        {
+            await reprice.ParkingPrices
+                .Where(p => p.ProjectId == fixture.ProjectId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.PriceNet, 12_000m));
+        }
+
+        await using (var db = fixture.CreateContext())
+        {
+            var free = await db.ParkingSpaces
+                .Where(s => s.State == UnitState.Available)
+                .OrderBy(s => s.Code)
+                .Select(s => s.Id)
+                .FirstAsync();
+
+            await Service(db).AddParkingAsync(reservationId, free, Actor, "dev", CancellationToken.None);
+        }
+
+        // Drop the original 8,000 one. What is left must be exactly the 12,000 one.
+        await using (var db = fixture.CreateContext())
+        {
+            (await Service(db).RemoveParkingAsync(
+                    reservationId, spaceId, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ReservationOutcome.Updated>();
+        }
+
+        await using var verify = fixture.CreateContext();
+
+        (await verify.Reservations.SingleAsync(r => r.Id == reservationId))
+            .SnapParkingNet.ShouldBe(12_000m);
+
+        // And the dropped bay is back on the market with no agreed price hanging off it.
+        var freed = await verify.ParkingSpaces.SingleAsync(s => s.Id == spaceId);
+        freed.State.ShouldBe(UnitState.Available);
+        freed.ReservationId.ShouldBeNull();
+        freed.SnapPriceNet.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Parking_is_locked_once_the_cesiune_is_signed()
+    {
+        await fixture.ResetUnitAsync();
+        var (reservationId, spaceId) = await ReserveWithParkingAsync();
+
+        foreach (var stage in new[]
+                 {
+                     ReservationState.FeePaid,
+                     ReservationState.AgreementSent,
+                     ReservationState.AgreementSigned,
+                     ReservationState.NotaryScheduled
+                 })
+        {
+            if (stage is ReservationState.NotaryScheduled)
+            {
+                await using var setDate = fixture.CreateContext();
+                await setDate.Reservations
+                    .Where(r => r.Id == reservationId)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(r => r.NotaryAppointmentAt, DateTimeOffset.UtcNow.AddDays(7))
+                        .SetProperty(r => r.NotaryLocation, "Notary"));
+            }
+
+            (await MoveAsync(reservationId, stage)).ShouldBeOfType<ReservationOutcome.Moved>();
+        }
+
+        // Still open one stage before the signing: a notary date is often weeks away, and
+        // buyers change their minds in that window.
+        await using (var stillOpen = fixture.CreateContext())
+        {
+            var free = await stillOpen.ParkingSpaces
+                .Where(s => s.State == UnitState.Available)
+                .Select(s => s.Id)
+                .FirstAsync();
+
+            (await Service(stillOpen).AddParkingAsync(
+                    reservationId, free, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ReservationOutcome.Updated>();
+        }
+
+        (await MoveAsync(reservationId, ReservationState.CesiuneSigned))
+            .ShouldBeOfType<ReservationOutcome.Moved>();
+
+        // From here the deed names the space, so the record must not move behind it.
+        await using var db = fixture.CreateContext();
+
+        (await Service(db).RemoveParkingAsync(
+                reservationId, spaceId, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<ReservationOutcome.Refused>()
+            .Reason.ShouldContain("notary");
+    }
 }
