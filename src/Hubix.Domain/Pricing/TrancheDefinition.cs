@@ -25,13 +25,18 @@ public sealed record TrancheDefinition(
     decimal? Percentage = null);
 
 /// <summary>A calculated tranche, in money.</summary>
+/// <param name="Percentage">
+/// The rate the apartment portion was calculated at, or null for a remainder. Carried so
+/// a page showing the breakdown can name the rate without also holding the pricing rule.
+/// </param>
 public sealed record TrancheAmount(
     string Label,
     TrancheDue Due,
     decimal ApartmentNet,
     decimal ApartmentVat,
     decimal CesiuneNet,
-    decimal CesiuneVat)
+    decimal CesiuneVat,
+    decimal? Percentage = null)
 {
     public decimal Net => ApartmentNet + CesiuneNet;
 

@@ -208,4 +208,26 @@ public class TrancheCalculatorTests
         Should.Throw<InvalidOperationException>(
             () => TrancheCalculator.Calculate(rule, 100_000m, 0m, false));
     }
+
+    [Fact]
+    public void Each_tranche_carries_the_rate_it_was_calculated_at()
+    {
+        // The apartment page prints "Advance (15%)" beside the figure. The rate has to travel
+        // with the amount, because the page has the breakdown and not the rule.
+        var rule = RokaRule();
+        rule.Tranches =
+        [
+            new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
+            new TrancheDefinition("Transa 2", TrancheBasis.Percentage, false, TrancheDue.Interim, 0.30m),
+            new TrancheDefinition("Transa 3", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
+        ];
+
+        var result = TrancheCalculator.Calculate(rule, 110_000m, 10_000m, false);
+
+        result.Tranches[0].Percentage.ShouldBe(0.15m);
+        result.Tranches[1].Percentage.ShouldBe(0.30m);
+
+        // A remainder is whatever is left, not a rate anyone agreed.
+        result.Tranches[2].Percentage.ShouldBeNull();
+    }
 }

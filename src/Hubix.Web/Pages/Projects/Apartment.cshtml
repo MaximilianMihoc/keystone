@@ -50,6 +50,12 @@
 
     @if (Model.Schedule is { } schedule)
     {
+        @* Every one of Hubix's sheets keeps the first payment in two columns: the advance on
+           the apartment and the assignment price. Those are the two halves the buyer signs
+           for separately, so the page shows them rather than one figure they cannot check. *@
+        var advance = schedule.Tranches
+            .FirstOrDefault(t => t.CesiuneNet > 0 && t.Percentage is not null);
+
         <div class="section">
             <p class="section-label">@L["Tranche.Schedule"]</p>
 
@@ -78,10 +84,40 @@
                         <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.Vat)</div>
                         <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.Gross)</div>
                     </div>
+
+                    @* Two figures to show means a payment that collects the assignment price
+                       alongside the apartment. Whether a rate describes the apartment half is
+                       a separate question: the final payment is a remainder, not a rate. *@
+                    @if (tranche.CesiuneNet > 0)
+                    {
+                        <div class="tranche part">
+                            <div class="label">@(tranche.Percentage is { } pct
+                                ? L["Tranche.Advance", (pct * 100).ToString("0.##")]
+                                : L["Tranche.AdvanceNoRate"])</div>
+                            <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.ApartmentNet)</div>
+                            <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.ApartmentVat)</div>
+                            <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.ApartmentNet + tranche.ApartmentVat)</div>
+                        </div>
+
+                        <div class="tranche part">
+                            <div class="label">@L["Tranche.Cesiune"]</div>
+                            <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.CesiuneNet)</div>
+                            <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.CesiuneVat)</div>
+                            <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.CesiuneNet + tranche.CesiuneVat)</div>
+                        </div>
+                    }
                 }
 
                 <p class="schedule-foot">
                     @L["Tranche.Explainer", (schedule.VatRate * 100).ToString("0.#"), (schedule.CesiuneVatRate * 100).ToString("0.#")]
+
+                    @* The rate is measured against the price less the assignment price, which
+                       is not the price shown above. Saying so is the difference between a
+                       figure a buyer can reproduce and one that looks wrong. *@
+                    @if (advance?.Percentage is { } advancePct)
+                    {
+                        @L["Tranche.AdvanceBasis", (advancePct * 100).ToString("0.##")]
+                    }
                 </p>
             </div>
         </div>

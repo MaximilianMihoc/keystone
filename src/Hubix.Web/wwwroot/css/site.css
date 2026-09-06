@@ -681,6 +681,36 @@ td .code:hover { border-bottom-color: var(--amber); color: var(--amber-deep); }
 
 @media (min-width: 620px) { .tranche .amt::before { content: none; } }
 
+/* Instalment 1 is really two things: the advance on the apartment and Hubix's
+   assignment price. They sit under the instalment, quieter than it, so the row above
+   still reads as the amount due. */
+.tranche.part {
+    padding-top: 0;
+    padding-bottom: 8px;
+    gap: 2px;
+}
+
+.tranche + .tranche.part { border-top: none; }
+
+@media (min-width: 620px) { .tranche.part { gap: 16px; } }
+
+/* Close the gap the parent row's padding would otherwise leave above the split. */
+.tranche:has(+ .tranche.part) { padding-bottom: 8px; }
+
+.tranche.part .label {
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--ink-2);
+    padding-left: 14px;
+}
+
+.tranche.part .amt,
+.tranche.part .amt.total {
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--ink-3);
+}
+
 .schedule-foot {
     padding: 14px 18px;
     border-top: 1px solid var(--rule);
