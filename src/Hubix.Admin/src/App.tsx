@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, SessionExpired, type Me, type ProjectSummary, type UnitsResponse } from './api';
+import { ParkingPanel } from './ParkingPanel';
 import { UnitsGrid } from './UnitsGrid';
 import { PipelineBoard } from './PipelineBoard';
 import { WaitlistPanel } from './WaitlistPanel';
@@ -7,7 +8,7 @@ import { ImportPanel } from './ImportPanel';
 import { AssetsPanel } from './AssetsPanel';
 import { ThemeSwitch } from './ThemeSwitch';
 
-type View = 'units' | 'pipeline' | 'waitlist' | 'files' | 'import';
+type View = 'units' | 'parking' | 'pipeline' | 'waitlist' | 'files' | 'import';
 
 type Load<T> =
   | { status: 'loading' }
@@ -144,6 +145,13 @@ export function App() {
               Apartments
             </button>
             <button
+              className={`view${view === 'parking' ? ' view-on' : ''}`}
+              type="button"
+              onClick={() => setView('parking')}
+            >
+              Parking
+            </button>
+            <button
               className={`view${view === 'pipeline' ? ' view-on' : ''}`}
               type="button"
               onClick={() => setView('pipeline')}
@@ -189,6 +197,15 @@ export function App() {
               />
             )}
           </>
+        )}
+
+        {view === 'parking' && selected && me.status === 'ready' && (
+          <ParkingPanel
+            key={selected}
+            projectId={selected}
+            canEdit={me.data.canEdit}
+            onSessionExpired={() => setExpired(true)}
+          />
         )}
 
         {view === 'pipeline' && selected && me.status === 'ready' && (

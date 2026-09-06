@@ -145,80 +145,9 @@ public class UnitAdminTests(DatabaseFixture fixture)
         decimal? cesiune = null,
         decimal? areaUsable = null,
         string? notes = null,
-        Guid? typeId = null,
-        decimal? parkingPrice = null,
-        string? parkingSpaceKind = null) =>
+        Guid? typeId = null) =>
         new(null, null, null, typeId, null, null, areaUsable, null, price, cesiune,
-            null, parkingPrice, null, parkingSpaceKind, notes);
-
-    [Fact]
-    public async Task A_parking_space_kind_arrives_as_a_name_and_availability_follows_the_price()
-    {
-        await fixture.ResetUnitAsync();
-
-        await using var db = fixture.CreateContext();
-        var result = await Service(db).EditAsync(
-            fixture.UnitId,
-            Edit(parkingPrice: 8_000m, parkingSpaceKind: "Underground"),
-            Actor, "dev", CancellationToken.None);
-
-        var updated = result.ShouldBeOfType<UnitEditResult.Updated>();
-
-        // By name, not by ordinal, so the audit row survives a reordering of the enum.
-        updated.Changes["ParkingSpaceKind"].ShouldBe("Underground");
-
-        await using var verify = fixture.CreateContext();
-        var unit = await verify.Units.SingleAsync(u => u.Id == fixture.UnitId);
-
-        unit.ParkingSpaceKind.ShouldBe(ParkingSpaceKind.Underground);
-        unit.ParkingPriceNet.ShouldBe(8_000m);
-
-        // Derived, never entered: the flag follows the price without anyone ticking a box,
-        // and it is recorded rather than moving silently.
-        unit.ParkingAvailable.ShouldBeTrue();
-        updated.Changes["ParkingAvailable"].ShouldBe(true);
-    }
-
-    [Fact]
-    public async Task Parking_can_be_turned_off_again_and_the_flag_is_audited()
-    {
-        await fixture.ResetUnitAsync();
-
-        await using var setUp = fixture.CreateContext();
-        await Service(setUp).EditAsync(
-            fixture.UnitId, Edit(parkingPrice: 8_000m, parkingSpaceKind: "Underground"),
-            Actor, "dev", CancellationToken.None);
-
-        // An empty string clears, the way every other text field on this record clears.
-        await using var db = fixture.CreateContext();
-        var result = await Service(db).EditAsync(
-            fixture.UnitId, Edit(parkingSpaceKind: ""), Actor, "dev", CancellationToken.None);
-
-        result.ShouldBeOfType<UnitEditResult.Updated>()
-            .Changes["ParkingSpaceKind"].ShouldBeNull();
-
-        await using var verify = fixture.CreateContext();
-        (await verify.Units.SingleAsync(u => u.Id == fixture.UnitId))
-            .ParkingSpaceKind.ShouldBeNull();
-    }
-
-    [Fact]
-    public async Task A_parking_space_kind_that_is_not_one_is_refused_before_anything_is_written()
-    {
-        await fixture.ResetUnitAsync();
-
-        await using var db = fixture.CreateContext();
-        var result = await Service(db).EditAsync(
-            fixture.UnitId,
-            Edit(parkingPrice: 8_000m, parkingSpaceKind: "Rooftop"),
-            Actor, "dev", CancellationToken.None);
-
-        result.ShouldBeOfType<UnitEditResult.Rejected>().Reason.ShouldContain("Rooftop");
-
-        // The price travelled in the same request and must not have landed either.
-        await using var verify = fixture.CreateContext();
-        (await verify.Units.SingleAsync(u => u.Id == fixture.UnitId)).ParkingPriceNet.ShouldBeNull();
-    }
+            null, notes);
 
     [Fact]
     public async Task An_edit_applies_and_is_audited()

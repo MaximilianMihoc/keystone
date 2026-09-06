@@ -31,8 +31,6 @@ public sealed record ImportField(
     public const string CesiunePriceNet = "cesiunePriceNet";
     public const string ReducedVat = "reducedVat";
     public const string Available = "available";
-    public const string ParkingPriceNet = "parkingPriceNet";
-    public const string ParkingAdvanceNet = "parkingAdvanceNet";
     public const string Notes = "notes";
 
     /// <summary>
@@ -61,9 +59,6 @@ public sealed record ImportField(
             ["Pret cesiune faraTVA", "Pret cesiune fara TVA", "Pret cesiune faraTVA 21%"]),
         new(ReducedVat, "Reduced VAT", ["TVA redus?", "TVA redus"]),
         new(Available, "Available", ["Disponibil?", "Disponibil"]),
-        new(ParkingPriceNet, "Parking excl. VAT", ["Pret total parcare fara TVA"]),
-        new(ParkingAdvanceNet, "Parking advance",
-            ["Avans + cesiune parcare fara TVA", "Avans parcare"]),
         new(Notes, "Comments", ["Comentarii", "Comments"])
     ];
 

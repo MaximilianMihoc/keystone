@@ -450,4 +450,122 @@ public class ReservationTests(DatabaseFixture fixture)
             .ShouldBeOfType<ReservationOutcome.Refused>()
             .Reason.ShouldContain("VAT");
     }
+
+    [Fact]
+    public async Task Parking_held_with_the_apartment_comes_with_the_reservation()
+    {
+        await fixture.ResetUnitAsync();
+        await fixture.SeedParkingAsync(spaces: 3, maxPerReservation: 2);
+
+        await using (var holding = fixture.CreateContext())
+        {
+            (await Holds(holding).TryHoldAsync(
+                    fixture.UnitId,
+                    Buyer(),
+                    new ParkingRequest(ParkingSpaceKind.Underground, 2),
+                    null,
+                    CancellationToken.None))
+                .ShouldBeOfType<HoldOutcome.Created>();
+        }
+
+        await using var db = fixture.CreateContext();
+
+        var created = (await Service(db).CreateAsync(
+                fixture.UnitId, null, BuyerType.Individual, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<ReservationOutcome.Created>();
+
+        await using var verify = fixture.CreateContext();
+
+        var reservation = await verify.Reservations
+            .SingleAsync(r => r.Id == created.ReservationId);
+
+        // Two spaces at 8,000 each, snapshotted rather than looked up later.
+        reservation.SnapParkingNet.ShouldBe(16_000m);
+        reservation.SnapParkingDepositNet.ShouldBe(4_352m);
+
+        var spaces = await verify.ParkingSpaces
+            .Where(s => s.ReservationId == created.ReservationId)
+            .ToListAsync();
+
+        spaces.Count.ShouldBe(2);
+        spaces.ShouldAllBe(s => s.State == UnitState.Reserved);
+
+        // The hold link is dropped: the sale owns them now, and a space pointing at both
+        // would be two answers to who has it.
+        spaces.ShouldAllBe(s => s.HoldId == null);
+    }
+
+    [Fact]
+    public async Task Repricing_the_car_park_does_not_move_an_agreed_reservation()
+    {
+        await fixture.ResetUnitAsync();
+        await fixture.SeedParkingAsync(spaces: 1, maxPerReservation: 1);
+
+        await using (var holding = fixture.CreateContext())
+        {
+            await Holds(holding).TryHoldAsync(
+                fixture.UnitId,
+                Buyer(),
+                new ParkingRequest(ParkingSpaceKind.Underground, 1),
+                null,
+                CancellationToken.None);
+        }
+
+        Guid reservationId;
+        await using (var db = fixture.CreateContext())
+        {
+            reservationId = ((ReservationOutcome.Created)await Service(db).CreateAsync(
+                fixture.UnitId, null, BuyerType.Individual, Actor, "dev", CancellationToken.None))
+                .ReservationId;
+        }
+
+        await using (var reprice = fixture.CreateContext())
+        {
+            await reprice.ParkingPrices
+                .Where(p => p.ProjectId == fixture.ProjectId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.PriceNet, 12_000m));
+        }
+
+        await using var verify = fixture.CreateContext();
+
+        // What they agreed to, not what it costs today.
+        (await verify.Reservations.SingleAsync(r => r.Id == reservationId))
+            .SnapParkingNet.ShouldBe(8_000m);
+    }
+
+    [Fact]
+    public async Task A_space_with_no_price_refuses_the_reservation_rather_than_selling_it_for_nothing()
+    {
+        await fixture.ResetUnitAsync();
+        await fixture.SeedParkingAsync(spaces: 1, maxPerReservation: 1);
+
+        await using (var holding = fixture.CreateContext())
+        {
+            await Holds(holding).TryHoldAsync(
+                fixture.UnitId,
+                Buyer(),
+                new ParkingRequest(ParkingSpaceKind.Underground, 1),
+                null,
+                CancellationToken.None);
+        }
+
+        // The price disappears between the hold and the conversion.
+        await using (var drop = fixture.CreateContext())
+        {
+            await drop.ParkingPrices
+                .Where(p => p.ProjectId == fixture.ProjectId)
+                .ExecuteDeleteAsync();
+        }
+
+        await using var db = fixture.CreateContext();
+
+        (await Service(db).CreateAsync(
+                fixture.UnitId, null, BuyerType.Individual, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<ReservationOutcome.Refused>()
+            .Reason.ShouldContain("price");
+
+        // Refused means nothing moved: no reservation, and the unit is as it was.
+        await using var verify = fixture.CreateContext();
+        (await verify.Reservations.CountAsync()).ShouldBe(0);
+    }
 }

@@ -208,6 +208,18 @@ public sealed class PrivacyService(
                         .SetProperty(u => u.State, UnitState.Available)
                         .SetProperty(u => u.StateChangedAt, now)
                         .SetProperty(u => u.UpdatedAt, now), ct);
+
+                // With the apartments, and for both outcomes below: releasing the hold without
+                // freeing its spaces would leave them Held against a hold that is already
+                // released, which no release path can reach afterwards.
+                await db.ParkingSpaces
+                    .Where(s => s.Hold != null && s.Hold.ProspectId == person.Id
+                                && s.State == UnitState.Held)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(p => p.State, UnitState.Available)
+                        .SetProperty(p => p.HoldId, (Guid?)null)
+                        .SetProperty(p => p.StateChangedAt, now)
+                        .SetProperty(p => p.UpdatedAt, now), ct);
             }
 
             // The audit trail keeps its rows and loses its names. Erasing the evidence that
@@ -244,6 +256,18 @@ public sealed class PrivacyService(
             {
                 await db.WaitlistEntries.Where(w => w.ProspectId == person.Id).ExecuteDeleteAsync(ct);
                 await db.Enquiries.Where(e => e.ProspectId == person.Id).ExecuteDeleteAsync(ct);
+
+                // Spaces on the reservations about to be deleted. Holds were dealt with above,
+                // for both outcomes; these only exist on the delete path. The foreign keys are
+                // NoAction precisely so this has to be deliberate rather than silent.
+                await db.ParkingSpaces
+                    .Where(s => s.Reservation != null && s.Reservation.ProspectId == person.Id)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(p => p.State, UnitState.Available)
+                        .SetProperty(p => p.ReservationId, (Guid?)null)
+                        .SetProperty(p => p.StateChangedAt, now)
+                        .SetProperty(p => p.UpdatedAt, now), ct);
+
                 await db.Reservations.Where(r => r.ProspectId == person.Id).ExecuteDeleteAsync(ct);
                 await db.Holds.Where(h => h.ProspectId == person.Id).ExecuteDeleteAsync(ct);
 

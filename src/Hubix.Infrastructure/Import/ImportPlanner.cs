@@ -78,8 +78,6 @@ public sealed class ImportPlanner(HubixDbContext db)
                 u.BasePriceNet,
                 u.CesiunePriceNet,
                 u.ReducedVatEligible,
-                u.ParkingPriceNet,
-                u.ParkingAdvanceNet,
                 u.AdminNotes
             })
             .ToListAsync(ct);
@@ -173,8 +171,6 @@ public sealed class ImportPlanner(HubixDbContext db)
             Compare(changes, ImportField.BasePriceNet, unit.BasePriceNet, values);
             Compare(changes, ImportField.CesiunePriceNet, unit.CesiunePriceNet, values);
             Compare(changes, ImportField.ReducedVat, unit.ReducedVatEligible, values);
-            Compare(changes, ImportField.ParkingPriceNet, unit.ParkingPriceNet, values);
-            Compare(changes, ImportField.ParkingAdvanceNet, unit.ParkingAdvanceNet, values);
             Compare(changes, ImportField.Notes, unit.AdminNotes, values);
 
             rows.Add(new PlannedRow(
@@ -257,8 +253,7 @@ public sealed class ImportPlanner(HubixDbContext db)
                     break;
 
                 case ImportField.AreaBuilt or ImportField.AreaUsable or ImportField.AreaBalcony
-                    or ImportField.BasePriceNet or ImportField.CesiunePriceNet
-                    or ImportField.ParkingPriceNet or ImportField.ParkingAdvanceNet:
+                    or ImportField.BasePriceNet or ImportField.CesiunePriceNet:
                     if (ParseNumber(raw) is not { } number)
                     {
                         return $"{field.Label}: \"{raw}\" is not a number.";

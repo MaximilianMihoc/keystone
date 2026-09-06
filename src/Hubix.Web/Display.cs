@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hubix.Domain;
 using Hubix.Domain.Pricing;
+using Microsoft.Extensions.Localization;
 
 namespace Hubix.Web;
 
@@ -30,6 +31,23 @@ public static class Display
 
     /// <summary>Resource key for a kind of parking space, for the same reason.</summary>
     public static string ParkingSpaceKey(ParkingSpaceKind kind) => $"Parking.{kind}";
+
+    /// <summary>
+    /// Which floor of the car park, in words.
+    /// </summary>
+    /// <remarks>
+    /// Levels are stored signed, so underground is negative. A bare "-1" beside a price reads
+    /// like a discount, so the sign becomes a word and the number is shown unsigned.
+    /// </remarks>
+    public static string ParkingLevel(int level, IStringLocalizer localizer)
+    {
+        ArgumentNullException.ThrowIfNull(localizer);
+
+        return level == 0
+            ? localizer["Parking.LevelGround"].Value
+            : localizer[level < 0 ? "Parking.LevelUnder" : "Parking.LevelAbove",
+                Math.Abs(level).ToString(CultureInfo.CurrentCulture)].Value;
+    }
 
     /// <summary>Resource key for when a tranche falls due.</summary>
     public static string DueKey(TrancheDue due) => due switch

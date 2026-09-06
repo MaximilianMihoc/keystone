@@ -112,14 +112,9 @@ public class Unit : Entity
     /// </summary>
     public bool ReducedVatEligible { get; set; }
 
-    public bool ParkingAvailable { get; set; }
-
-    public decimal? ParkingPriceNet { get; set; }
-
-    public decimal? ParkingAdvanceNet { get; set; }
-
-    /// <summary>Null when the project does not describe the space, or sells no parking.</summary>
-    public ParkingSpaceKind? ParkingSpaceKind { get; set; }
+    // Parking is not a property of an apartment: the spaces are finite, individually
+    // numbered, and two buyers of two different flats compete for the same one. It lives in
+    // ParkingSpace, reserved the way a unit is.
 
     public UnitState State { get; set; } = UnitState.Available;
 

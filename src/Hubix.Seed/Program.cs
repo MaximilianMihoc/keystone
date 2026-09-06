@@ -34,6 +34,8 @@ if (reset)
     await db.Database.ExecuteSqlRawAsync(
         """
         DELETE FROM [UnitAssets];
+        DELETE FROM [ParkingSpaces];
+        DELETE FROM [ParkingPrices];
         DELETE FROM [Holds];
         DELETE FROM [Reservations];
         DELETE FROM [WaitlistEntries];

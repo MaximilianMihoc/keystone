@@ -56,7 +56,7 @@ export interface ProjectSummary {
   sold: number;
 }
 
-/** The kinds of parking space a unit can have. Mirrors the server enum, sent as its name. */
+/** Mirrors the server enum, sent as its name rather than its ordinal. */
 export const PARKING_SPACE_KINDS = [
   'AboveGroundUncovered',
   'AboveGroundCovered',
@@ -64,6 +64,36 @@ export const PARKING_SPACE_KINDS = [
 ] as const;
 
 export type ParkingSpaceKind = (typeof PARKING_SPACE_KINDS)[number];
+
+/** One numbered space in a project's car park. */
+export interface ParkingSpace {
+  id: string;
+  code: string;
+  kind: ParkingSpaceKind;
+  /** Signed: underground negative, ground 0, above ground positive. */
+  level: number;
+  state: string;
+  adminNotes: string | null;
+  /** The apartment this space is held or reserved against, when it is. */
+  heldForUnit: string | null;
+}
+
+/** What a kind of space costs here. A space of a kind with no price is not for sale. */
+export interface ParkingPrice {
+  kind: ParkingSpaceKind;
+  priceNet: number;
+  depositNet: number;
+}
+
+export interface ParkingResponse {
+  maxPerReservation: number;
+  prices: ParkingPrice[];
+  spaces: ParkingSpace[];
+}
+
+export type ParkingSpaceEdit = Partial<
+  Pick<ParkingSpace, 'code' | 'kind' | 'level' | 'adminNotes'>
+>;
 
 export interface UnitType {
   id: string;
@@ -86,10 +116,6 @@ export interface Unit {
   basePriceNet: number;
   cesiunePriceNet: number | null;
   reducedVatEligible: boolean;
-  parkingAvailable: boolean;
-  parkingPriceNet: number | null;
-  parkingAdvanceNet: number | null;
-  parkingSpaceKind: ParkingSpaceKind | null;
   state: string;
   adminNotes: string | null;
   holdExpiresAt: string | null;
@@ -102,10 +128,7 @@ export interface UnitsResponse {
   units: Unit[];
 }
 
-/**
- * Only the fields the grid may change. State is deliberately not among them, and neither is
- * parkingAvailable: the server derives that from the parking price.
- */
+/** Only the fields the grid may change. State is deliberately not among them. */
 export type UnitEdit = Partial<
   Pick<
     Unit,
@@ -120,9 +143,6 @@ export type UnitEdit = Partial<
     | 'basePriceNet'
     | 'cesiunePriceNet'
     | 'reducedVatEligible'
-    | 'parkingPriceNet'
-    | 'parkingAdvanceNet'
-    | 'parkingSpaceKind'
     | 'adminNotes'
   >
 >;
@@ -337,6 +357,39 @@ export const api = {
     request<{ changed: Record<string, unknown> }>(`/api/admin/units/${unitId}`, {
       method: 'PATCH',
       body: JSON.stringify(edit),
+    }),
+
+  parking: (projectId: string) =>
+    request<ParkingResponse>(`/api/admin/projects/${projectId}/parking`),
+
+  addParkingSpaces: (projectId: string, body: {
+    prefix: string;
+    from: number;
+    to: number;
+    kind: ParkingSpaceKind;
+    level: number;
+  }) =>
+    request<{ created: number; skipped: string[] }>(
+      `/api/admin/projects/${projectId}/parking`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  editParkingSpace: (spaceId: string, edit: ParkingSpaceEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/parking/${spaceId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(edit),
+    }),
+
+  setParkingPrice: (projectId: string, price: ParkingPrice) =>
+    request<void>(`/api/admin/projects/${projectId}/parking-prices`, {
+      method: 'PUT',
+      body: JSON.stringify(price),
+    }),
+
+  setMaxParkingPerReservation: (projectId: string, max: number) =>
+    request<void>(`/api/admin/projects/${projectId}/parking-max`, {
+      method: 'PUT',
+      body: JSON.stringify({ max }),
     }),
 
   setWithdrawn: (unitId: string, withdrawn: boolean) =>

@@ -67,6 +67,17 @@ public class Project : Entity
     /// </summary>
     public int HoldDurationHours { get; set; } = 48;
 
+    /// <summary>
+    /// How many parking spaces one buyer may take with one apartment. Zero means parking is not
+    /// sold alongside a flat here, which is Roka's case.
+    /// </summary>
+    /// <remarks>
+    /// Per project rather than a constant, because the developments differ. The numbers are a
+    /// guess in the same way <c>HoldService.MaxActiveHoldsPerProject</c> is a guess: Hubix's
+    /// documents say a car park exists and what a space costs, never how many one buyer may have.
+    /// </remarks>
+    public int MaxParkingSpacesPerReservation { get; set; }
+
     public string? MapsUrl { get; set; }
 
     public DateTimeOffset? PublishedAt { get; set; }
@@ -86,6 +97,10 @@ public class Project : Entity
     public ICollection<Unit> Units { get; set; } = [];
 
     public ICollection<Asset> Assets { get; set; } = [];
+
+    public ICollection<ParkingSpace> ParkingSpaces { get; set; } = [];
+
+    public ICollection<ParkingPrice> ParkingPrices { get; set; } = [];
 
     public bool IsPublished => PublishedAt is not null;
 }

@@ -23,7 +23,14 @@
         <div class="alert" role="alert">
             @L[failure, Model.FailureArgs]
         </div>
+    }
 
+    @* A parking shortfall is the one failure the visitor can act on here: the apartment was
+       never held, so the form comes back with the counts refreshed and they can take fewer
+       spaces or none. Every other failure means this unit is gone, and the only honest thing
+       left is a way back to the list. *@
+    @if (Model.FailureKey is not null && !Model.CanRetry)
+    {
         <p style="margin-top:20px">
             <a class="btn ghost" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug">
                 @L["Reserve.SeeWhatIsLeft"]
@@ -54,6 +61,37 @@
                     <input asp-for="Input.Phone" type="tel" autocomplete="tel" />
                     <span asp-validation-for="Input.Phone" class="field-error"></span>
                 </div>
+
+                @* Only where the project sells parking and something is actually free. The
+                   count is live but not a promise: the space is won in the same transaction
+                   as the apartment, and the page says so if it has gone by then. *@
+                @if (Model.ShowParking)
+                {
+                    <div class="field">
+                        <label asp-for="Input.ParkingKind">@L["Parking.Choose"]</label>
+                        <select asp-for="Input.ParkingKind">
+                            <option value="">@L["Parking.None"]</option>
+                            @foreach (var offer in Model.ParkingOnOffer)
+                            {
+                                <option value="@offer.Kind">
+                                    @L[Display.ParkingSpaceKey(offer.Kind)] —
+                                    @Display.Money(offer.PriceNet)
+                                    (@L["Parking.Available", offer.Available])
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    @if (Model.MaxParkingSpaces > 1)
+                    {
+                        <div class="field">
+                            <label asp-for="Input.ParkingQuantity">@L["Parking.Quantity"]</label>
+                            <input asp-for="Input.ParkingQuantity" type="number"
+                                   min="1" max="@Model.MaxParkingSpaces" />
+                            <span asp-validation-for="Input.ParkingQuantity" class="field-error"></span>
+                        </div>
+                    }
+                }
 
                 <div class="field checkbox">
                     <label>

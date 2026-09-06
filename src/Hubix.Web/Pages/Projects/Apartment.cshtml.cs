@@ -47,12 +47,26 @@ public class ApartmentModel(
     /// </remarks>
     public string? ParkingNote { get; private set; }
 
+    /// <summary>
+    /// What the project's car park offers, by kind: the price, and how many are actually free.
+    /// </summary>
+    /// <remarks>
+    /// A kind with no price is not for sale and is left out — a space nobody can be charged for
+    /// is not an offer. Availability is counted rather than stored, so it cannot claim spaces
+    /// the car park does not have.
+    /// </remarks>
+    public IReadOnlyList<ParkingOffer> ParkingOnOffer { get; private set; } = [];
+
+    public sealed record ParkingOffer(
+        ParkingSpaceKind Kind,
+        int Level,
+        decimal PriceNet,
+        decimal DepositNet,
+        int Available);
+
     /// <summary>Nothing to say about parking is a reason to say nothing.</summary>
     public bool ShowParking =>
-        Unit.ParkingPriceNet is > 0
-        || Unit.ParkingAdvanceNet is > 0
-        || Unit.ParkingSpaceKind is not null
-        || ParkingNote is { Length: > 0 };
+        ParkingOnOffer.Count > 0 || ParkingNote is { Length: > 0 };
 
     /// <summary>
     /// Drawings for this apartment: its own RLV and renders, plus the plan for its floor.
@@ -112,6 +126,8 @@ public class ApartmentModel(
             .Select(t => new ProjectTranslation { Culture = t.Culture, Parking = t.Parking })
             .ForCulture(culture)?.Parking;
 
+        ParkingOnOffer = await LoadParkingAsync(project.Id, ct);
+
         var rule = await db.PricingRules
             .AsNoTracking()
             .Where(r => r.ProjectId == project.Id)
@@ -133,6 +149,43 @@ public class ApartmentModel(
         Drawings = await LoadDrawingsAsync(project.Id, unit, ct);
 
         return Page();
+    }
+
+    private async Task<IReadOnlyList<ParkingOffer>> LoadParkingAsync(Guid projectId, CancellationToken ct)
+    {
+        var prices = await db.ParkingPrices
+            .AsNoTracking()
+            .Where(p => p.ProjectId == projectId)
+            .Select(p => new { p.Kind, p.PriceNet, p.DepositNet })
+            .ToListAsync(ct);
+
+        if (prices.Count == 0)
+        {
+            return [];
+        }
+
+        // Grouped in the database rather than counted per kind in a loop: one query however
+        // many kinds a car park has.
+        var spaces = await db.ParkingSpaces
+            .AsNoTracking()
+            .Where(s => s.ProjectId == projectId)
+            .GroupBy(s => s.Kind)
+            .Select(g => new
+            {
+                Kind = g.Key,
+                Level = g.Min(s => s.Level),
+                Available = g.Count(s => s.State == UnitState.Available)
+            })
+            .ToListAsync(ct);
+
+        return
+        [
+            .. from price in prices
+               join space in spaces on price.Kind equals space.Kind
+               orderby space.Available descending, price.PriceNet descending
+               select new ParkingOffer(
+                   price.Kind, space.Level, price.PriceNet, price.DepositNet, space.Available)
+        ];
     }
 
     private async Task<IReadOnlyList<Drawing>> LoadDrawingsAsync(

@@ -57,8 +57,6 @@ public sealed class InventoryExporter(HubixDbContext db)
                 u.BasePriceNet,
                 u.CesiunePriceNet,
                 u.ReducedVatEligible,
-                u.ParkingPriceNet,
-                u.ParkingAdvanceNet,
                 u.State,
                 u.AdminNotes,
                 Reservation = u.Reservations
@@ -89,7 +87,6 @@ public sealed class InventoryExporter(HubixDbContext db)
             "Orientare", "MPC", "MPU", "MP Balcon/Logie", "Suprafata utila totala",
             "Pret total apartament fara TVA", "TVA redus?", "Pret cesiune faraTVA",
             .. TrancheHeaders(rule),
-            "Pret total parcare fara TVA", "Avans + cesiune parcare fara TVA",
             "Numar contract", "Platit rezervare", "Trimis rezervarea semnata",
             "Cesiune semnata la NOTAR", "Locatie cesiune", "Comentarii"
         ];
@@ -139,8 +136,6 @@ public sealed class InventoryExporter(HubixDbContext db)
                 column++;
             }
 
-            Set(sheet, row, ref column, unit.ParkingPriceNet);
-            Set(sheet, row, ref column, unit.ParkingAdvanceNet);
             Set(sheet, row, ref column, unit.Reservation?.ContractNumber);
             Set(sheet, row, ref column, unit.Reservation?.FeePaidAt);
             Set(sheet, row, ref column, unit.Reservation?.SignedAgreementAt);

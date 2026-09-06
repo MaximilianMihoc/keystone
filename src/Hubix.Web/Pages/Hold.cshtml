@@ -15,6 +15,27 @@
         <div class="alert" role="status">@L["Hold.Cancelled"]</div>
     }
 
+    @* Which space is theirs. Held under the same countdown as the apartment, so if that runs
+       out these go back on the market with it. *@
+    @if (Model.ParkingSpaces.Count > 0)
+    {
+        <div class="section">
+            <p class="section-label">@L["Parking.YourSpaces"]</p>
+            <dl class="spec">
+                @foreach (var space in Model.ParkingSpaces)
+                {
+                    <div>
+                        <dt>@space.Code</dt>
+                        <dd>
+                            @L[Display.ParkingSpaceKey(space.Kind)]
+                            <small>@Display.ParkingLevel(space.Level, T)</small>
+                        </dd>
+                    </div>
+                }
+            </dl>
+        </div>
+    }
+
     @if (Model.IsActive)
     {
         <div class="countdown" data-seconds="@Model.SecondsRemaining">

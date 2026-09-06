@@ -150,6 +150,44 @@ public sealed class ReservationService(
             };
 
             reservation.ApplySnapshot(breakdown);
+
+            // Parking claimed under the hold comes with the apartment. It is snapshotted here
+            // for the reason the rest of the money is: a project may reprice its car park, and
+            // what this buyer agreed to must not move with it.
+            var parkingSpaceCount = 0;
+
+            if (hold is not null)
+            {
+                var spaces = await db.ParkingSpaces
+                    .Where(s => s.HoldId == hold.Id && s.State == UnitState.Held)
+                    .Select(s => new { s.Id, s.Kind })
+                    .ToListAsync(ct);
+
+                parkingSpaceCount = spaces.Count;
+
+                if (spaces.Count > 0)
+                {
+                    var prices = await db.ParkingPrices
+                        .Where(p => p.ProjectId == unit.ProjectId)
+                        .ToDictionaryAsync(p => p.Kind, ct);
+
+                    foreach (var space in spaces)
+                    {
+                        if (!prices.TryGetValue(space.Kind, out var price))
+                        {
+                            await transaction.RollbackAsync(ct);
+
+                            return new ReservationOutcome.Refused(
+                                $"{unit.Project.Name} has no price for a {space.Kind} space, " +
+                                "so there is nothing to agree to. Set one first.");
+                        }
+
+                        reservation.SnapParkingNet += price.PriceNet;
+                        reservation.SnapParkingDepositNet += price.DepositNet;
+                    }
+                }
+            }
+
             db.Reservations.Add(reservation);
 
             if (hold is not null)
@@ -202,6 +240,32 @@ public sealed class ReservationService(
                 }
 
                 return new ReservationOutcome.Refused($"{unit.Code} already has a reservation.");
+            }
+
+            // After the save, not before: the spaces point at the reservation row by foreign
+            // key, and it does not exist until here.
+            if (hold is not null)
+            {
+                var moved = await db.ParkingSpaces
+                    .Where(s => s.HoldId == hold.Id && s.State == UnitState.Held)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(p => p.State, UnitState.Reserved)
+                        .SetProperty(p => p.ReservationId, reservation.Id)
+                        .SetProperty(p => p.HoldId, (Guid?)null)
+                        .SetProperty(p => p.StateChangedAt, now)
+                        .SetProperty(p => p.UpdatedAt, now), ct);
+
+                // The price was summed from a read taken earlier in this transaction, and the
+                // expiry job could have released the hold in between. Fewer spaces here than
+                // were priced means the snapshot describes spaces the buyer has not got.
+                if (moved != parkingSpaceCount)
+                {
+                    await transaction.RollbackAsync(ct);
+
+                    return new ReservationOutcome.Refused(
+                        $"The parking held with {unit.Code} changed while this was being saved. " +
+                        "Reload and try again.");
+                }
             }
 
             await transaction.CommitAsync(ct);
@@ -299,6 +363,20 @@ public sealed class ReservationService(
 
                 at = next;
             }
+
+            // Parking follows the apartment through every stage, cancellation included. A
+            // cancelled sale that left its spaces Reserved would put them beyond reach of every
+            // release path there is, and the unique code means they could not even be recreated.
+            var spaceState = at;
+            var releasing = spaceState is UnitState.Available;
+
+            await db.ParkingSpaces
+                .Where(s => s.ReservationId == reservation.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.State, spaceState)
+                    .SetProperty(p => p.ReservationId, releasing ? null : (Guid?)reservation.Id)
+                    .SetProperty(p => p.StateChangedAt, now)
+                    .SetProperty(p => p.UpdatedAt, now), ct);
 
             var from = reservation.State;
             StampDates(reservation, target, cancellationReason, now);

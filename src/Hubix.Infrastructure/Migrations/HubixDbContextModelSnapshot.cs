@@ -342,6 +342,102 @@ namespace Hubix.Infrastructure.Migrations
                     b.ToTable("ImportProfiles");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.ParkingPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("DepositNet")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<decimal>("PriceNet")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ParkingPrices_ProjectKind");
+
+                    b.ToTable("ParkingPrices");
+                });
+
+            modelBuilder.Entity("Hubix.Domain.Entities.ParkingSpace", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AdminNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("HoldId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReservationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("StateChangedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HoldId");
+
+                    b.HasIndex("ReservationId");
+
+                    b.HasIndex("ProjectId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ParkingSpaces_ProjectCode");
+
+                    b.HasIndex("ProjectId", "State", "Kind");
+
+                    b.ToTable("ParkingSpaces");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.PricingRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -420,6 +516,9 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<string>("MapsUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("MaxParkingSpacesPerReservation")
+                        .HasColumnType("int");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -643,6 +742,12 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<decimal>("SnapCesiuneVatRate")
                         .HasColumnType("decimal(6,4)");
 
+                    b.Property<decimal>("SnapParkingDepositNet")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal>("SnapParkingNet")
+                        .HasColumnType("decimal(12,2)");
+
                     b.Property<decimal?>("SnapReservationFee")
                         .HasColumnType("decimal(12,2)");
 
@@ -816,19 +921,6 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<string>("Orientation")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal?>("ParkingAdvanceNet")
-                        .HasColumnType("decimal(12,2)");
-
-                    b.Property<bool>("ParkingAvailable")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("ParkingPriceNet")
-                        .HasColumnType("decimal(12,2)");
-
-                    b.Property<string>("ParkingSpaceKind")
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -1100,6 +1192,42 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.ParkingPrice", b =>
+                {
+                    b.HasOne("Hubix.Domain.Entities.Project", "Project")
+                        .WithMany("ParkingPrices")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Hubix.Domain.Entities.ParkingSpace", b =>
+                {
+                    b.HasOne("Hubix.Domain.Entities.Hold", "Hold")
+                        .WithMany("ParkingSpaces")
+                        .HasForeignKey("HoldId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Hubix.Domain.Entities.Project", "Project")
+                        .WithMany("ParkingSpaces")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Hubix.Domain.Entities.Reservation", "Reservation")
+                        .WithMany("ParkingSpaces")
+                        .HasForeignKey("ReservationId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Hold");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Reservation");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.PricingRule", b =>
                 {
                     b.HasOne("Hubix.Domain.Entities.Project", "Project")
@@ -1258,11 +1386,20 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Projects");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.Hold", b =>
+                {
+                    b.Navigation("ParkingSpaces");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.Project", b =>
                 {
                     b.Navigation("Assets");
 
                     b.Navigation("Floors");
+
+                    b.Navigation("ParkingPrices");
+
+                    b.Navigation("ParkingSpaces");
 
                     b.Navigation("PricingRules");
 
@@ -1280,6 +1417,11 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Reservations");
 
                     b.Navigation("WaitlistEntries");
+                });
+
+            modelBuilder.Entity("Hubix.Domain.Entities.Reservation", b =>
+                {
+                    b.Navigation("ParkingSpaces");
                 });
 
             modelBuilder.Entity("Hubix.Domain.Entities.Unit", b =>

@@ -144,6 +144,10 @@ public sealed class HoldNotifier(
     }
 
     /// <summary>Notifies staff. Always English — it is an internal message.</summary>
+    /// <param name="parkingSpaces">
+    /// Space codes claimed with the apartment, if any. Sales need these: the spaces are off the
+    /// market under the same countdown, and nothing else tells them which.
+    /// </param>
     public async Task SalesNotifiedAsync(
         string projectName,
         string unitCode,
@@ -151,13 +155,20 @@ public sealed class HoldNotifier(
         string? prospectName,
         string? phone,
         DateTimeOffset expiresAt,
+        IReadOnlyList<string> parkingSpaces,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(parkingSpaces);
+
+        var parking = parkingSpaces.Count == 0
+            ? ""
+            : $"\nParking: {string.Join(", ", parkingSpaces)}\n";
+
         var body =
             $"""
              {prospectName ?? "(no name given)"} <{prospectEmail}>{(phone is null ? "" : $"  {phone}")}
              has taken a hold on {unitCode}, {projectName}.
-
+             {parking}
              It expires {expiresAt:dd MMM yyyy HH:mm} UTC unless they proceed.
              """;
 

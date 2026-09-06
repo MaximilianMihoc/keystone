@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 namespace Hubix.Web.Pages.Projects;
 
@@ -17,6 +18,7 @@ public class ReserveModel(
     HubixDbContext db,
     HoldService holds,
     HoldNotifier notifier,
+    IStringLocalizer<SharedResource> localizer,
     ILogger<ReserveModel> logger) : PageModel
 {
     public string Slug { get; private set; } = "";
@@ -30,6 +32,20 @@ public class ReserveModel(
     public int HoldDurationHours { get; private set; }
 
     public decimal? ReservationFee { get; private set; }
+
+    /// <summary>How many spaces this project allows with one apartment. Zero offers none.</summary>
+    public int MaxParkingSpaces { get; private set; }
+
+    /// <summary>The kinds on offer, priced, with a live count of what is free.</summary>
+    public IReadOnlyList<ParkingOffer> ParkingOnOffer { get; private set; } = [];
+
+    public sealed record ParkingOffer(
+        ParkingSpaceKind Kind,
+        decimal PriceNet,
+        decimal DepositNet,
+        int Available);
+
+    public bool ShowParking => MaxParkingSpaces > 0 && ParkingOnOffer.Count > 0;
 
     /// <summary>Set when the attempt failed, so the page can explain rather than just fail.</summary>
     public string? FailureKey { get; private set; }
@@ -56,6 +72,15 @@ public class ReserveModel(
 
         [Range(typeof(bool), "true", "true", ErrorMessage = "Validation.ConsentRequired")]
         public bool Consent { get; set; }
+
+        /// <summary>
+        /// The name of a <see cref="ParkingSpaceKind"/>, or empty for no parking, which is the
+        /// default and the common case.
+        /// </summary>
+        public string? ParkingKind { get; set; }
+
+        [Range(0, 10, ErrorMessage = "Validation.ParkingQuantity")]
+        public int ParkingQuantity { get; set; } = 1;
     }
 
     public async Task<IActionResult> OnGetAsync(string slug, string code, CancellationToken ct)
@@ -82,6 +107,19 @@ public class ReserveModel(
             return Page();
         }
 
+        // A kind this project does not offer is treated as no request at all rather than as an
+        // error: the form only ever posts what it drew, so anything else was not typed by a
+        // person filling it in.
+        ParkingRequest? parking = null;
+
+        if (ShowParking
+            && Input.ParkingQuantity > 0
+            && Enum.TryParse<ParkingSpaceKind>(Input.ParkingKind, out var kind)
+            && ParkingOnOffer.Any(o => o.Kind == kind))
+        {
+            parking = new ParkingRequest(kind, Input.ParkingQuantity);
+        }
+
         var outcome = await holds.TryHoldAsync(
             UnitId,
             new ProspectDetails(
@@ -91,6 +129,7 @@ public class ReserveModel(
                 Locale: CultureInfo.CurrentUICulture.Name,
                 ConsentGiven: Input.Consent,
                 ConsentSource: $"reserve-form/{slug}/{code}"),
+            parking,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct);
 
@@ -113,6 +152,31 @@ public class ReserveModel(
                 FailureArgs = [tooMany.Limit];
                 return Page();
 
+            case HoldOutcome.NotEnoughParking shortfall:
+                // Nothing was held, the apartment included, so the form comes back with fresh
+                // counts and they can choose again.
+                await LoadAsync(slug, code, ct);
+
+                // Unless the apartment itself went in the meantime, in which case LoadAsync
+                // has already said so and offering the form again would offer nothing.
+                CanRetry = FailureKey is null;
+                FailureKey = "Reserve.NotEnoughParking";
+                FailureArgs =
+                [
+                    shortfall.Available,
+                    localizer[Display.ParkingSpaceKey(shortfall.Kind)].Value,
+                    shortfall.Requested
+                ];
+                return Page();
+
+            case HoldOutcome.TooManyParkingSpaces tooMany2:
+                await LoadAsync(slug, code, ct);
+
+                CanRetry = FailureKey is null;
+                FailureKey = "Reserve.TooManyParking";
+                FailureArgs = [tooMany2.Limit, tooMany2.Requested];
+                return Page();
+
             default:
                 FailureKey = "Reserve.LostTheRace";
                 return Page();
@@ -133,7 +197,7 @@ public class ReserveModel(
 
             await notifier.SalesNotifiedAsync(
                 ProjectName, UnitCode, Input.Email!, Input.FullName, Input.Phone,
-                created.ExpiresAt, ct);
+                created.ExpiresAt, created.ParkingSpaces, ct);
         }
         catch (Exception ex)
         {
@@ -154,10 +218,12 @@ public class ReserveModel(
                 u.Id,
                 u.Code,
                 u.State,
+                u.ProjectId,
                 ProjectName = u.Project!.Name,
                 ProjectSlug = u.Project.Slug,
                 u.Project.HoldDurationHours,
-                u.Project.ReservationFee
+                u.Project.ReservationFee,
+                u.Project.MaxParkingSpacesPerReservation
             })
             .FirstOrDefaultAsync(ct);
 
@@ -172,6 +238,12 @@ public class ReserveModel(
         UnitId = found.Id;
         HoldDurationHours = found.HoldDurationHours;
         ReservationFee = found.ReservationFee;
+        MaxParkingSpaces = found.MaxParkingSpacesPerReservation;
+
+        if (MaxParkingSpaces > 0)
+        {
+            ParkingOnOffer = await LoadParkingAsync(found.ProjectId, ct);
+        }
 
         // Show the form only for a unit that is genuinely free. Anything else and the page
         // explains why instead, rather than collecting details for a request that cannot win.
@@ -183,5 +255,53 @@ public class ReserveModel(
         return true;
     }
 
+    /// <summary>
+    /// The kinds of space this buyer could actually take: priced, and with at least one free.
+    /// </summary>
+    /// <remarks>
+    /// A count, not a reservation. Between drawing this form and the buyer sending it the last
+    /// space can go, which is why the claim is guarded again inside the hold transaction and
+    /// why <see cref="HoldOutcome.NotEnoughParking"/> exists.
+    /// </remarks>
+    private async Task<IReadOnlyList<ParkingOffer>> LoadParkingAsync(Guid projectId, CancellationToken ct)
+    {
+        var prices = await db.ParkingPrices
+            .AsNoTracking()
+            .Where(p => p.ProjectId == projectId)
+            .Select(p => new { p.Kind, p.PriceNet, p.DepositNet })
+            .ToListAsync(ct);
+
+        if (prices.Count == 0)
+        {
+            return [];
+        }
+
+        var free = await db.ParkingSpaces
+            .AsNoTracking()
+            .Where(s => s.ProjectId == projectId && s.State == UnitState.Available)
+            .GroupBy(s => s.Kind)
+            .Select(g => new { Kind = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        return
+        [
+            .. from price in prices
+               join available in free on price.Kind equals available.Kind
+               orderby price.PriceNet descending
+               select new ParkingOffer(price.Kind, price.PriceNet, price.DepositNet, available.Count)
+        ];
+    }
+
     public bool CanSubmit => FailureKey is null;
+
+    /// <summary>
+    /// Whether the visitor can put this right on the same page.
+    /// </summary>
+    /// <remarks>
+    /// True only for the parking failures, where nothing was held — not the apartment either —
+    /// so the form is redrawn with fresh counts and they can ask for fewer spaces or none. The
+    /// other failures mean the unit itself is gone, and offering the form again would be
+    /// offering something that cannot be had.
+    /// </remarks>
+    public bool CanRetry { get; private set; }
 }

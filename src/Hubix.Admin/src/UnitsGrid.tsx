@@ -1,13 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  api,
-  ApiError,
-  SessionExpired,
-  PARKING_SPACE_KINDS,
-  type Unit,
-  type UnitEdit,
-  type UnitType,
-} from './api';
+import { api, ApiError, SessionExpired, type Unit, type UnitEdit, type UnitType } from './api';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -25,8 +17,6 @@ const NUMERIC = new Set([
   'areaBuilt',
   'basePriceNet',
   'cesiunePriceNet',
-  'parkingPriceNet',
-  'parkingAdvanceNet',
 ]);
 
 interface Column {
@@ -48,9 +38,6 @@ const COLUMNS: Column[] = [
   { key: 'areaTotal', label: 'Total', editable: false, width: 84 },
   { key: 'basePriceNet', label: 'Price net', editable: true, width: 108 },
   { key: 'cesiunePriceNet', label: 'Cesiune net', editable: true, width: 108 },
-  { key: 'parkingPriceNet', label: 'Parking net', editable: true, width: 108 },
-  { key: 'parkingAdvanceNet', label: 'Parking dep.', editable: true, width: 108 },
-  { key: 'parkingSpaceKind', label: 'Space', editable: true, width: 190 },
   { key: 'reducedVatEligible', label: 'Red. VAT', editable: true, width: 78 },
   { key: 'state', label: 'State', editable: false, width: 108 },
   { key: 'adminNotes', label: 'Notes', editable: true, width: 200 },
@@ -179,34 +166,6 @@ export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: 
           {types.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
-            </option>
-          ))}
-        </select>
-      );
-    }
-
-    // A closed vocabulary rather than free text, so it picks from a list. The blank option
-    // both shows that a unit has no space and clears one that has: it sends an empty string,
-    // which is how every text field here is cleared.
-    if (column.key === 'parkingSpaceKind') {
-      if (!isEditing || !canEdit) {
-        return (
-          <span onDoubleClick={() => canEdit && setEditing({ id: unit.id, key: column.key })}>
-            {value === null ? '—' : String(value)}
-          </span>
-        );
-      }
-      return (
-        <select
-          autoFocus
-          defaultValue={value === null ? '' : String(value)}
-          onBlur={(e) => save(unit, column.key, e.target.value)}
-          onChange={(e) => save(unit, column.key, e.target.value)}
-        >
-          <option value="">—</option>
-          {PARKING_SPACE_KINDS.map((kind) => (
-            <option key={kind} value={kind}>
-              {kind}
             </option>
           ))}
         </select>

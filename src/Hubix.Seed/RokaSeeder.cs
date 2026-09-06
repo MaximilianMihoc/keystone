@@ -73,6 +73,11 @@ public static class RokaSeeder
             ReservationFee = 4_000m,
             Currency = "EUR",
             HoldDurationHours = 48,
+
+            // Roka's parking is bought from the developer rather than through Hubix, so no
+            // space is offered with an apartment here. The translated note below says so.
+            MaxParkingSpacesPerReservation = 0,
+
             PublishedAt = DateTimeOffset.UtcNow
         };
 
@@ -183,10 +188,6 @@ public static class RokaSeeder
                 BasePriceNet = row.DecimalByHeader("Pret total apartament fara TVA") ?? 0m,
                 CesiunePriceNet = row.DecimalByHeader("Pret cesiune faraTVA", "Pret cesiune fara TVA"),
                 ReducedVatEligible = string.Equals(row.ByHeader("TVA redus?"), "DA", StringComparison.OrdinalIgnoreCase),
-
-                // Parking is bought directly from the developer on this project, so it is
-                // not modelled per unit here.
-                ParkingAvailable = false,
 
                 // The sheet's DA/NU is the only availability signal it carries. Everything
                 // beyond Available needs a reservation record, which the sheet does not have.

@@ -26,6 +26,11 @@ public class HoldModel(HoldService holds, TimeProvider clock) : PageModel
 
     public bool JustCancelled { get; private set; }
 
+    /// <summary>The parking spaces held alongside the apartment, if any.</summary>
+    public IReadOnlyList<HeldSpace> ParkingSpaces { get; private set; } = [];
+
+    public sealed record HeldSpace(string Code, ParkingSpaceKind Kind, int Level);
+
     /// <summary>Seconds left, for the countdown. Zero once it has run out.</summary>
     public int SecondsRemaining { get; private set; }
 
@@ -69,6 +74,14 @@ public class HoldModel(HoldService holds, TimeProvider clock) : PageModel
         ProjectSlug = hold.Unit.Project.Slug;
         UnitCode = hold.Unit.Code;
         TypeDisplay = hold.Unit.UnitType?.DisplayName(CultureInfo.CurrentUICulture.Name) ?? "";
+
+        // Which space is theirs. The codes are the whole point of numbering them.
+        ParkingSpaces =
+        [
+            .. hold.ParkingSpaces
+                .OrderBy(s => s.Code, StringComparer.Ordinal)
+                .Select(s => new HeldSpace(s.Code, s.Kind, s.Level))
+        ];
 
         var now = clock.GetUtcNow();
 
