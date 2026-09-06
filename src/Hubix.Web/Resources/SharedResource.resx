@@ -103,6 +103,9 @@
   <data name="Tranche.DueAtSigning"><value>On signing</value></data>
   <data name="Tranche.DueInterim"><value>Interim</value></data>
   <data name="Tranche.DueAtDelivery"><value>On delivery</value></data>
+  <data name="Tranche.Advance"><value>Advance ({0}%)</value></data>
+  <data name="Tranche.AdvanceNoRate"><value>Advance</value></data>
+  <data name="Tranche.Cesiune"><value>Assignment price</value></data>
 
   <!-- Reservation -->
   <data name="Reserve.Action"><value>Reserve</value></data>
@@ -154,6 +157,7 @@
 
   <!-- Payment schedule -->
   <data name="Tranche.Explainer"><value>VAT shown at {0}% on the apartment and {1}% on the assignment, for an individual buyer. A reduced rate may apply depending on the buyer and the unit; the rate that applies to you is confirmed before you sign.</value></data>
+  <data name="Tranche.AdvanceBasis"><value>The advance is {0}% of the price less the assignment price.</value></data>
   <data name="Reserve.Unavailable"><value>This apartment is no longer available. Ask to be told if it comes back.</value></data>
 
   <!-- Reservation form -->

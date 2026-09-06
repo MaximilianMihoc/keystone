@@ -23,4 +23,22 @@ public class TrancheLabelTests
         string.Format(CultureInfo.GetCultureInfo(culture), format!, 1).ShouldBe(first);
         string.Format(CultureInfo.GetCultureInfo(culture), format!, 2).ShouldBe(second);
     }
+
+    [Theory]
+    [InlineData("en-GB", "Advance (15%)", "Advance", "Assignment price")]
+    [InlineData("ro-RO", "Avans (15%)", "Avans", "Preț cesiune")]
+    public void The_first_instalment_names_the_two_columns_the_sheets_keep_it_in(
+        string culture, string advance, string advanceNoRate, string cesiune)
+    {
+        // Every one of Hubix's five sheets splits "Transa 1" into "Avans ... fara TVA" and
+        // "Pret cesiune faraTVA". The page shows the same two figures under the instalment.
+        var ci = CultureInfo.GetCultureInfo(culture);
+
+        string.Format(ci, Resources.GetString("Tranche.Advance", ci)!, 15).ShouldBe(advance);
+        Resources.GetString("Tranche.Cesiune", ci).ShouldBe(cesiune);
+
+        // A payment that is a remainder has no rate to name, so the label drops it
+        // rather than the split disappearing and burying the assignment price again.
+        Resources.GetString("Tranche.AdvanceNoRate", ci).ShouldBe(advanceNoRate);
+    }
 }

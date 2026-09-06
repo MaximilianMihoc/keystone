@@ -95,6 +95,9 @@
   <data name="Tranche.DueAtSigning"><value>La semnare</value></data>
   <data name="Tranche.DueInterim"><value>Intermediar</value></data>
   <data name="Tranche.DueAtDelivery"><value>La predare</value></data>
+  <data name="Tranche.Advance"><value>Avans ({0}%)</value></data>
+  <data name="Tranche.AdvanceNoRate"><value>Avans</value></data>
+  <data name="Tranche.Cesiune"><value>Preț cesiune</value></data>
 
   <data name="Reserve.Action"><value>Rezervă</value></data>
   <data name="Reserve.HoldExplainer"><value>Rezervarea îți blochează acest apartament timp de {0} ore, cât te decizi.</value></data>
@@ -140,6 +143,7 @@
   <data name="Filter.AvailableOnly"><value>Doar disponibile</value></data>
 
   <data name="Tranche.Explainer"><value>TVA afișat la {0}% pentru apartament și {1}% pentru cesiune, pentru o persoană fizică. Se poate aplica TVA redus, în funcție de client și de apartament; cota care ți se aplică se confirmă înainte de semnare.</value></data>
+  <data name="Tranche.AdvanceBasis"><value>Avansul este {0}% din preț, mai puțin prețul cesiunii.</value></data>
   <data name="Reserve.Unavailable"><value>Acest apartament nu mai este disponibil. Poți cere să fii anunțat dacă redevine liber.</value></data>
 
   <data name="Reserve.Heading"><value>Rezervă acest apartament</value></data>

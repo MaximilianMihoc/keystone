@@ -97,6 +97,16 @@ public static class TrancheCalculator
 
             apartmentAllocated += apartmentNet;
 
+            // The rate that describes the amount, for a page that shows the breakdown. The
+            // last tranche is whatever is left after the others, whatever basis it names, so
+            // no rate honestly describes it.
+            var rate = isLast ? null : definition.Basis switch
+            {
+                TrancheBasis.AdvancePercentage => rule.AdvancePct,
+                TrancheBasis.Percentage => definition.Percentage,
+                _ => null
+            };
+
             var trancheCesiuneNet = 0m;
             if (definition.IncludesCesiune && !cesiuneClaimed)
             {
@@ -110,7 +120,8 @@ public static class TrancheCalculator
                 ApartmentNet: apartmentNet,
                 ApartmentVat: Round(apartmentNet * vatRate),
                 CesiuneNet: trancheCesiuneNet,
-                CesiuneVat: Round(trancheCesiuneNet * rule.CesiuneVatPct)));
+                CesiuneVat: Round(trancheCesiuneNet * rule.CesiuneVatPct),
+                Percentage: rate));
         }
 
         if (cesiuneNet > 0 && !cesiuneClaimed)
