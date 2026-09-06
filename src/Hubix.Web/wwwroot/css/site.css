@@ -490,6 +490,17 @@ h3 {
 
 /* ---------- filters ----------------------------------------------------- */
 
+/* While a filter is being fetched. Enough to say "working", not enough to make a fast
+   swap flicker — and it never moves anything, which is the point of the exercise. */
+#apartment-list.is-busy {
+    opacity: 0.55;
+    transition: opacity 120ms ease-in 80ms;
+}
+
+#apartment-list.is-busy .filters a {
+    pointer-events: none;
+}
+
 .filters {
     display: flex;
     gap: 10px;
