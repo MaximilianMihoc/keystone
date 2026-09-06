@@ -55,91 +55,99 @@
 <div class="shell section">
     <p class="section-label">@L["Apartments.AllUnits"]</p>
 
-    <div class="filters">
-        <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
-           asp-route-freeOnly="@Model.FreeOnly"
-           aria-current="@(Model.Type is null ? "true" : null)">@L["Filter.AllTypes"]</a>
-
-        @foreach (var type in Model.Types)
-        {
+    @* Everything a filter changes lives in here, so the script has one thing to swap. *@
+    <div id="apartment-list">
+        <div class="filters">
             <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
-               asp-route-type="@type.Canonical" asp-route-freeOnly="@Model.FreeOnly"
-               aria-current="@(Model.Type == type.Canonical ? "true" : null)">@type.Label</a>
-        }
+               asp-route-freeOnly="@Model.FreeOnly"
+               aria-current="@(Model.Type is null ? "true" : null)">@L["Filter.AllTypes"]</a>
 
-        <span style="flex:1"></span>
-
-        <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
-           asp-route-type="@Model.Type" asp-route-freeOnly="@(!Model.FreeOnly)"
-           aria-current="@(Model.FreeOnly ? "true" : null)">@L["Filter.AvailableOnly"]</a>
-    </div>
-
-    <div class="table-wrap">
-        @if (Model.Rows.Count == 0)
-        {
-            <p class="empty">@L["Apartments.NoMatches"]</p>
-        }
-        else
-        {
-            <table>
-                <caption class="visually-hidden">@L["Apartments.AllUnits"]</caption>
-                <thead>
-                    <tr>
-                        <th scope="col">@L["Unit.Code"]</th>
-                        <th scope="col">@L["Unit.Type"]</th>
-                        <th scope="col">@L["Unit.Floor"]</th>
-                        <th scope="col">@L["Unit.Orientation"]</th>
-                        <th scope="col" class="num">@L["Unit.AreaUsable"]</th>
-                        <th scope="col" class="num">@L["Unit.AreaBalcony"]</th>
-                        <th scope="col" class="num">@L["Unit.AreaTotal"]</th>
-                        <th scope="col" class="num">@L["Unit.PriceNet"]</th>
-                        <th scope="col">@L["Unit.Availability"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var unit in Model.Rows)
-                    {
-                        var free = Display.IsFree(unit.State);
-                        <tr>
-                            <td>
-                                <a class="code" asp-page="/Projects/Apartment"
-                                   asp-route-slug="@Model.Slug" asp-route-code="@unit.Code">@unit.Code</a>
-                            </td>
-                            <td>@unit.TypeDisplay</td>
-                            <td>@(unit.FloorLevel?.ToString() ?? "—")</td>
-                            <td>@(unit.Orientation ?? "—")</td>
-                            <td class="num">@Display.Area(unit.AreaUsable)</td>
-                            <td class="num">@Display.Area(unit.AreaBalcony)</td>
-                            <td class="num">@Display.Area(unit.AreaTotal)</td>
-                            <td class="num">@Display.Money(unit.BasePriceNet)</td>
-                            <td>
-                                <span class="state @(free ? "is-free" : "")">
-                                    @L[Display.StateKey(unit.State)]
-                                </span>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </div>
-
-    @* The moment somebody finds nothing here suits them is the moment the waiting list is
-       worth offering — and it carries the filter they are already looking at. *@
-    <div class="waitlist-cta">
-        <p>
-            @if (Model.Rows.Any(u => Display.IsFree(u.State)))
+            @foreach (var type in Model.Types)
             {
-                @L["Waitlist.CtaSomeFree"]
+                <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
+                   asp-route-type="@type.Canonical" asp-route-freeOnly="@Model.FreeOnly"
+                   aria-current="@(Model.Type == type.Canonical ? "true" : null)">@type.Label</a>
+            }
+
+            <span style="flex:1"></span>
+
+            <a class="chip" asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug"
+               asp-route-type="@Model.Type" asp-route-freeOnly="@(!Model.FreeOnly)"
+               aria-current="@(Model.FreeOnly ? "true" : null)">@L["Filter.AvailableOnly"]</a>
+        </div>
+
+        <div class="table-wrap">
+            @if (Model.Rows.Count == 0)
+            {
+                <p class="empty">@L["Apartments.NoMatches"]</p>
             }
             else
             {
-                @L["Waitlist.CtaNoneFree"]
+                <table>
+                    <caption class="visually-hidden">@L["Apartments.AllUnits"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["Unit.Code"]</th>
+                            <th scope="col">@L["Unit.Type"]</th>
+                            <th scope="col">@L["Unit.Floor"]</th>
+                            <th scope="col">@L["Unit.Orientation"]</th>
+                            <th scope="col" class="num">@L["Unit.AreaUsable"]</th>
+                            <th scope="col" class="num">@L["Unit.AreaBalcony"]</th>
+                            <th scope="col" class="num">@L["Unit.AreaTotal"]</th>
+                            <th scope="col" class="num">@L["Unit.PriceNet"]</th>
+                            <th scope="col">@L["Unit.Availability"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var unit in Model.Rows)
+                        {
+                            var free = Display.IsFree(unit.State);
+                            <tr>
+                                <td>
+                                    <a class="code" asp-page="/Projects/Apartment"
+                                       asp-route-slug="@Model.Slug" asp-route-code="@unit.Code">@unit.Code</a>
+                                </td>
+                                <td>@unit.TypeDisplay</td>
+                                <td>@(unit.FloorLevel?.ToString() ?? "—")</td>
+                                <td>@(unit.Orientation ?? "—")</td>
+                                <td class="num">@Display.Area(unit.AreaUsable)</td>
+                                <td class="num">@Display.Area(unit.AreaBalcony)</td>
+                                <td class="num">@Display.Area(unit.AreaTotal)</td>
+                                <td class="num">@Display.Money(unit.BasePriceNet)</td>
+                                <td>
+                                    <span class="state @(free ? "is-free" : "")">
+                                        @L[Display.StateKey(unit.State)]
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             }
-        </p>
-        <a class="btn ghost"
-           asp-page="/Projects/Waitlist" asp-route-slug="@Model.Slug" asp-route-type="@Model.Type">
-            @L["Reserve.JoinWaitlist"]
-        </a>
+        </div>
+
+        @* The moment somebody finds nothing here suits them is the moment the waiting list is
+           worth offering — and it carries the filter they are already looking at. *@
+        <div class="waitlist-cta">
+            <p>
+                @if (Model.Rows.Any(u => Display.IsFree(u.State)))
+                {
+                    @L["Waitlist.CtaSomeFree"]
+                }
+                else
+                {
+                    @L["Waitlist.CtaNoneFree"]
+                }
+            </p>
+            <a class="btn ghost"
+               asp-page="/Projects/Waitlist" asp-route-slug="@Model.Slug" asp-route-type="@Model.Type">
+                @L["Reserve.JoinWaitlist"]
+            </a>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    @* Progressive enhancement: the filters work without this, they just reload the page. *@
+    <script src="~/js/apartments.js" asp-append-version="true" defer></script>
+}
