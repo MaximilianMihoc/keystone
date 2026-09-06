@@ -142,6 +142,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
                 .SetProperty(u => u.ParkingAvailable, false)
                 .SetProperty(u => u.ParkingPriceNet, (decimal?)null)
                 .SetProperty(u => u.ParkingAdvanceNet, (decimal?)null)
+                .SetProperty(u => u.ParkingSpaceKind, (ParkingSpaceKind?)null)
                 .SetProperty(u => u.AdminNotes, (string?)null));
     }
 

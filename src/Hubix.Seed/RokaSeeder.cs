@@ -87,7 +87,10 @@ public static class RokaSeeder
                 "2S+P+9E, 58 de apartamente, standard nZEB, fațadă ventilată, parter comercial.",
             PenaltyClause =
                 "Dacă dezvoltatorul nu livrează la timp + 6 luni, din culpa lui, clientul poate " +
-                "retrage avansul și primește o penalitate de 50% din avansul achitat."
+                "retrage avansul și primește o penalitate de 50% din avansul achitat.",
+            Parking =
+                "Parcarea la acest proiect se cumpără direct de la dezvoltator, separat de " +
+                "apartament."
         });
 
         project.Translations.Add(new ProjectTranslation
@@ -100,8 +103,11 @@ public static class RokaSeeder
                 "facade and commercial units at ground level.",
             PenaltyClause =
                 "If the developer fails to deliver within the agreed date plus six months, " +
-                "through its own fault, the buyer may withdraw the advance and receives a " +
-                "penalty of 50% of the advance paid."
+                "through its own fault, the buyer may withdraw the deposit and receives a " +
+                "penalty of 50% of the deposit paid.",
+            Parking =
+                "Parking on this project is bought directly from the developer, separately " +
+                "from the apartment."
         });
 
         // 15% advance on the developer price (total minus cesiune), 19% VAT on both the

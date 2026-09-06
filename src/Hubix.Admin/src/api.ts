@@ -56,6 +56,15 @@ export interface ProjectSummary {
   sold: number;
 }
 
+/** The kinds of parking space a unit can have. Mirrors the server enum, sent as its name. */
+export const PARKING_SPACE_KINDS = [
+  'AboveGroundUncovered',
+  'AboveGroundCovered',
+  'Underground',
+] as const;
+
+export type ParkingSpaceKind = (typeof PARKING_SPACE_KINDS)[number];
+
 export interface UnitType {
   id: string;
   name: string;
@@ -80,6 +89,7 @@ export interface Unit {
   parkingAvailable: boolean;
   parkingPriceNet: number | null;
   parkingAdvanceNet: number | null;
+  parkingSpaceKind: ParkingSpaceKind | null;
   state: string;
   adminNotes: string | null;
   holdExpiresAt: string | null;
@@ -92,7 +102,10 @@ export interface UnitsResponse {
   units: Unit[];
 }
 
-/** Only the fields the grid may change. State is deliberately not among them. */
+/**
+ * Only the fields the grid may change. State is deliberately not among them, and neither is
+ * parkingAvailable: the server derives that from the parking price.
+ */
 export type UnitEdit = Partial<
   Pick<
     Unit,
@@ -107,9 +120,9 @@ export type UnitEdit = Partial<
     | 'basePriceNet'
     | 'cesiunePriceNet'
     | 'reducedVatEligible'
-    | 'parkingAvailable'
     | 'parkingPriceNet'
     | 'parkingAdvanceNet'
+    | 'parkingSpaceKind'
     | 'adminNotes'
   >
 >;

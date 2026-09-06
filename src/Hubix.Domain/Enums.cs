@@ -25,6 +25,18 @@ public enum RentalProfile
 }
 
 /// <summary>
+/// The kind of parking space a price buys. A closed list rather than free text: the
+/// vocabulary is small, and this way the description translates through the resource
+/// files like every other label, instead of needing a translation row per unit.
+/// </summary>
+public enum ParkingSpaceKind
+{
+    AboveGroundUncovered,
+    AboveGroundCovered,
+    Underground
+}
+
+/// <summary>
 /// The unit lifecycle. Transitions are governed by <see cref="UnitStateMachine"/>.
 /// </summary>
 public enum UnitState

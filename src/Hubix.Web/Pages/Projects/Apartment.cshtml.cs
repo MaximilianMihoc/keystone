@@ -36,6 +36,25 @@ public class ApartmentModel(
     public bool IsFree => Display.IsFree(Unit.State);
 
     /// <summary>
+    /// What this project says about parking, in the reader's language.
+    /// </summary>
+    /// <remarks>
+    /// Prose, so the row for the reader's culture is chosen with a fallback to Romanian rather
+    /// than to nothing — the opposite of CityFor, where a Romanian city name would be worse
+    /// than the canonical one. The fallback picks a whole row, not a field: an English row
+    /// that exists but leaves this empty gives an English reader nothing, the same way
+    /// Summary already behaves.
+    /// </remarks>
+    public string? ParkingNote { get; private set; }
+
+    /// <summary>Nothing to say about parking is a reason to say nothing.</summary>
+    public bool ShowParking =>
+        Unit.ParkingPriceNet is > 0
+        || Unit.ParkingAdvanceNet is > 0
+        || Unit.ParkingSpaceKind is not null
+        || ParkingNote is { Length: > 0 };
+
+    /// <summary>
     /// Drawings for this apartment: its own RLV and renders, plus the plan for its floor.
     /// </summary>
     /// <remarks>
@@ -55,7 +74,14 @@ public class ApartmentModel(
         var project = await db.Projects
             .AsNoTracking()
             .Where(p => p.Slug == slug && p.PublishedAt != null)
-            .Select(p => new { p.Id, p.Name, p.Slug, p.HoldDurationHours })
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.Slug,
+                p.HoldDurationHours,
+                Parking = p.Translations.Select(t => new { t.Culture, t.Parking }).ToList()
+            })
             .FirstOrDefaultAsync(ct);
 
         if (project is null)
@@ -81,6 +107,10 @@ public class ApartmentModel(
         HoldDurationHours = project.HoldDurationHours;
         Unit = unit;
         TypeDisplay = unit.UnitType?.DisplayName(culture) ?? "";
+
+        ParkingNote = project.Parking
+            .Select(t => new ProjectTranslation { Culture = t.Culture, Parking = t.Parking })
+            .ForCulture(culture)?.Parking;
 
         var rule = await db.PricingRules
             .AsNoTracking()

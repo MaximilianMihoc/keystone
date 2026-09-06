@@ -123,6 +123,9 @@ public static class AdminApi
                         parkingAvailable = u.ParkingAvailable,
                         parkingPriceNet = u.ParkingPriceNet,
                         parkingAdvanceNet = u.ParkingAdvanceNet,
+                        parkingSpaceKind = u.ParkingSpaceKind == null
+                            ? null
+                            : u.ParkingSpaceKind.ToString(),
                         state = u.State.ToString(),
                         adminNotes = u.AdminNotes,
 

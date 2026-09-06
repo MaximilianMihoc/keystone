@@ -118,6 +118,9 @@ public class Unit : Entity
 
     public decimal? ParkingAdvanceNet { get; set; }
 
+    /// <summary>Null when the project does not describe the space, or sells no parking.</summary>
+    public ParkingSpaceKind? ParkingSpaceKind { get; set; }
+
     public UnitState State { get; set; } = UnitState.Available;
 
     public DateTimeOffset StateChangedAt { get; set; } = DateTimeOffset.UtcNow;

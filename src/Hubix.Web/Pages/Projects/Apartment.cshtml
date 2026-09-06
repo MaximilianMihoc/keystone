@@ -123,6 +123,51 @@
         </div>
     }
 
+    @if (Model.ShowParking)
+    {
+        <div class="section">
+            <p class="section-label">@L["Parking.Heading"]</p>
+
+            @* Same dl grid as the specification above: parking is another set of facts about
+               the apartment, not a second payment schedule. A zero price is how the sheets
+               say "no parking here", so it is not a figure to advertise. *@
+            @if (u.ParkingPriceNet is > 0 || u.ParkingAdvanceNet is > 0 || u.ParkingSpaceKind is not null)
+            {
+                <dl class="spec">
+                    @if (u.ParkingPriceNet is > 0)
+                    {
+                        <div>
+                            <dt>@L["Unit.PriceNet"]</dt>
+                            <dd>@Display.Money(u.ParkingPriceNet.Value)</dd>
+                        </div>
+                    }
+                    @if (u.ParkingAdvanceNet is > 0)
+                    {
+                        <div>
+                            <dt>@L["Parking.Advance"]</dt>
+                            <dd>@Display.Money(u.ParkingAdvanceNet.Value)</dd>
+                        </div>
+                    }
+                    @* Worth showing on its own: on a project where parking is bought from the
+                       developer there is no price here, but which space still matters. *@
+                    @if (u.ParkingSpaceKind is { } spaceKind)
+                    {
+                        <div>
+                            <dt>@L["Parking.Space"]</dt>
+                            <dd>@L[Display.ParkingSpaceKey(spaceKind)]</dd>
+                        </div>
+                    }
+                </dl>
+            }
+
+            @* Why there is no price, or whatever else the project needs to say about parking. *@
+            @if (Model.ParkingNote is { Length: > 0 } parkingNote)
+            {
+                <p class="note">@parkingNote</p>
+            }
+        </div>
+    }
+
     @if (Model.Drawings.Count > 0)
     {
         <div class="section">

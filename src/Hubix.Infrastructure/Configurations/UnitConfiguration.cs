@@ -62,6 +62,7 @@ public class UnitConfiguration : IEntityTypeConfiguration<Unit>
         builder.Property(u => u.AdminNotes).HasMaxLength(2000);
 
         builder.Property(u => u.State).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(u => u.ParkingSpaceKind).HasConversion<string>().HasMaxLength(32);
 
         builder.Property(u => u.AreaBuilt).HasColumnType("decimal(8,2)");
         builder.Property(u => u.AreaUsable).HasColumnType("decimal(8,2)");

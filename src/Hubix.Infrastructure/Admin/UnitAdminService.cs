@@ -26,9 +26,13 @@ public sealed record UnitEdit(
     decimal? BasePriceNet,
     decimal? CesiunePriceNet,
     bool? ReducedVatEligible,
-    bool? ParkingAvailable,
     decimal? ParkingPriceNet,
     decimal? ParkingAdvanceNet,
+
+    // The name of a ParkingSpaceKind, not the enum: no string-enum converter is registered,
+    // so System.Text.Json would refuse "Underground" and demand an ordinal instead.
+    string? ParkingSpaceKind,
+
     string? AdminNotes);
 
 public abstract record UnitEditResult
@@ -115,6 +119,23 @@ public sealed class UnitAdminService(
             set(incoming.Value);
         }
 
+        // Validated before anything is written, so a typo in the request changes nothing.
+        // Null is "not sent" and an empty string clears, exactly like the text fields above.
+        var spaceKindSent = edit.ParkingSpaceKind is not null;
+        ParkingSpaceKind? spaceKind = null;
+
+        if (edit.ParkingSpaceKind is { Length: > 0 } rawSpaceKind)
+        {
+            if (!Enum.TryParse(rawSpaceKind, out ParkingSpaceKind parsedSpaceKind)
+                || !Enum.IsDefined(parsedSpaceKind))
+            {
+                return new UnitEditResult.Rejected(
+                    $"\"{rawSpaceKind}\" is not a kind of parking space.");
+            }
+
+            spaceKind = parsedSpaceKind;
+        }
+
         ApplyRef("Building", unit.Building, edit.Building, v => unit.Building = v);
         ApplyRef("Stair", unit.Stair, edit.Stair, v => unit.Stair = v);
         ApplyRef("Orientation", unit.Orientation, edit.Orientation, v => unit.Orientation = v);
@@ -128,9 +149,27 @@ public sealed class UnitAdminService(
         ApplyVal("BasePriceNet", unit.BasePriceNet, edit.BasePriceNet, v => unit.BasePriceNet = v);
         ApplyVal("CesiunePriceNet", unit.CesiunePriceNet, edit.CesiunePriceNet, v => unit.CesiunePriceNet = v);
         ApplyVal("ReducedVatEligible", unit.ReducedVatEligible, edit.ReducedVatEligible, v => unit.ReducedVatEligible = v);
-        ApplyVal("ParkingAvailable", unit.ParkingAvailable, edit.ParkingAvailable, v => unit.ParkingAvailable = v);
         ApplyVal("ParkingPriceNet", unit.ParkingPriceNet, edit.ParkingPriceNet, v => unit.ParkingPriceNet = v);
         ApplyVal("ParkingAdvanceNet", unit.ParkingAdvanceNet, edit.ParkingAdvanceNet, v => unit.ParkingAdvanceNet = v);
+        // Not ApplyVal: that would record the ordinal, and an audit row has to still mean the
+        // same thing after somebody reorders the enum.
+        if (spaceKindSent && spaceKind != unit.ParkingSpaceKind)
+        {
+            before["ParkingSpaceKind"] = unit.ParkingSpaceKind?.ToString();
+            changes["ParkingSpaceKind"] = spaceKind?.ToString();
+            unit.ParkingSpaceKind = spaceKind;
+        }
+
+        // Availability is a consequence of there being a price, the same rule the importer
+        // owns, so it is derived rather than entered and is absent from UnitEdit. It is still
+        // recorded when it moves: an unaudited change is exactly what this system refuses.
+        var parkingAvailable = unit.ParkingPriceNet is > 0;
+        if (parkingAvailable != unit.ParkingAvailable)
+        {
+            before["ParkingAvailable"] = unit.ParkingAvailable;
+            changes["ParkingAvailable"] = parkingAvailable;
+            unit.ParkingAvailable = parkingAvailable;
+        }
 
         if (changes.Count == 0)
         {

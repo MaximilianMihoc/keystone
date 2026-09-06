@@ -99,6 +99,13 @@
   <data name="Tranche.AdvanceNoRate"><value>Avans</value></data>
   <data name="Tranche.Cesiune"><value>Preț cesiune</value></data>
 
+  <data name="Parking.Heading"><value>Parcare</value></data>
+  <data name="Parking.Advance"><value>Avans + cesiune</value></data>
+  <data name="Parking.Space"><value>Tip loc</value></data>
+  <data name="Parking.AboveGroundUncovered"><value>Supraterană, neacoperită</value></data>
+  <data name="Parking.AboveGroundCovered"><value>Supraterană, acoperită</value></data>
+  <data name="Parking.Underground"><value>Subterană</value></data>
+
   <data name="Reserve.Action"><value>Rezervă</value></data>
   <data name="Reserve.HoldExplainer"><value>Rezervarea îți blochează acest apartament timp de {0} ore, cât te decizi.</value></data>
   <data name="Reserve.NoLongerAvailable"><value>Acest apartament a fost rezervat de altcineva acum câteva momente. Nu ți s-a debitat nimic.</value></data>

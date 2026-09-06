@@ -488,6 +488,10 @@ namespace Hubix.Infrastructure.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<string>("Parking")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
                     b.Property<string>("PenaltyClause")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -821,6 +825,10 @@ namespace Hubix.Infrastructure.Migrations
 
                     b.Property<decimal?>("ParkingPriceNet")
                         .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("ParkingSpaceKind")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");

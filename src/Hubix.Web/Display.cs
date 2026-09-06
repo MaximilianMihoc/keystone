@@ -28,6 +28,9 @@ public static class Display
     /// <summary>Resource key for a unit state, so states are translated not stringified.</summary>
     public static string StateKey(UnitState state) => $"State.{state}";
 
+    /// <summary>Resource key for a kind of parking space, for the same reason.</summary>
+    public static string ParkingSpaceKey(ParkingSpaceKind kind) => $"Parking.{kind}";
+
     /// <summary>Resource key for when a tranche falls due.</summary>
     public static string DueKey(TrancheDue due) => due switch
     {
