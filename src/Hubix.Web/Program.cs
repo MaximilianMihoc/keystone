@@ -44,6 +44,9 @@ builder.Services.AddScoped<HoldExpiryJob>();
 builder.Services.AddScoped<StaffAuthService>();
 builder.Services.AddScoped<StaffNotifier>();
 builder.Services.AddScoped<UnitAdminService>();
+builder.Services.AddScoped<ProjectAdminService>();
+builder.Services.AddScoped<PricingAdminService>();
+builder.Services.AddScoped<StaffAdminService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<WaitlistPromoter>();
 // --- Asset storage -----------------------------------------------------------------

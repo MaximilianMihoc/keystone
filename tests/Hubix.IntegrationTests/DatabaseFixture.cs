@@ -50,6 +50,37 @@ public sealed class DatabaseFixture : IAsyncLifetime
         => (135_776m, 14_444.62m, 45.71m);
 
     /// <summary>
+    /// The values the fixture's project is created with, and restored to between tests.
+    /// </summary>
+    /// <remarks>
+    /// Read by both the seeder and the reset, so the two cannot drift apart — which they would,
+    /// silently, the first time somebody changed one of them.
+    /// </remarks>
+    public static (string Slug, string Name, string City, ProjectStatus Status, DateTimeOffset PublishedAt) SeedProject
+        => ("test-project", "Test Project", "București", ProjectStatus.Selling, PublishedAt);
+
+    private static readonly DateTimeOffset PublishedAt = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// The payment plan the fixture's project is seeded with, and restored to between tests.
+    /// </summary>
+    /// <remarks>
+    /// A fresh instance every call: the tranche list is a JSON-mapped reference type, so handing
+    /// the same one to two contexts would let a test's edit reach into the next test's seed.
+    /// </remarks>
+    public static PricingRule SeededRule() => new()
+    {
+        AdvancePct = 0.15m,
+        CesiuneVatPct = 0.19m,
+        VatStandard = 0.19m,
+        Tranches =
+        [
+            new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
+            new TrancheDefinition("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
+        ]
+    };
+
+    /// <summary>
     /// A context configured the way production is.
     /// </summary>
     /// <remarks>
@@ -120,11 +151,49 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // Projects other tests created; the fixture's own must survive.
         await db.Projects.Where(p => p.Id != ProjectId).ExecuteDeleteAsync();
 
-        // SeedParkingAsync writes this, so it has to come back too — the same rule as every
-        // writable column on the unit below.
+        // Prose the fixture's own project acquired. The seeder writes none, so all of it is
+        // something a test put there.
+        await db.ProjectTranslations.Where(t => t.ProjectId == ProjectId).ExecuteDeleteAsync();
+
+        // The payment plan is writable now, and a test that corrects a rate or schedules a change
+        // would otherwise leave it there — quietly repricing every later test that reads a
+        // tranche. Cheaper to put the seeded plan back than to restore it field by field.
+        await db.PricingRules.Where(r => r.ProjectId == ProjectId).ExecuteDeleteAsync();
+
+        var rule = SeededRule();
+        rule.ProjectId = ProjectId;
+        db.PricingRules.Add(rule);
+        await db.SaveChangesAsync();
+
+        // Developers are global rather than per-project, so the sweep above never reaches them
+        // — and Developers.Name is unique, so the second test to name one the same thing fails
+        // on a constraint that has nothing to do with what it was testing. The foreign key is
+        // ON DELETE SET NULL, so this also detaches the fixture project.
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [Developers]");
+
+        // The project is writable now, in every column its setup screen owns. PublishedAt is
+        // the one that bites: a test that unpublishes and does not put it back leaves every
+        // later public-page assertion quietly testing nothing.
+        var seededProject = SeedProject;
+
         await db.Projects
             .Where(p => p.Id == ProjectId)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.MaxParkingSpacesPerReservation, 0));
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.MaxParkingSpacesPerReservation, 0)
+                .SetProperty(p => p.Slug, seededProject.Slug)
+                .SetProperty(p => p.Name, seededProject.Name)
+                .SetProperty(p => p.City, seededProject.City)
+                .SetProperty(p => p.Status, seededProject.Status)
+                .SetProperty(p => p.PublishedAt, (DateTimeOffset?)seededProject.PublishedAt)
+                .SetProperty(p => p.DeveloperId, (Guid?)null)
+                .SetProperty(p => p.UnitsCommitted, (int?)1)
+                .SetProperty(p => p.DeliveryDate, (DateOnly?)null)
+                .SetProperty(p => p.DeliveryGraceMonths, 0)
+                .SetProperty(p => p.RentalProfile, (RentalProfile?)null)
+                .SetProperty(p => p.ReservationFee, (decimal?)4_000m)
+                .SetProperty(p => p.Currency, "EUR")
+                .SetProperty(p => p.HoldDurationHours, 48)
+                .SetProperty(p => p.MapsUrl, (string?)null));
 
         // Units other tests created — the importer makes them by the sheetful.
         await db.Units.Where(u => u.ProjectId == ProjectId && u.Id != UnitId).ExecuteDeleteAsync();
@@ -227,29 +296,21 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
     private async Task SeedAsync(HubixDbContext db)
     {
+        var seeded = SeedProject;
+
         var project = new Project
         {
-            Slug = "test-project",
-            Name = "Test Project",
-            City = "București",
-            Status = ProjectStatus.Selling,
+            Slug = seeded.Slug,
+            Name = seeded.Name,
+            City = seeded.City,
+            Status = seeded.Status,
             UnitsCommitted = 1,
             HoldDurationHours = 48,
             ReservationFee = 4_000m,
-            PublishedAt = DateTimeOffset.UtcNow
+            PublishedAt = seeded.PublishedAt
         };
 
-        project.PricingRules.Add(new PricingRule
-        {
-            AdvancePct = 0.15m,
-            CesiuneVatPct = 0.19m,
-            VatStandard = 0.19m,
-            Tranches =
-            [
-                new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
-                new TrancheDefinition("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
-            ]
-        });
+        project.PricingRules.Add(SeededRule());
 
         var type = new UnitType { Name = "2 camere", SortOrder = 0 };
         project.UnitTypes.Add(type);

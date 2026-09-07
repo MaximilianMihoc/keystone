@@ -49,11 +49,222 @@ export interface ProjectSummary {
   city: string;
   status: string;
   unitsCommitted: number | null;
+  /** Null until somebody publishes it; the public site gates on exactly this. */
+  publishedAt: string | null;
+  developerId: string | null;
   total: number;
   available: number;
   held: number;
   reserved: number;
   sold: number;
+}
+
+/** Mirrors the server enum. Draft is where a project starts. */
+export const PROJECT_STATUSES = [
+  'Draft',
+  'Upcoming',
+  'Selling',
+  'SoldOut',
+  'Delivered',
+  'Archived',
+] as const;
+
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+/** How the homes are meant to be let. Drives the yield model Hubix publishes. */
+export const RENTAL_PROFILES = ['ShortTerm', 'MidTerm', 'LongTerm', 'Mixed'] as const;
+
+export type RentalProfile = (typeof RENTAL_PROFILES)[number];
+
+/** The two languages the site offers. Romanian is the one Hubix writes in. */
+export const CULTURES = ['en-GB', 'ro-RO'] as const;
+
+export interface Developer {
+  id: string;
+  name: string;
+  description: string | null;
+  yearsActive: number | null;
+  unitsBuilt: number | null;
+  website: string | null;
+  /** Shown by the delete button, so "this cannot go" is visible before it is clicked. */
+  projectCount: number;
+}
+
+export interface DeveloperEdit {
+  name: string;
+  description: string | null;
+  yearsActive: number | null;
+  unitsBuilt: number | null;
+  website: string | null;
+}
+
+/** Everything the setup form owns. Unlike a unit edit, null here means null. */
+export interface ProjectEdit {
+  name: string;
+  city: string;
+  slug: string;
+  developerId: string | null;
+  status: ProjectStatus;
+  unitsCommitted: number | null;
+  deliveryDate: string | null;
+  deliveryGraceMonths: number;
+  rentalProfile: RentalProfile | null;
+  reservationFee: number | null;
+  currency: string;
+  holdDurationHours: number;
+  mapsUrl: string | null;
+}
+
+export interface ProjectDetails extends ProjectEdit {
+  id: string;
+  publishedAt: string | null;
+  /** Publishing is refused below one, so the button can say why before it is pressed. */
+  units: number;
+}
+
+export interface ProjectTranslationRow {
+  culture: string;
+  /** Romanian is what the public pages fall back to, so it is labelled as the source. */
+  isSource: boolean;
+  city: string | null;
+  summary: string | null;
+  body: string | null;
+  penaltyClause: string | null;
+  parking: string | null;
+}
+
+export interface ProjectSetup {
+  project: ProjectDetails;
+  developers: { id: string; name: string }[];
+  /** Always one row per offered language, blank where nothing is stored yet. */
+  translations: ProjectTranslationRow[];
+}
+
+/** How a payment's apartment portion is worked out. */
+export const TRANCHE_BASES = ['AdvancePercentage', 'Percentage', 'Remainder'] as const;
+
+export type TrancheBasis = (typeof TRANCHE_BASES)[number];
+
+export const TRANCHE_DUES = ['AtSigning', 'Interim', 'AtDelivery'] as const;
+
+export type TrancheDue = (typeof TRANCHE_DUES)[number];
+
+export interface Tranche {
+  label: string;
+  basis: TrancheBasis;
+  /** Exactly one payment collects the cesiune; it is paid once. */
+  includesCesiune: boolean;
+  due: TrancheDue;
+  /** Required when basis is Percentage, ignored otherwise. */
+  percentage: number | null;
+}
+
+export interface PricingRule {
+  id: string;
+  effectiveFrom: string;
+  advancePct: number;
+  vatStandard: number;
+  cesiuneVatPct: number;
+  vatReduced: number | null;
+  tranches: Tranche[];
+}
+
+/** A plan without its identity — what the editor holds and sends. */
+export type PricingDraft = Omit<PricingRule, 'id' | 'effectiveFrom'>;
+
+export interface PricingResponse {
+  /** Null until somebody sets one. Every price on the public site depends on it. */
+  current: PricingRule | null;
+  /** Plans dated ahead, soonest first. They sit inert until their day. */
+  scheduled: PricingRule[];
+  sample: {
+    code: string;
+    basePriceNet: number;
+    cesiuneNet: number;
+    reducedVatEligible: boolean;
+  } | null;
+}
+
+export interface PricingPreview {
+  /** Empty means the plan is safe to save. */
+  problems: string[];
+  schedule: {
+    against: string | null;
+    basePriceNet: number;
+    cesiuneNet: number;
+    developerPriceNet: number;
+    vatRate: number;
+    totalNet: number;
+    totalVat: number;
+    totalGross: number;
+    tranches: {
+      label: string;
+      due: TrancheDue;
+      percentage: number | null;
+      apartmentNet: number;
+      cesiuneNet: number;
+      net: number;
+      vat: number;
+      gross: number;
+    }[];
+  } | null;
+}
+
+export interface UnitTypeRow {
+  id: string;
+  /** Canonical Romanian, and the importer's match key. Not editable. */
+  name: string;
+  sortOrder: number;
+  units: number;
+  waiting: number;
+  displayNames: { culture: string; displayName: string }[];
+}
+
+export interface FloorRow {
+  id: string;
+  building: string | null;
+  level: number;
+  label: string | null;
+  hasPlan: boolean;
+}
+
+export const STAFF_ROLES = ['Admin', 'Sales', 'Viewer'] as const;
+
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  name: string;
+  role: StaffRole;
+  /** Inactive keeps the history but refuses them a sign-in link. */
+  isActive: boolean;
+}
+
+/** What creating an apartment by hand needs. The four required fields match the importer's. */
+export interface UnitCreate {
+  code: string;
+  unitTypeId: string;
+  areaUsable: number;
+  basePriceNet: number;
+  crt: number | null;
+  building: string | null;
+  stair: string | null;
+  floorLevel: number | null;
+  orientation: string | null;
+  areaBuilt: number | null;
+  areaBalcony: number | null;
+  cesiunePriceNet: number | null;
+  reducedVatEligible: boolean;
+  adminNotes: string | null;
+}
+
+export interface ProjectStructure {
+  types: UnitTypeRow[];
+  floors: FloorRow[];
+  /** Levels the apartments actually claim, joined by building and level, not by key. */
+  occupied: { building: string | null; level: number; units: number }[];
+  cultures: string[];
 }
 
 /** Mirrors the server enum, sent as its name rather than its ordinal. */
@@ -371,6 +582,141 @@ export const api = {
   me: () => request<Me>('/api/admin/me'),
 
   projects: () => request<ProjectSummary[]>('/api/admin/projects'),
+
+  developers: () => request<Developer[]>('/api/admin/developers'),
+
+  createDeveloper: (edit: DeveloperEdit) =>
+    request<{ id: string }>('/api/admin/developers', {
+      method: 'POST',
+      body: JSON.stringify(edit),
+    }),
+
+  editDeveloper: (developerId: string, edit: DeveloperEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/developers/${developerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(edit),
+    }),
+
+  deleteDeveloper: (developerId: string) =>
+    request<void>(`/api/admin/developers/${developerId}`, { method: 'DELETE' }),
+
+  projectSetup: (projectId: string) =>
+    request<ProjectSetup>(`/api/admin/projects/${projectId}/setup`),
+
+  createProject: (body: { name: string; city: string; slug: string | null; developerId: string | null }) =>
+    request<{ id: string }>('/api/admin/projects', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editProject: (projectId: string, edit: ProjectEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(edit),
+    }),
+
+  deleteProject: (projectId: string) =>
+    request<void>(`/api/admin/projects/${projectId}`, { method: 'DELETE' }),
+
+  setProjectPublished: (projectId: string, published: boolean) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}/published`, {
+      method: 'POST',
+      body: JSON.stringify({ published }),
+    }),
+
+  staff: () => request<StaffMember[]>('/api/admin/staff'),
+
+  createStaff: (body: { email: string; name: string; role: StaffRole; isActive: boolean }) =>
+    request<{ id: string }>('/api/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editStaff: (staffId: string, body: { name: string; role: StaffRole; isActive: boolean }) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  createUnit: (projectId: string, body: UnitCreate) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/units`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  deleteUnit: (unitId: string) => request<void>(`/api/admin/units/${unitId}`, { method: 'DELETE' }),
+
+  renameUnit: (unitId: string, code: string) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/units/${unitId}/code`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  pricing: (projectId: string) =>
+    request<PricingResponse>(`/api/admin/projects/${projectId}/pricing`),
+
+  previewPricing: (projectId: string, body: {
+    rule: PricingDraft;
+    samplePriceNet: number | null;
+    sampleCesiuneNet: number | null;
+    reducedVat: boolean;
+  }) =>
+    request<PricingPreview>(`/api/admin/projects/${projectId}/pricing/preview`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  savePricing: (projectId: string, rule: PricingDraft) =>
+    request<{ id?: string; changed?: Record<string, unknown> }>(
+      `/api/admin/projects/${projectId}/pricing`,
+      { method: 'PUT', body: JSON.stringify(rule) },
+    ),
+
+  schedulePricing: (projectId: string, rule: PricingDraft, effectiveFrom: string) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/pricing/scheduled`, {
+      method: 'POST',
+      body: JSON.stringify({ rule, effectiveFrom }),
+    }),
+
+  deleteScheduledPricing: (ruleId: string) =>
+    request<void>(`/api/admin/pricing/${ruleId}`, { method: 'DELETE' }),
+
+  structure: (projectId: string) =>
+    request<ProjectStructure>(`/api/admin/projects/${projectId}/structure`),
+
+  editUnitType: (unitTypeId: string, body: { sortOrder: number; displayNames: Record<string, string> }) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/unit-types/${unitTypeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteUnitType: (unitTypeId: string) =>
+    request<void>(`/api/admin/unit-types/${unitTypeId}`, { method: 'DELETE' }),
+
+  createFloor: (projectId: string, body: { building: string | null; level: number; label: string | null }) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/floors`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editFloor: (floorId: string, body: { building: string | null; level: number; label: string | null }) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/floors/${floorId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteFloor: (floorId: string) =>
+    request<void>(`/api/admin/floors/${floorId}`, { method: 'DELETE' }),
+
+  saveProjectTranslation: (
+    projectId: string,
+    culture: string,
+    body: Omit<ProjectTranslationRow, 'culture' | 'isSource'>,
+  ) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/projects/${projectId}/translations/${culture}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
 
   units: (projectId: string) =>
     request<UnitsResponse>(`/api/admin/projects/${projectId}/units`),

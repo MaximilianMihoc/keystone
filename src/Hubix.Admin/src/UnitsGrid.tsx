@@ -7,7 +7,10 @@ interface Props {
   units: Unit[];
   types: UnitType[];
   canEdit: boolean;
+  projectId: string;
   onSessionExpired: () => void;
+  /** Adding or removing an apartment changes the tallies, so the shell reloads. */
+  onInventoryChanged: () => void;
 }
 
 /** Fields that hold money or measurements, so the input can be numeric and right-aligned. */
@@ -27,7 +30,7 @@ interface Column {
 }
 
 const COLUMNS: Column[] = [
-  { key: 'code', label: 'Apartment', editable: false, width: 96 },
+  { key: 'code', label: 'Apartment', editable: true, width: 96 },
   { key: 'unitTypeId', label: 'Type', editable: true, width: 130 },
   { key: 'building', label: 'Block', editable: true, width: 70 },
   { key: 'stair', label: 'Stair', editable: true, width: 62 },
@@ -43,12 +46,28 @@ const COLUMNS: Column[] = [
   { key: 'adminNotes', label: 'Notes', editable: true, width: 200 },
 ];
 
-export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: Props) {
+export function UnitsGrid({
+  units: initial,
+  types,
+  canEdit,
+  projectId,
+  onSessionExpired,
+  onInventoryChanged,
+}: Props) {
   const [units, setUnits] = useState(initial);
   const [editing, setEditing] = useState<{ id: string; key: keyof Unit } | null>(null);
   const [saving, setSaving] = useState<Record<string, SaveState>>({});
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState({
+    code: '',
+    unitTypeId: '',
+    areaUsable: '',
+    basePriceNet: '',
+    floorLevel: '',
+    building: '',
+  });
 
   const typeName = useMemo(
     () => Object.fromEntries(types.map((t) => [t.id, t.name])),
@@ -104,7 +123,14 @@ export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: 
       setUnits((all) => all.map((u) => (u.id === unit.id ? { ...u, [key]: value } : u)));
 
       try {
-        await api.editUnit(unit.id, { [key]: value } as UnitEdit);
+        // The code is the apartment's name rather than one of its properties — the importer
+        // matches on it and a reservation refers to it — so it has its own endpoint, which
+        // refuses the change once anybody has held or reserved the apartment.
+        if (key === 'code') {
+          await api.renameUnit(unit.id, String(value ?? ''));
+        } else {
+          await api.editUnit(unit.id, { [key]: value } as UnitEdit);
+        }
 
         setSaving((s) => ({ ...s, [cellId]: 'saved' }));
         setTimeout(() => setSaving((s) => ({ ...s, [cellId]: 'idle' })), 1200);
@@ -239,7 +265,126 @@ export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: 
             : `${visible.length} of ${units.length}`}
         </span>
         {!canEdit && <span className="readonly-badge">Read only</span>}
+        {canEdit && (
+          <button className="btn ghost" type="button" onClick={() => setAdding(!adding)}>
+            {adding ? 'Cancel' : 'Add an apartment'}
+          </button>
+        )}
       </div>
+
+      {adding && canEdit && (
+        <section className="panel">
+          <h2>Add an apartment</h2>
+          <p className="hint">
+            For the one that was missed, or a floor added late. A whole building still belongs in
+            the Import tab. It needs what the importer needs: a code, a type, a usable area and a
+            price. It starts available.
+          </p>
+          <div className="row">
+            <label>
+              Code
+              <input
+                value={draft.code}
+                size={10}
+                onChange={(e) => setDraft({ ...draft, code: e.target.value })}
+              />
+            </label>
+            <label>
+              Type
+              <select
+                value={draft.unitTypeId}
+                onChange={(e) => setDraft({ ...draft, unitTypeId: e.target.value })}
+              >
+                <option value="">Choose…</option>
+                {types.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Block
+              <input
+                value={draft.building}
+                size={5}
+                onChange={(e) => setDraft({ ...draft, building: e.target.value })}
+              />
+            </label>
+            <label>
+              Floor
+              <input
+                type="number"
+                value={draft.floorLevel}
+                size={4}
+                onChange={(e) => setDraft({ ...draft, floorLevel: e.target.value })}
+              />
+            </label>
+            <label>
+              Usable area
+              <input
+                type="number"
+                step="0.01"
+                value={draft.areaUsable}
+                size={7}
+                onChange={(e) => setDraft({ ...draft, areaUsable: e.target.value })}
+              />
+            </label>
+            <label>
+              Price excl. VAT
+              <input
+                type="number"
+                value={draft.basePriceNet}
+                size={10}
+                onChange={(e) => setDraft({ ...draft, basePriceNet: e.target.value })}
+              />
+            </label>
+            <button
+              className="btn"
+              type="button"
+              disabled={
+                draft.code.trim() === '' ||
+                draft.unitTypeId === '' ||
+                draft.areaUsable === '' ||
+                draft.basePriceNet === ''
+              }
+              onClick={() =>
+                void (async () => {
+                  setError(null);
+
+                  try {
+                    await api.createUnit(projectId, {
+                      code: draft.code.trim(),
+                      unitTypeId: draft.unitTypeId,
+                      areaUsable: Number(draft.areaUsable),
+                      basePriceNet: Number(draft.basePriceNet),
+                      crt: null,
+                      building: draft.building.trim() === '' ? null : draft.building.trim(),
+                      stair: null,
+                      floorLevel: draft.floorLevel === '' ? null : Number(draft.floorLevel),
+                      orientation: null,
+                      areaBuilt: null,
+                      areaBalcony: null,
+                      cesiunePriceNet: null,
+                      reducedVatEligible: false,
+                      adminNotes: null,
+                    });
+
+                    setDraft({ ...draft, code: '', areaUsable: '', basePriceNet: '' });
+                    setAdding(false);
+                    onInventoryChanged();
+                  } catch (e) {
+                    if (e instanceof SessionExpired) onSessionExpired();
+                    else setError(e instanceof ApiError ? e.message : 'Could not add that apartment.');
+                  }
+                })()
+              }
+            >
+              Add
+            </button>
+          </div>
+        </section>
+      )}
 
       {error && (
         <div className="banner error" role="alert">
@@ -257,6 +402,7 @@ export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: 
                   {c.label}
                 </th>
               ))}
+              {canEdit && <th style={{ width: 80 }} />}
             </tr>
           </thead>
           <tbody>
@@ -267,12 +413,49 @@ export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: 
                     {render(unit, c)}
                   </td>
                 ))}
+                {canEdit && (
+                  <td>
+                    {/* Only ever an apartment nobody has touched. A real one that is off the
+                        market is withdrawn, which keeps it and its history. */}
+                    <button
+                      className="btn-small danger"
+                      type="button"
+                      disabled={unit.state !== 'Available' && unit.state !== 'Withdrawn'}
+                      onClick={() => {
+                        if (!window.confirm(`Delete ${unit.code}? This cannot be undone.`)) return;
+
+                        void (async () => {
+                          setError(null);
+
+                          try {
+                            await api.deleteUnit(unit.id);
+                            setUnits((all) => all.filter((u) => u.id !== unit.id));
+                            onInventoryChanged();
+                          } catch (e) {
+                            if (e instanceof SessionExpired) onSessionExpired();
+                            else setError(e instanceof ApiError ? e.message : 'Could not delete that apartment.');
+                          }
+                        })();
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
 
-        {visible.length === 0 && <p className="empty">Nothing matches that filter.</p>}
+        {/* A project can now exist before its apartments do, so "nothing matches that filter"
+            would be a confusing answer to a project that simply has nothing in it yet. */}
+        {visible.length === 0 && (
+          <p className="empty">
+            {units.length === 0
+              ? 'No apartments here yet. Add them from the Import tab.'
+              : 'Nothing matches that filter.'}
+          </p>
+        )}
       </div>
     </>
   );

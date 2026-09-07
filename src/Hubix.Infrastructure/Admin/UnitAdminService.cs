@@ -28,6 +28,29 @@ public sealed record UnitEdit(
     bool? ReducedVatEligible,
     string? AdminNotes);
 
+/// <summary>
+/// A single apartment, entered by hand.
+/// </summary>
+/// <remarks>
+/// The four required fields are exactly the importer's required columns, so an apartment added
+/// here and one arriving by spreadsheet need the same things to exist.
+/// </remarks>
+public sealed record UnitCreate(
+    string Code,
+    Guid UnitTypeId,
+    decimal AreaUsable,
+    decimal BasePriceNet,
+    int? Crt = null,
+    string? Building = null,
+    string? Stair = null,
+    int? FloorLevel = null,
+    string? Orientation = null,
+    decimal? AreaBuilt = null,
+    decimal? AreaBalcony = null,
+    decimal? CesiunePriceNet = null,
+    bool ReducedVatEligible = false,
+    string? AdminNotes = null);
+
 public abstract record UnitEditResult
 {
     public sealed record Updated(IReadOnlyDictionary<string, object?> Changes) : UnitEditResult;
@@ -228,4 +251,269 @@ public sealed class UnitAdminService(
         return new UnitEditResult.Updated(
             new Dictionary<string, object?> { ["State"] = target.ToString() });
     }
+
+    /// <summary>
+    /// Adds a single apartment by hand.
+    /// </summary>
+    /// <remarks>
+    /// The spreadsheet importer remains the way a project's inventory arrives; this is for the
+    /// one that was missed, or the floor that got added late. It therefore asks for exactly what
+    /// the importer requires — a code, a type, a usable area and a price — and leaves the rest
+    /// optional, so the two doors into the same table cannot disagree about what a unit needs.
+    /// <para>
+    /// A new apartment starts <c>Available</c>. State belongs to the hold and reservation
+    /// services, and there is no honest way for a creation form to claim otherwise.
+    /// </para>
+    /// </remarks>
+    public async Task<AdminWriteResult> CreateAsync(
+        Guid projectId,
+        UnitCreate create,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var code = create.Code.Trim();
+
+        if (code.Length == 0)
+        {
+            return new AdminWriteResult.Rejected("An apartment needs a code.");
+        }
+
+        var typeBelongs = await db.UnitTypes
+            .AnyAsync(t => t.Id == create.UnitTypeId && t.ProjectId == projectId, ct);
+
+        if (!typeBelongs)
+        {
+            return new AdminWriteResult.Rejected("That apartment type belongs to another project.");
+        }
+
+        if (Unreasonable(create.AreaUsable, create.BasePriceNet, create.CesiunePriceNet) is { } problem)
+        {
+            return new AdminWriteResult.Rejected(problem);
+        }
+
+        if (await db.Units.AnyAsync(u => u.ProjectId == projectId && u.Code == code, ct))
+        {
+            return new AdminWriteResult.Rejected(Taken(code));
+        }
+
+        var unit = new Unit
+        {
+            ProjectId = projectId,
+            Code = code,
+            Crt = create.Crt,
+            UnitTypeId = create.UnitTypeId,
+            Building = Blank(create.Building),
+            Stair = Blank(create.Stair),
+            FloorLevel = create.FloorLevel,
+            Orientation = Blank(create.Orientation),
+            AreaBuilt = create.AreaBuilt,
+            AreaUsable = create.AreaUsable,
+            AreaBalcony = create.AreaBalcony ?? 0m,
+            BasePriceNet = create.BasePriceNet,
+            CesiunePriceNet = create.CesiunePriceNet,
+            ReducedVatEligible = create.ReducedVatEligible,
+            AdminNotes = Blank(create.AdminNotes),
+            State = UnitState.Available,
+            StateChangedAt = clock.GetUtcNow()
+        };
+
+        db.Units.Add(unit);
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "unit",
+            EntityId = unit.Id,
+            Action = "unit.created",
+            After = JsonSerializer.Serialize(new { unit.Code, unit.AreaUsable, unit.BasePriceNet })
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            db.ChangeTracker.Clear();
+
+            // The check above can lose a race with an import running at the same time. Re-ask
+            // rather than assume: a different failure reported as a duplicate code would send
+            // somebody looking in the wrong place entirely.
+            if (!await db.Units.AnyAsync(u => u.ProjectId == projectId && u.Code == code, ct))
+            {
+                throw;
+            }
+
+            return new AdminWriteResult.Rejected(Taken(code));
+        }
+
+        logger.LogInformation("{Actor} added apartment {Code} to project {ProjectId}",
+            actorLabel, code, projectId);
+
+        return new AdminWriteResult.Created(unit.Id);
+    }
+
+    /// <summary>
+    /// Removes an apartment nobody has ever wanted.
+    /// </summary>
+    /// <remarks>
+    /// Never one with a hold or a reservation behind it, cancelled ones included. Those rows are
+    /// the record of what happened, and <c>Hold → Unit</c> cascades, so deleting the apartment
+    /// would take that record with it. Withdrawing is the way to take a real apartment off sale.
+    /// </remarks>
+    public async Task<AdminWriteResult> DeleteAsync(
+        Guid unitId,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var unit = await db.Units.FirstOrDefaultAsync(u => u.Id == unitId, ct);
+
+        if (unit is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        if (unit.State is not (UnitState.Available or UnitState.Withdrawn))
+        {
+            return new AdminWriteResult.Rejected(
+                $"{unit.Code} is {unit.State.ToString().ToLowerInvariant()}, so it cannot be deleted.");
+        }
+
+        if (await db.Reservations.AnyAsync(r => r.UnitId == unitId, ct))
+        {
+            return new AdminWriteResult.Rejected(
+                $"{unit.Code} has been reserved before, and that history would go with it. " +
+                "Withdraw it instead.");
+        }
+
+        if (await db.Holds.AnyAsync(h => h.UnitId == unitId, ct))
+        {
+            return new AdminWriteResult.Rejected(
+                $"Somebody has held {unit.Code} before, and that history would go with it. " +
+                "Withdraw it instead.");
+        }
+
+        db.Units.Remove(unit);
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "unit",
+            EntityId = unitId,
+            Action = "unit.deleted",
+            Before = JsonSerializer.Serialize(new { unit.Code, unit.BasePriceNet })
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        logger.LogInformation("{Actor} deleted apartment {Code}", actorLabel, unit.Code);
+
+        return new AdminWriteResult.Deleted();
+    }
+
+    /// <summary>
+    /// Corrects a mistyped apartment code.
+    /// </summary>
+    /// <remarks>
+    /// Its own method rather than another field on <see cref="UnitEdit"/>, because the code is
+    /// not a property of the apartment so much as its name: the importer matches on it, the
+    /// public URL contains it, and a reservation refers to it. Changing it once anybody has
+    /// acted on the apartment would rewrite what they agreed to, so it is only ever allowed
+    /// while nothing has happened.
+    /// </remarks>
+    public async Task<AdminWriteResult> RenameAsync(
+        Guid unitId,
+        string code,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var unit = await db.Units.FirstOrDefaultAsync(u => u.Id == unitId, ct);
+
+        if (unit is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var wanted = code.Trim();
+
+        if (wanted.Length == 0)
+        {
+            return new AdminWriteResult.Rejected("An apartment needs a code.");
+        }
+
+        if (wanted == unit.Code)
+        {
+            return new AdminWriteResult.NoChange();
+        }
+
+        if (unit.State is not (UnitState.Available or UnitState.Withdrawn))
+        {
+            return new AdminWriteResult.Rejected(
+                $"{unit.Code} is {unit.State.ToString().ToLowerInvariant()}, so its code cannot change.");
+        }
+
+        if (await db.Reservations.AnyAsync(r => r.UnitId == unitId, ct)
+            || await db.Holds.AnyAsync(h => h.UnitId == unitId, ct))
+        {
+            return new AdminWriteResult.Rejected(
+                $"Somebody has already held or reserved {unit.Code}, so its code cannot change now.");
+        }
+
+        if (await db.Units.AnyAsync(u => u.ProjectId == unit.ProjectId && u.Code == wanted, ct))
+        {
+            return new AdminWriteResult.Rejected(Taken(wanted));
+        }
+
+        var before = unit.Code;
+        unit.Code = wanted;
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "unit",
+            EntityId = unitId,
+            Action = "unit.renamed",
+            Before = JsonSerializer.Serialize(new { Code = before }),
+            After = JsonSerializer.Serialize(new { Code = wanted })
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            db.ChangeTracker.Clear();
+
+            if (!await db.Units.AnyAsync(u => u.ProjectId == unit.ProjectId && u.Code == wanted, ct))
+            {
+                throw;
+            }
+
+            return new AdminWriteResult.Rejected(Taken(wanted));
+        }
+
+        return new AdminWriteResult.Updated(new Dictionary<string, object?> { ["Code"] = wanted });
+    }
+
+    private static string Taken(string code) =>
+        $"There is already an apartment called {code} in this project.";
+
+    private static string? Unreasonable(decimal areaUsable, decimal basePrice, decimal? cesiune) =>
+        areaUsable <= 0 ? "Usable area must be greater than zero."
+        : basePrice < 0 ? "Price cannot be negative."
+        : cesiune > basePrice ? "The cesiune price cannot exceed the total price; it is part of it."
+        : null;
+
+    private static string? Blank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

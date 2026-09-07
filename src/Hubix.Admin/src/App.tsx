@@ -6,9 +6,22 @@ import { PipelineBoard } from './PipelineBoard';
 import { WaitlistPanel } from './WaitlistPanel';
 import { ImportPanel } from './ImportPanel';
 import { AssetsPanel } from './AssetsPanel';
+import { OrganisationPanel } from './OrganisationPanel';
+import { SetupPanel } from './SetupPanel';
 import { ThemeSwitch } from './ThemeSwitch';
 
-type View = 'units' | 'parking' | 'pipeline' | 'waitlist' | 'files' | 'import';
+type View =
+  | 'units'
+  | 'parking'
+  | 'pipeline'
+  | 'waitlist'
+  | 'files'
+  | 'import'
+  | 'setup'
+  | 'organisation';
+
+/** The picker's last entry, which opens the create form rather than choosing a project. */
+const NEW_PROJECT = '__new';
 
 type Load<T> =
   | { status: 'loading' }
@@ -22,6 +35,7 @@ export function App() {
   const [units, setUnits] = useState<Load<UnitsResponse> | null>(null);
   const [expired, setExpired] = useState(false);
   const [view, setView] = useState<View>('units');
+  const [organisationSection, setOrganisationSection] = useState<'projects' | 'developers'>('projects');
 
   useEffect(() => {
     void (async () => {
@@ -37,6 +51,16 @@ export function App() {
         else setProjects({ status: 'failed', message: (e as Error).message });
       }
     })();
+  }, []);
+
+  /** Re-reads the picker and the header, after a rename, a publish or a new project. */
+  const reloadProjects = useCallback(async () => {
+    try {
+      setProjects({ status: 'ready', data: await api.projects() });
+    } catch (e) {
+      if (e instanceof SessionExpired) setExpired(true);
+      else setProjects({ status: 'failed', message: (e as Error).message });
+    }
   }, []);
 
   /** Re-reads the grid and the tallies. An import can change most of both at once. */
@@ -79,18 +103,31 @@ export function App() {
           HUBIX<span>ADMIN</span>
         </a>
 
-        {projects.status === 'ready' && projects.data.length > 1 && (
+        {/* Rendered whatever the count. It used to hide below two projects, which also hid it
+            at zero — leaving a fresh install with no picker, no tabs and no way to create the
+            first project. */}
+        {projects.status === 'ready' && (
           <select
             className="project-picker"
             value={selected ?? ''}
-            onChange={(e) => setSelected(e.target.value || null)}
+            onChange={(e) => {
+              if (e.target.value === NEW_PROJECT) {
+                setOrganisationSection('projects');
+                setView('organisation');
+                return;
+              }
+
+              setSelected(e.target.value || null);
+            }}
           >
             <option value="">Choose a project…</option>
             {projects.data.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} — {p.city}
+                {p.publishedAt ? '' : ' (not published)'}
               </option>
             ))}
+            <option value={NEW_PROJECT}>+ New project…</option>
           </select>
         )}
 
@@ -131,69 +168,132 @@ export function App() {
 
         {projects.status === 'failed' && <p className="banner error">{projects.message}</p>}
 
-        {!selected && projects.status === 'ready' && (
-          <p className="empty">Choose a project to see its apartments.</p>
+        {!selected && projects.status === 'ready' && view !== 'organisation' && (
+          <p className="empty">
+            {projects.data.length === 0
+              ? 'No projects yet. Create one under Organisation.'
+              : 'Choose a project to see its apartments.'}
+          </p>
         )}
 
-        {selected && (
+        {/* The tab strip is no longer gated on a selected project: Organisation has to be
+            reachable before the first project exists, or there is no way to create it. */}
+        {projects.status === 'ready' && (
           <nav className="views">
+            {selected && (
+              <>
+              <button
+                className={`view${view === 'setup' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('setup')}
+              >
+                Setup
+              </button>
+              <button
+                className={`view${view === 'units' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('units')}
+              >
+                Apartments
+              </button>
+              <button
+                className={`view${view === 'parking' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('parking')}
+              >
+                Parking
+              </button>
+              <button
+                className={`view${view === 'pipeline' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('pipeline')}
+              >
+                Pipeline
+              </button>
+              <button
+                className={`view${view === 'waitlist' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('waitlist')}
+              >
+                Waiting list
+              </button>
+              <button
+                className={`view${view === 'files' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('files')}
+              >
+                Plans &amp; files
+              </button>
+              <button
+                className={`view${view === 'import' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('import')}
+              >
+                Import
+              </button>
+              </>
+            )}
+
+            {/* Last, and never gated: this is where projects and developers are created. */}
             <button
-              className={`view${view === 'units' ? ' view-on' : ''}`}
+              className={`view${view === 'organisation' ? ' view-on' : ''}`}
               type="button"
-              onClick={() => setView('units')}
+              onClick={() => setView('organisation')}
             >
-              Apartments
-            </button>
-            <button
-              className={`view${view === 'parking' ? ' view-on' : ''}`}
-              type="button"
-              onClick={() => setView('parking')}
-            >
-              Parking
-            </button>
-            <button
-              className={`view${view === 'pipeline' ? ' view-on' : ''}`}
-              type="button"
-              onClick={() => setView('pipeline')}
-            >
-              Pipeline
-            </button>
-            <button
-              className={`view${view === 'waitlist' ? ' view-on' : ''}`}
-              type="button"
-              onClick={() => setView('waitlist')}
-            >
-              Waiting list
-            </button>
-            <button
-              className={`view${view === 'files' ? ' view-on' : ''}`}
-              type="button"
-              onClick={() => setView('files')}
-            >
-              Plans &amp; files
-            </button>
-            <button
-              className={`view${view === 'import' ? ' view-on' : ''}`}
-              type="button"
-              onClick={() => setView('import')}
-            >
-              Import
+              Organisation
             </button>
           </nav>
         )}
 
-        {view === 'units' && (
+        {view === 'organisation' && me.status === 'ready' && projects.status === 'ready' && (
+          <OrganisationPanel
+            projects={projects.data}
+            canEdit={me.data.canEdit}
+            isAdmin={me.data.role === 'Admin'}
+            initialSection={organisationSection}
+            onSessionExpired={() => setExpired(true)}
+            onProjectCreated={(id) => {
+              void reloadProjects();
+              setSelected(id);
+              setView('setup');
+            }}
+          />
+        )}
+
+        {view === 'setup' && selected && me.status === 'ready' && (
+          <SetupPanel
+            key={selected}
+            projectId={selected}
+            canEdit={me.data.canEdit}
+            onSessionExpired={() => setExpired(true)}
+            onProjectsChanged={() => void reloadProjects()}
+            onProjectDeleted={() => {
+              // The grid still holds the deleted project's rows, so it has to go too.
+              setSelected(null);
+              setUnits(null);
+              setOrganisationSection('projects');
+              setView('organisation');
+            }}
+          />
+        )}
+
+        {view === 'units' && selected && (
           <>
             {units?.status === 'loading' && <p className="empty">Loading apartments…</p>}
             {units?.status === 'failed' && <p className="banner error">{units.message}</p>}
 
             {units?.status === 'ready' && me.status === 'ready' && (
               <UnitsGrid
-                key={units.data.project.id}
+                // The grid keeps its own copy of the rows so editing feels like a spreadsheet,
+                // which means a reload alone does not reach it. Adding the count remounts it
+                // when an apartment is added or removed, and never for an ordinary edit.
+                key={`${units.data.project.id}:${units.data.units.length}`}
                 units={units.data.units}
                 types={units.data.types}
                 canEdit={me.data.canEdit}
+                projectId={selected}
                 onSessionExpired={() => setExpired(true)}
+                onInventoryChanged={() => void reload(selected)}
               />
             )}
           </>
