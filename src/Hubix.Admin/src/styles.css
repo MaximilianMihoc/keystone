@@ -811,8 +811,10 @@ main { padding: 22px 20px 60px; }
 
 .row-label { min-width: 180px; font-size: 13px; color: var(--ink-2); }
 
-/* A destructive control should not be the loudest thing in a row of data. */
-.btn-small.danger {
+/* A destructive control should not be the loudest thing in a row of data, and withdrawing
+   sits in the same row, so it is no louder either. */
+.btn-small.danger,
+.btn-small.quiet {
   color: var(--ink-3);
   border-color: var(--rule);
   background: none;
@@ -821,7 +823,9 @@ main { padding: 22px 20px 60px; }
 }
 
 .btn-small.danger:hover:not(:disabled) { color: #d24b3e; border-color: #d24b3e; }
-.btn-small.danger:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-small.quiet:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+.btn-small.danger:disabled,
+.btn-small.quiet:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* The units grid shows an input only while a cell is being edited, so its inputs are
    loud on purpose. The parking grid leaves its fields open, which would make every row

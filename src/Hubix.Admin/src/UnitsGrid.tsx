@@ -157,6 +157,32 @@ export function UnitsGrid({
     [onSessionExpired],
   );
 
+  /**
+   * Takes an apartment off sale, or puts it back. The only state change the grid may make:
+   * everything else moves through a hold or a reservation, which needs a person on the
+   * other end of it.
+   */
+  const withdraw = useCallback(
+    async (unit: Unit, off: boolean) => {
+      setError(null);
+
+      try {
+        await api.setWithdrawn(unit.id, off);
+
+        setUnits((all) =>
+          all.map((u) => (u.id === unit.id ? { ...u, state: off ? 'Withdrawn' : 'Available' } : u)),
+        );
+
+        // The tallies in the header count by state, so they are now a state behind.
+        onInventoryChanged();
+      } catch (e) {
+        if (e instanceof SessionExpired) onSessionExpired();
+        else setError(e instanceof ApiError ? e.message : 'Could not change that apartment.');
+      }
+    },
+    [onInventoryChanged, onSessionExpired],
+  );
+
   function render(unit: Unit, column: Column) {
     const value = unit[column.key];
     const cellId = `${unit.id}:${column.key}`;
@@ -402,7 +428,7 @@ export function UnitsGrid({
                   {c.label}
                 </th>
               ))}
-              {canEdit && <th style={{ width: 80 }} />}
+              {canEdit && <th style={{ width: 150 }} />}
             </tr>
           </thead>
           <tbody>
@@ -415,6 +441,19 @@ export function UnitsGrid({
                 ))}
                 {canEdit && (
                   <td>
+                    <button
+                      className="btn-small quiet"
+                      type="button"
+                      disabled={unit.state !== 'Available' && unit.state !== 'Withdrawn'}
+                      title={
+                        unit.state === 'Available' || unit.state === 'Withdrawn'
+                          ? undefined
+                          : `${unit.code} is ${unit.state.toLowerCase()}, so it is already off the market.`
+                      }
+                      onClick={() => void withdraw(unit, unit.state !== 'Withdrawn')}
+                    >
+                      {unit.state === 'Withdrawn' ? 'Put back' : 'Withdraw'}
+                    </button>{' '}
                     {/* Only ever an apartment nobody has touched. A real one that is off the
                         market is withdrawn, which keeps it and its history. */}
                     <button
