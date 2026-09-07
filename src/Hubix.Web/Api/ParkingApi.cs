@@ -1,8 +1,7 @@
-using System.Globalization;
 using System.Security.Claims;
 using Hubix.Domain;
-using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
+using Hubix.Infrastructure.Admin;
 using Hubix.Web.Pages.Admin;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +15,10 @@ namespace Hubix.Web.Api;
 /// apartment and never enumerate the bays, so there is nothing to import from yet. Adding them
 /// a range at a time is how a real car park is described — "A1 to A40, underground, level -1" —
 /// rather than one form per space.
+/// <para>
+/// The writes live in <see cref="ParkingAdminService"/>. They used to sit in these endpoints,
+/// against the context directly and without an audit row.
+/// </para>
 /// </remarks>
 public static class ParkingApi
 {
@@ -38,7 +41,6 @@ public static class ParkingApi
                 var prices = await db.ParkingPrices
                     .AsNoTracking()
                     .Where(p => p.ProjectId == projectId)
-                    .OrderBy(p => p.Kind)
                     .Select(p => new
                     {
                         kind = p.Kind.ToString(),
@@ -50,7 +52,7 @@ public static class ParkingApi
                 var spaces = await db.ParkingSpaces
                     .AsNoTracking()
                     .Where(s => s.ProjectId == projectId)
-                    .OrderBy(s => s.Level).ThenBy(s => s.Code)
+                    .OrderBy(s => s.Code)
                     .Select(s => new
                     {
                         id = s.Id,
@@ -59,8 +61,6 @@ public static class ParkingApi
                         level = s.Level,
                         state = s.State.ToString(),
                         adminNotes = s.AdminNotes,
-
-                        // Which apartment took it, through whichever of the two links is live.
                         heldForUnit = s.Reservation != null
                             ? s.Reservation.Unit!.Code
                             : s.Hold != null ? s.Hold.Unit!.Code : null
@@ -80,225 +80,89 @@ public static class ParkingApi
         editable.MapPost("/projects/{projectId:guid}/parking",
             async (Guid projectId,
                    AddSpacesRequest request,
-                   HubixDbContext db,
+                   ParkingAdminService parking,
+                   ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
-                if (!Enum.TryParse<ParkingSpaceKind>(request.Kind, out var kind)
-                    || !Enum.IsDefined(kind))
+                if (!TryKind(request.Kind, out var kind, out var problem)
+                    || !TryRange(request.Prefix, request.From, request.To, out var range, ref problem))
                 {
-                    return Results.BadRequest(new { error = $"\"{request.Kind}\" is not a kind of space." });
+                    return Results.BadRequest(new { error = problem });
                 }
 
-                if (request.From < 0 || request.To < request.From)
-                {
-                    return Results.BadRequest(new { error = "That is not a range of space numbers." });
-                }
-
-                // A whole car park at once is fine; a typo asking for a hundred thousand bays
-                // is not. Widened to long deliberately: as int this subtraction overflows and
-                // a wide enough range passes the check, then loops for hours.
-                if ((long)request.To - request.From >= 500)
-                {
-                    return Results.BadRequest(new { error = "That is more than 500 spaces at once." });
-                }
-
-                if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
-                {
-                    return Results.NotFound();
-                }
-
-                var existing = await db.ParkingSpaces
-                    .Where(s => s.ProjectId == projectId)
-                    .Select(s => s.Code)
-                    .ToListAsync(ct);
-
-                var taken = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
-                var skipped = new List<string>();
-                var created = 0;
-
-                // Padded to the width of the largest number in the range, so A1–A10 becomes
-                // A01–A10. Codes sort as text everywhere — in the grid, in the allocation
-                // order, in the email naming the buyer's spaces — and unpadded numbering puts
-                // A10 before A2. Car park signage numbers this way for the same reason.
-                var width = request.To.ToString(CultureInfo.InvariantCulture).Length;
-
-                for (var i = request.From; i <= request.To; i++)
-                {
-                    var code = request.Prefix.Trim()
-                        + i.ToString(CultureInfo.InvariantCulture).PadLeft(width, '0');
-
-                    // Codes already in use are reported rather than failing the whole range:
-                    // extending a car park from A20 to A40 should not be refused because A20
-                    // exists.
-                    if (!taken.Add(code))
-                    {
-                        skipped.Add(code);
-                        continue;
-                    }
-
-                    db.ParkingSpaces.Add(new ParkingSpace
-                    {
-                        ProjectId = projectId,
-                        Code = code,
-                        Kind = kind,
-                        Level = request.Level
-                    });
-
-                    created++;
-                }
-
-                await db.SaveChangesAsync(ct);
-
-                return Results.Ok(new { created, skipped });
+                return ProjectApi.Respond(await parking.AddSpacesAsync(
+                    projectId, range, kind, request.Level,
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
             });
 
         editable.MapPatch("/parking/{spaceId:guid}",
             async (Guid spaceId,
                    ParkingSpaceEdit edit,
-                   HubixDbContext db,
+                   ParkingAdminService parking,
+                   ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
-                var space = await db.ParkingSpaces
-                    .Include(s => s.Hold!).ThenInclude(h => h.Unit)
-                    .Include(s => s.Reservation!).ThenInclude(r => r.Unit)
-                    .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
-
-                if (space is null)
-                {
-                    return Results.NotFound();
-                }
-
-                // A space someone is holding or has bought is not free to be renumbered, moved
-                // to another floor, or reclassified underneath them. The kind matters most:
-                // the price a buyer is charged is looked up from it at conversion, so changing
-                // it changes what they pay for the bay they were quoted. Only the note is free.
-                var describes = edit.Code is not null || edit.Kind is not null || edit.Level is not null;
-
-                if (space.State is not UnitState.Available && describes)
-                {
-                    return Results.BadRequest(new { error = InUse(space, "changed") });
-                }
+                ParkingSpaceKind? kind = null;
 
                 if (edit.Kind is { Length: > 0 } rawKind)
                 {
-                    if (!Enum.TryParse<ParkingSpaceKind>(rawKind, out var kind) || !Enum.IsDefined(kind))
+                    if (!TryKind(rawKind, out var parsed, out var problem))
                     {
-                        return Results.BadRequest(new { error = $"\"{rawKind}\" is not a kind of space." });
+                        return Results.BadRequest(new { error = problem });
                     }
 
-                    space.Kind = kind;
+                    kind = parsed;
                 }
 
-                if (edit.Code is { Length: > 0 } code)
+                if (edit.Code is { Length: > 32 })
                 {
-                    space.Code = code.Trim();
+                    return Results.BadRequest(new { error = "That space code is too long." });
                 }
 
-                if (edit.Level is { } level)
-                {
-                    space.Level = level;
-                }
-
-                if (edit.AdminNotes is not null)
-                {
-                    space.AdminNotes = edit.AdminNotes;
-                }
-
-                try
-                {
-                    await db.SaveChangesAsync(ct);
-                }
-                catch (DbUpdateException)
-                {
-                    // UX_ParkingSpaces_ProjectCode. Two bays cannot share a number.
-                    return Results.BadRequest(new
-                    {
-                        error = $"Another space here is already called {space.Code}."
-                    });
-                }
-
-                return Results.Ok(new { changed = new { space.Code, Kind = space.Kind.ToString(), space.Level } });
+                return ProjectApi.Respond(await parking.EditSpaceAsync(
+                    spaceId,
+                    new SpaceEdit(edit.Code, kind, edit.Level, edit.AdminNotes),
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
             });
 
         editable.MapDelete("/parking/{spaceId:guid}",
-            async (Guid spaceId, HubixDbContext db, CancellationToken ct) =>
-            {
-                var space = await db.ParkingSpaces
-                    .Include(s => s.Hold!).ThenInclude(h => h.Unit)
-                    .Include(s => s.Reservation!).ThenInclude(r => r.Unit)
-                    .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
-
-                if (space is null)
-                {
-                    return Results.NotFound();
-                }
-
-                if (space.State is not UnitState.Available)
-                {
-                    return Results.BadRequest(new { error = InUse(space, "removed") });
-                }
-
-                db.ParkingSpaces.Remove(space);
-                await db.SaveChangesAsync(ct);
-
-                return Results.NoContent();
-            });
+            async (Guid spaceId,
+                   ParkingAdminService parking,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                ProjectApi.Respond(await parking.DeleteSpaceAsync(
+                    spaceId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
 
         editable.MapDelete("/projects/{projectId:guid}/parking",
             async (Guid projectId,
                    string prefix,
                    int from,
                    int to,
-                   HubixDbContext db,
+                   ParkingAdminService parking,
+                   ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
-                if (from < 0 || to < from || (long)to - from >= 500)
+                string? problem = null;
+
+                if (!TryRange(prefix, from, to, out var range, ref problem))
                 {
-                    return Results.BadRequest(new { error = "That is not a range of space numbers." });
+                    return Results.BadRequest(new { error = problem });
                 }
 
-                // Matched by code rather than by recomputing the padding: a range may have been
-                // added at one width and extended at another, and the codes are what exist.
-                var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                for (var i = from; i <= to; i++)
-                {
-                    var n = i.ToString(CultureInfo.InvariantCulture);
-                    wanted.Add(prefix.Trim() + n);
-                    wanted.Add(prefix.Trim() + n.PadLeft(2, '0'));
-                    wanted.Add(prefix.Trim() + n.PadLeft(3, '0'));
-                }
-
-                var spaces = await db.ParkingSpaces
-                    .Include(s => s.Hold!).ThenInclude(h => h.Unit)
-                    .Include(s => s.Reservation!).ThenInclude(r => r.Unit)
-                    .Where(s => s.ProjectId == projectId && wanted.Contains(s.Code))
-                    .ToListAsync(ct);
-
-                // A range is a blunt instrument, so the ones somebody is using are kept and
-                // named rather than the whole request being refused because of one.
-                var kept = spaces.Where(s => s.State is not UnitState.Available).ToList();
-                var removable = spaces.Where(s => s.State is UnitState.Available).ToList();
-
-                db.ParkingSpaces.RemoveRange(removable);
-                await db.SaveChangesAsync(ct);
-
-                return Results.Ok(new
-                {
-                    removed = removable.Count,
-                    kept = kept.Select(s => s.Code).Order(StringComparer.Ordinal).ToList()
-                });
+                return ProjectApi.Respond(await parking.RemoveRangeAsync(
+                    projectId, range, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
             });
 
         editable.MapPut("/projects/{projectId:guid}/parking-prices",
             async (Guid projectId,
                    ParkingPriceRequest request,
-                   HubixDbContext db,
+                   ParkingAdminService parking,
+                   ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
-                if (!Enum.TryParse<ParkingSpaceKind>(request.Kind, out var kind) || !Enum.IsDefined(kind))
+                if (!TryKind(request.Kind, out var kind, out var problem))
                 {
-                    return Results.BadRequest(new { error = $"\"{request.Kind}\" is not a kind of space." });
+                    return Results.BadRequest(new { error = problem });
                 }
 
                 if (request.PriceNet < 0 || request.DepositNet < 0)
@@ -314,35 +178,18 @@ public static class ParkingApi
                     });
                 }
 
-                // Checked here rather than left to the foreign key, which would surface as a
-                // 500 for what is simply an unknown project.
-                if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
-                {
-                    return Results.NotFound();
-                }
+                var result = await parking.SetPriceAsync(
+                    projectId, kind, request.PriceNet, request.DepositNet,
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
 
-                var price = await db.ParkingPrices
-                    .FirstOrDefaultAsync(p => p.ProjectId == projectId && p.Kind == kind, ct);
-
-                if (price is null)
-                {
-                    price = new ParkingPrice { ProjectId = projectId, Kind = kind };
-                    db.ParkingPrices.Add(price);
-                }
-
-                // Reservations already agreed keep their own snapshot, so repricing here never
-                // moves what somebody has signed for.
-                price.PriceNet = request.PriceNet;
-                price.DepositNet = request.DepositNet;
-
-                await db.SaveChangesAsync(ct);
-                return Results.NoContent();
+                return Saved(result);
             });
 
         editable.MapPut("/projects/{projectId:guid}/parking-max",
             async (Guid projectId,
                    MaxParkingRequest request,
-                   HubixDbContext db,
+                   ParkingAdminService parking,
+                   ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
                 if (request.Max is < 0 or > 10)
@@ -350,27 +197,60 @@ public static class ParkingApi
                     return Results.BadRequest(new { error = "Allow between 0 and 10 spaces." });
                 }
 
-                var rows = await db.Projects
-                    .Where(p => p.Id == projectId)
-                    .ExecuteUpdateAsync(s => s
-                        .SetProperty(p => p.MaxParkingSpacesPerReservation, request.Max), ct);
-
-                return rows == 0 ? Results.NotFound() : Results.NoContent();
+                return Saved(await parking.SetMaxPerReservationAsync(
+                    projectId, request.Max, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
             });
     }
 
     /// <summary>
-    /// Why a space cannot be touched, naming the apartment it went with. "It is held" leaves an
-    /// admin hunting; "it is held with Ap.105" tells them what to release.
+    /// These two answered 204 before the writes moved into a service, and the client reads them
+    /// that way. A success is a success whether or not anything actually differed.
     /// </summary>
-    private static string InUse(ParkingSpace space, string verb)
+    private static IResult Saved(AdminWriteResult result) => result switch
     {
-        var unit = space.Reservation?.Unit?.Code ?? space.Hold?.Unit?.Code;
-        var state = space.State.ToString().ToLowerInvariant();
+        AdminWriteResult.Updated or AdminWriteResult.NoChange => Results.NoContent(),
+        _ => ProjectApi.Respond(result)
+    };
 
-        return unit is null
-            ? $"{space.Code} is {state} and cannot be {verb}."
-            : $"{space.Code} is {state} with {unit} and cannot be {verb}. Free it first.";
+    private static bool TryKind(string? raw, out ParkingSpaceKind kind, out string? problem)
+    {
+        problem = null;
+
+        if (Enum.TryParse(raw, out kind) && Enum.IsDefined(kind))
+        {
+            return true;
+        }
+
+        problem = $"\"{raw}\" is not a kind of space.";
+        return false;
+    }
+
+    private static bool TryRange(string? prefix, int from, int to, out SpaceRange range, ref string? problem)
+    {
+        range = null!;
+
+        if (from < 0 || to < from)
+        {
+            problem = "That is not a range of space numbers.";
+            return false;
+        }
+
+        // Widened to long deliberately: as int this subtraction overflows, and a wide enough
+        // range passes the check and then loops for hours.
+        if ((long)to - from >= ParkingAdminService.MostAtOnce)
+        {
+            problem = $"That is more than {ParkingAdminService.MostAtOnce} spaces at once.";
+            return false;
+        }
+
+        if (prefix is { Length: > 16 })
+        {
+            problem = "That prefix is too long.";
+            return false;
+        }
+
+        range = new SpaceRange(prefix ?? "", from, to);
+        return true;
     }
 
     public sealed record AddSpacesRequest(string Prefix, int From, int To, string Kind, int Level);
