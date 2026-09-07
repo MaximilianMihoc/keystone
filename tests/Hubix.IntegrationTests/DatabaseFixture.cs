@@ -62,6 +62,25 @@ public sealed class DatabaseFixture : IAsyncLifetime
     private static readonly DateTimeOffset PublishedAt = DateTimeOffset.UtcNow;
 
     /// <summary>
+    /// The payment plan the fixture's project is seeded with, and restored to between tests.
+    /// </summary>
+    /// <remarks>
+    /// A fresh instance every call: the tranche list is a JSON-mapped reference type, so handing
+    /// the same one to two contexts would let a test's edit reach into the next test's seed.
+    /// </remarks>
+    public static PricingRule SeededRule() => new()
+    {
+        AdvancePct = 0.15m,
+        CesiuneVatPct = 0.19m,
+        VatStandard = 0.19m,
+        Tranches =
+        [
+            new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
+            new TrancheDefinition("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
+        ]
+    };
+
+    /// <summary>
     /// A context configured the way production is.
     /// </summary>
     /// <remarks>
@@ -135,6 +154,16 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // Prose the fixture's own project acquired. The seeder writes none, so all of it is
         // something a test put there.
         await db.ProjectTranslations.Where(t => t.ProjectId == ProjectId).ExecuteDeleteAsync();
+
+        // The payment plan is writable now, and a test that corrects a rate or schedules a change
+        // would otherwise leave it there — quietly repricing every later test that reads a
+        // tranche. Cheaper to put the seeded plan back than to restore it field by field.
+        await db.PricingRules.Where(r => r.ProjectId == ProjectId).ExecuteDeleteAsync();
+
+        var rule = SeededRule();
+        rule.ProjectId = ProjectId;
+        db.PricingRules.Add(rule);
+        await db.SaveChangesAsync();
 
         // Developers are global rather than per-project, so the sweep above never reaches them
         // — and Developers.Name is unique, so the second test to name one the same thing fails
@@ -281,17 +310,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
             PublishedAt = seeded.PublishedAt
         };
 
-        project.PricingRules.Add(new PricingRule
-        {
-            AdvancePct = 0.15m,
-            CesiuneVatPct = 0.19m,
-            VatStandard = 0.19m,
-            Tranches =
-            [
-                new TrancheDefinition("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
-                new TrancheDefinition("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
-            ]
-        });
+        project.PricingRules.Add(SeededRule());
 
         var type = new UnitType { Name = "2 camere", SortOrder = 0 };
         project.UnitTypes.Add(type);

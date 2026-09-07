@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Hubix.Domain;
 using Hubix.Domain.Entities;
+using Hubix.Domain.Pricing;
 using Hubix.Infrastructure;
 using Hubix.Infrastructure.Admin;
 using Hubix.Web.Pages.Admin;
@@ -110,6 +111,184 @@ public static class ProjectApi
                 });
 
                 return Results.Ok(new { project, developers, translations });
+            });
+
+        // The payment plan in effect, anything scheduled to replace it, and a real unit to preview
+        // against. The sample is the cheapest, because a schedule that looks right on the cheapest
+        // apartment looks right on all of them, and rounding shows up soonest at the bottom.
+        api.MapGet("/projects/{projectId:guid}/pricing",
+            async (Guid projectId, HubixDbContext db, TimeProvider clock, CancellationToken ct) =>
+            {
+                if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
+                {
+                    return Results.NotFound();
+                }
+
+                var now = clock.GetUtcNow();
+
+                var rules = await db.PricingRules
+                    .AsNoTracking()
+                    .Where(r => r.ProjectId == projectId)
+                    .OrderByDescending(r => r.EffectiveFrom)
+                    .ToListAsync(ct);
+
+                var sample = await db.Units
+                    .AsNoTracking()
+                    .Where(u => u.ProjectId == projectId)
+                    .OrderBy(u => u.BasePriceNet)
+                    .Select(u => new
+                    {
+                        code = u.Code,
+                        basePriceNet = u.BasePriceNet,
+                        cesiuneNet = u.CesiunePriceNet ?? 0m,
+                        reducedVatEligible = u.ReducedVatEligible
+                    })
+                    .FirstOrDefaultAsync(ct);
+
+                return Results.Ok(new
+                {
+                    current = rules.Where(r => r.EffectiveFrom <= now).Select(Shape).FirstOrDefault(),
+                    scheduled = rules.Where(r => r.EffectiveFrom > now).Select(Shape).Reverse(),
+                    sample
+                });
+            });
+
+        // Writes nothing: it exists so the editor can show what a plan would produce before
+        // anybody commits to it. A rule with a mistake in it comes back as problems rather than
+        // as an exception from the calculator.
+        api.MapPost("/projects/{projectId:guid}/pricing/preview",
+            async (Guid projectId,
+                   PreviewRequest request,
+                   HubixDbContext db,
+                   CancellationToken ct) =>
+            {
+                if (!TryReadTranches(request.Rule, out var edit, out var problem))
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
+                var problems = PricingRuleValidator.Validate(
+                    edit.AdvancePct, edit.VatStandard, edit.CesiuneVatPct, edit.VatReduced, edit.Tranches);
+
+                if (problems.Count > 0)
+                {
+                    return Results.Ok(new { problems, schedule = (object?)null });
+                }
+
+                var sample = await db.Units
+                    .AsNoTracking()
+                    .Where(u => u.ProjectId == projectId)
+                    .OrderBy(u => u.BasePriceNet)
+                    .Select(u => new { u.Code, u.BasePriceNet, Cesiune = u.CesiunePriceNet ?? 0m })
+                    .FirstOrDefaultAsync(ct);
+
+                // A project with no apartments is reachable now, so the editor sends a price to
+                // preview against instead. Without this the pricing screen would be unusable
+                // until an import had run, which is the wrong way round.
+                var basePrice = sample?.BasePriceNet ?? request.SamplePriceNet ?? 100_000m;
+                var cesiune = sample?.Cesiune ?? request.SampleCesiuneNet ?? 0m;
+
+                if (cesiune > basePrice)
+                {
+                    return Results.BadRequest(new { error = "The cesiune cannot exceed the price it is part of." });
+                }
+
+                var rule = new PricingRule
+                {
+                    ProjectId = projectId,
+                    AdvancePct = edit.AdvancePct,
+                    VatStandard = edit.VatStandard,
+                    CesiuneVatPct = edit.CesiuneVatPct,
+                    VatReduced = edit.VatReduced,
+                    Tranches = edit.Tranches
+                };
+
+                var breakdown = TrancheCalculator.Calculate(rule, basePrice, cesiune, request.ReducedVat);
+
+                return Results.Ok(new
+                {
+                    problems = Array.Empty<string>(),
+                    schedule = new
+                    {
+                        against = sample?.Code,
+                        basePriceNet = breakdown.BasePriceNet,
+                        cesiuneNet = breakdown.CesiuneNet,
+                        developerPriceNet = breakdown.DeveloperPriceNet,
+                        vatRate = breakdown.VatRate,
+                        totalNet = breakdown.TotalNet,
+                        totalVat = breakdown.TotalVat,
+                        totalGross = breakdown.TotalGross,
+                        tranches = breakdown.Tranches.Select(t => new
+                        {
+                            label = t.Label,
+                            due = t.Due.ToString(),
+                            percentage = t.Percentage,
+                            apartmentNet = t.ApartmentNet,
+                            cesiuneNet = t.CesiuneNet,
+                            net = t.Net,
+                            vat = t.Vat,
+                            gross = t.Gross
+                        })
+                    }
+                });
+            });
+
+        api.MapGet("/projects/{projectId:guid}/structure",
+            async (Guid projectId, HubixDbContext db, CancellationToken ct) =>
+            {
+                if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
+                {
+                    return Results.NotFound();
+                }
+
+                var types = await db.UnitTypes
+                    .AsNoTracking()
+                    .Where(t => t.ProjectId == projectId)
+                    .OrderBy(t => t.SortOrder).ThenBy(t => t.Name)
+                    .Select(t => new
+                    {
+                        id = t.Id,
+                        name = t.Name,
+                        sortOrder = t.SortOrder,
+                        units = t.Units.Count,
+                        waiting = db.WaitlistEntries.Count(w => w.UnitTypeId == t.Id),
+                        displayNames = t.Translations
+                            .Select(x => new { x.Culture, x.DisplayName })
+                            .ToList()
+                    })
+                    .ToListAsync(ct);
+
+                var floors = await db.Floors
+                    .AsNoTracking()
+                    .Where(f => f.ProjectId == projectId)
+                    .OrderBy(f => f.Building).ThenBy(f => f.Level)
+                    .Select(f => new
+                    {
+                        id = f.Id,
+                        building = f.Building,
+                        level = f.Level,
+                        label = f.Label,
+                        hasPlan = f.FloorPlanAssetId != null
+                    })
+                    .ToListAsync(ct);
+
+                // Floors join their apartments by building and level rather than by key, so the
+                // screen shows which levels the apartments actually claim. A floor row nobody
+                // lives on, or a level with no floor row, is worth seeing.
+                var occupied = await db.Units
+                    .AsNoTracking()
+                    .Where(u => u.ProjectId == projectId && u.FloorLevel != null)
+                    .GroupBy(u => new { u.Building, u.FloorLevel })
+                    .Select(g => new { building = g.Key.Building, level = g.Key.FloorLevel!.Value, units = g.Count() })
+                    .ToListAsync(ct);
+
+                return Results.Ok(new
+                {
+                    types,
+                    floors,
+                    occupied = occupied.OrderBy(o => o.building).ThenBy(o => o.level),
+                    cultures = Cultures.Offered
+                });
             });
 
         var editable = api.MapGroup("").RequireAuthorization(AuthPolicies.CanEdit);
@@ -264,7 +443,197 @@ public static class ProjectApi
 
                 return Respond(result);
             });
+
+        editable.MapPut("/projects/{projectId:guid}/pricing",
+            async (Guid projectId,
+                   PricingRequest request,
+                   PricingAdminService pricing,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                if (!TryReadTranches(request, out var edit, out var problem))
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
+                return Respond(await pricing.SaveCurrentAsync(
+                    projectId, edit, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
+
+        editable.MapPost("/projects/{projectId:guid}/pricing/scheduled",
+            async (Guid projectId,
+                   ScheduleRequest request,
+                   PricingAdminService pricing,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                if (!TryReadTranches(request.Rule, out var edit, out var problem))
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
+                return Respond(await pricing.ScheduleAsync(
+                    projectId, edit, request.EffectiveFrom,
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
+
+        editable.MapDelete("/pricing/{ruleId:guid}",
+            async (Guid ruleId,
+                   PricingAdminService pricing,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                Respond(await pricing.DeleteScheduledAsync(
+                    ruleId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
+
+        editable.MapPut("/unit-types/{unitTypeId:guid}",
+            async (Guid unitTypeId,
+                   UnitTypeRequest request,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                var names = request.DisplayNames ?? [];
+
+                foreach (var (culture, name) in names)
+                {
+                    if (!Cultures.Offered.Contains(culture, StringComparer.OrdinalIgnoreCase))
+                    {
+                        return Results.BadRequest(new { error = $"\"{culture}\" is not a language this site offers." });
+                    }
+
+                    if (name is { Length: > 100 })
+                    {
+                        return Results.BadRequest(new { error = "That name is too long." });
+                    }
+                }
+
+                return Respond(await admin.EditUnitTypeAsync(
+                    unitTypeId,
+                    new UnitTypeEdit(request.SortOrder, names),
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
+
+        editable.MapDelete("/unit-types/{unitTypeId:guid}",
+            async (Guid unitTypeId,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                Respond(await admin.DeleteUnitTypeAsync(
+                    unitTypeId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
+
+        editable.MapPost("/projects/{projectId:guid}/floors",
+            async (Guid projectId,
+                   FloorRequest request,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                if (Floor(request) is { } problem)
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
+                return Respond(await admin.CreateFloorAsync(
+                    projectId, new FloorEdit(request.Building, request.Level, request.Label),
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
+
+        editable.MapPut("/floors/{floorId:guid}",
+            async (Guid floorId,
+                   FloorRequest request,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                if (Floor(request) is { } problem)
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
+                return Respond(await admin.EditFloorAsync(
+                    floorId, new FloorEdit(request.Building, request.Level, request.Label),
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
+
+        editable.MapDelete("/floors/{floorId:guid}",
+            async (Guid floorId,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                Respond(await admin.DeleteFloorAsync(
+                    floorId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
     }
+
+    /// <summary>Levels run from deep basements to tall towers, but not to absurdity.</summary>
+    private static string? Floor(FloorRequest request) =>
+        request.Level is < -10 or > 200 ? "That is not a floor level."
+        : Length(request.Building, "block name", 50) ?? Length(request.Label, "floor name", 100);
+
+    /// <summary>
+    /// Reads a payment plan off the wire, refusing anything that is not a plan at all.
+    /// </summary>
+    /// <remarks>
+    /// Only shape is checked here — enum names that parse, and a tranche list that exists.
+    /// Whether the plan makes sense is <see cref="PricingRuleValidator"/>'s job, and it says so
+    /// in sentences the editor puts next to the fields.
+    /// </remarks>
+    private static bool TryReadTranches(PricingRequest request, out PricingRuleEdit edit, out string? problem)
+    {
+        edit = null!;
+        problem = null;
+
+        var tranches = new List<TrancheDefinition>();
+
+        foreach (var t in request.Tranches ?? [])
+        {
+            if (!Enum.TryParse<TrancheBasis>(t.Basis, out var basis) || !Enum.IsDefined(basis))
+            {
+                problem = $"\"{t.Basis}\" is not a way of working out a payment.";
+                return false;
+            }
+
+            if (!Enum.TryParse<TrancheDue>(t.Due, out var due) || !Enum.IsDefined(due))
+            {
+                problem = $"\"{t.Due}\" is not a moment a payment falls due.";
+                return false;
+            }
+
+            if (t.Label is { Length: > 100 })
+            {
+                problem = "That payment name is too long.";
+                return false;
+            }
+
+            tranches.Add(new TrancheDefinition(t.Label?.Trim() ?? "", basis, t.IncludesCesiune, due, t.Percentage));
+        }
+
+        edit = new PricingRuleEdit(
+            request.AdvancePct,
+            request.VatStandard,
+            request.CesiuneVatPct,
+            request.VatReduced,
+            tranches);
+
+        return true;
+    }
+
+    private static object Shape(PricingRule rule) => new
+    {
+        id = rule.Id,
+        effectiveFrom = rule.EffectiveFrom,
+        advancePct = rule.AdvancePct,
+        vatStandard = rule.VatStandard,
+        cesiuneVatPct = rule.CesiuneVatPct,
+        vatReduced = rule.VatReduced,
+        tranches = rule.Tranches.Select(t => new
+        {
+            label = t.Label,
+            basis = t.Basis.ToString(),
+            includesCesiune = t.IncludesCesiune,
+            due = t.Due.ToString(),
+            percentage = t.Percentage
+        })
+    };
 
     /// <summary>
     /// Maps a write outcome onto HTTP, the same way every other admin endpoint does.
@@ -408,4 +777,34 @@ public static class ProjectApi
         string? Parking);
 
     public sealed record PublishRequest(bool Published);
+
+    public sealed record TrancheRequest(
+        string? Label,
+        string Basis,
+        bool IncludesCesiune,
+        string Due,
+        decimal? Percentage);
+
+    public sealed record PricingRequest(
+        decimal AdvancePct,
+        decimal VatStandard,
+        decimal CesiuneVatPct,
+        decimal? VatReduced,
+        IReadOnlyList<TrancheRequest>? Tranches);
+
+    /// <summary>
+    /// A plan to try out. The sample figures are only consulted when the project has no
+    /// apartments to preview against yet.
+    /// </summary>
+    public sealed record PreviewRequest(
+        PricingRequest Rule,
+        decimal? SamplePriceNet,
+        decimal? SampleCesiuneNet,
+        bool ReducedVat);
+
+    public sealed record ScheduleRequest(PricingRequest Rule, DateTimeOffset EffectiveFrom);
+
+    public sealed record UnitTypeRequest(int SortOrder, Dictionary<string, string>? DisplayNames);
+
+    public sealed record FloorRequest(string? Building, int Level, string? Label);
 }

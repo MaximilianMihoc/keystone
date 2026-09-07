@@ -72,6 +72,21 @@ public sealed record TranslationEdit(
     string? Parking);
 
 /// <summary>
+/// What may be changed about an apartment type.
+/// </summary>
+/// <remarks>
+/// Notably absent: <c>Name</c>. It is the canonical Romanian name and also the key the
+/// spreadsheet importer matches on, case-insensitively, creating any type it fails to find.
+/// Renaming it here would leave the next upload quietly creating a second type and filing new
+/// apartments under it. What a visitor reads is <c>DisplayName</c>, which is a translation and
+/// is editable.
+/// </remarks>
+public sealed record UnitTypeEdit(int SortOrder, IReadOnlyDictionary<string, string> DisplayNames);
+
+/// <summary>A floor of a building, and the plan pinned to it.</summary>
+public sealed record FloorEdit(string? Building, int Level, string? Label);
+
+/// <summary>
 /// What a configuration write did.
 /// </summary>
 /// <remarks>
@@ -592,6 +607,264 @@ public sealed class ProjectAdminService(
     }
 
     /// <summary>
+    /// Changes what a type is called in each language, and where it sorts.
+    /// </summary>
+    public async Task<AdminWriteResult> EditUnitTypeAsync(
+        Guid unitTypeId,
+        UnitTypeEdit edit,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var type = await db.UnitTypes
+            .Include(t => t.Translations)
+            .FirstOrDefaultAsync(t => t.Id == unitTypeId, ct);
+
+        if (type is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var diff = new Diff();
+
+        diff.Set("SortOrder", type.SortOrder, edit.SortOrder, v => type.SortOrder = v);
+
+        foreach (var (culture, displayName) in edit.DisplayNames)
+        {
+            var translation = type.Translations.FirstOrDefault(t => t.Culture == culture);
+
+            // DisplayName is required on the row, so an empty box means "no translation here",
+            // which is the row not existing rather than the row holding an empty string.
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                if (translation is not null)
+                {
+                    db.UnitTypeTranslations.Remove(translation);
+                    diff.Set($"DisplayName[{culture}]", translation.DisplayName, null, _ => { });
+                }
+
+                continue;
+            }
+
+            if (translation is null)
+            {
+                db.UnitTypeTranslations.Add(new UnitTypeTranslation
+                {
+                    UnitTypeId = unitTypeId,
+                    Culture = culture,
+                    DisplayName = displayName.Trim()
+                });
+
+                diff.Set($"DisplayName[{culture}]", null, displayName.Trim(), _ => { });
+            }
+            else
+            {
+                var current = translation.DisplayName;
+                diff.Set($"DisplayName[{culture}]", current, displayName.Trim(),
+                    v => translation.DisplayName = v!);
+            }
+        }
+
+        if (diff.IsEmpty)
+        {
+            return new AdminWriteResult.NoChange();
+        }
+
+        Audit(actorId, actorLabel, "project", type.ProjectId, "unittype.edited", diff.Before,
+            new { type.Name, Fields = diff.Changes });
+
+        await db.SaveChangesAsync(ct);
+
+        return new AdminWriteResult.Updated(diff.Changes);
+    }
+
+    /// <summary>
+    /// Removes an apartment type nothing is filed under.
+    /// </summary>
+    /// <remarks>
+    /// The foreign key is <c>Restrict</c>, so a type with apartments cannot go whatever we do
+    /// here — this exists to say why in a sentence instead of a constraint violation. Reassigning
+    /// apartments from one type to another is a separate job and not offered.
+    /// </remarks>
+    public async Task<AdminWriteResult> DeleteUnitTypeAsync(
+        Guid unitTypeId,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var type = await db.UnitTypes.FirstOrDefaultAsync(t => t.Id == unitTypeId, ct);
+
+        if (type is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var units = await db.Units.CountAsync(u => u.UnitTypeId == unitTypeId, ct);
+
+        if (units > 0)
+        {
+            return new AdminWriteResult.Rejected(
+                $"{Count(units, "apartment")} {(units == 1 ? "is" : "are")} filed as {type.Name}, " +
+                "so it cannot be removed.");
+        }
+
+        var waiting = await db.WaitlistEntries.CountAsync(w => w.UnitTypeId == unitTypeId, ct);
+
+        if (waiting > 0)
+        {
+            return new AdminWriteResult.Rejected(
+                waiting == 1
+                    ? $"Somebody is waiting for a {type.Name}. Clear the waiting list first."
+                    : $"{waiting} people are waiting for a {type.Name}. Clear the waiting list first.");
+        }
+
+        db.UnitTypes.Remove(type);
+        Audit(actorId, actorLabel, "project", type.ProjectId, "unittype.deleted", new { type.Name }, null);
+
+        await db.SaveChangesAsync(ct);
+
+        return new AdminWriteResult.Deleted();
+    }
+
+    public async Task<AdminWriteResult> CreateFloorAsync(
+        Guid projectId,
+        FloorEdit edit,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var building = Blank(edit.Building);
+
+        if (await ClashesAsync(projectId, building, edit.Level, null, ct))
+        {
+            return new AdminWriteResult.Rejected(FloorTaken(building, edit.Level));
+        }
+
+        var floor = new Floor
+        {
+            ProjectId = projectId,
+            Building = building,
+            Level = edit.Level,
+            Label = Blank(edit.Label)
+        };
+
+        db.Floors.Add(floor);
+        Audit(actorId, actorLabel, "project", projectId, "floor.created", null,
+            new { floor.Building, floor.Level, floor.Label });
+
+        return await SaveAsync(
+            ct,
+            () => new AdminWriteResult.Created(floor.Id),
+            async () => await ClashesAsync(projectId, building, edit.Level, floor.Id, ct)
+                ? FloorTaken(building, edit.Level)
+                : null);
+    }
+
+    /// <summary>
+    /// Renames a floor or moves it, and finally gives <c>Floor.Label</c> a writer.
+    /// </summary>
+    public async Task<AdminWriteResult> EditFloorAsync(
+        Guid floorId,
+        FloorEdit edit,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var floor = await db.Floors.FirstOrDefaultAsync(f => f.Id == floorId, ct);
+
+        if (floor is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var building = Blank(edit.Building);
+
+        if ((building != floor.Building || edit.Level != floor.Level)
+            && await ClashesAsync(floor.ProjectId, building, edit.Level, floorId, ct))
+        {
+            return new AdminWriteResult.Rejected(FloorTaken(building, edit.Level));
+        }
+
+        var diff = new Diff();
+
+        diff.Set("Building", floor.Building, building, v => floor.Building = v);
+        diff.Set("Level", floor.Level, edit.Level, v => floor.Level = v);
+        diff.Set("Label", floor.Label, Blank(edit.Label), v => floor.Label = v);
+
+        if (diff.IsEmpty)
+        {
+            return new AdminWriteResult.NoChange();
+        }
+
+        Audit(actorId, actorLabel, "project", floor.ProjectId, "floor.edited", diff.Before, diff.Changes);
+
+        return await SaveAsync(
+            ct,
+            () => new AdminWriteResult.Updated(diff.Changes),
+            async () => await ClashesAsync(floor.ProjectId, building, edit.Level, floorId, ct)
+                ? FloorTaken(building, edit.Level)
+                : null);
+    }
+
+    /// <summary>
+    /// Removes a floor. The apartments on it are untouched — they do not point at it.
+    /// </summary>
+    /// <remarks>
+    /// A floor is a label and a plan, joined to its apartments by building and level rather than
+    /// by key, so deleting one loses the label and the plan and nothing else. The plan itself is
+    /// a project asset and stays in the files list.
+    /// </remarks>
+    public async Task<AdminWriteResult> DeleteFloorAsync(
+        Guid floorId,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var floor = await db.Floors.FirstOrDefaultAsync(f => f.Id == floorId, ct);
+
+        if (floor is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        db.Floors.Remove(floor);
+        Audit(actorId, actorLabel, "project", floor.ProjectId, "floor.deleted",
+            new { floor.Building, floor.Level, floor.Label }, null);
+
+        await db.SaveChangesAsync(ct);
+
+        return new AdminWriteResult.Deleted();
+    }
+
+    /// <summary>
+    /// Whether another floor already claims this building and level.
+    /// </summary>
+    /// <remarks>
+    /// <c>UX_Floors_OnePerLevel</c> removes EF's default <c>Building IS NOT NULL</c> filter on
+    /// purpose, so on a single-building project — where every Building is null — two floors still
+    /// cannot both be level 1. This check has to treat null the same way, which is why it compares
+    /// with <c>==</c> rather than skipping nulls.
+    /// </remarks>
+    private Task<bool> ClashesAsync(
+        Guid projectId, string? building, int level, Guid? exceptId, CancellationToken ct) =>
+        db.Floors.AnyAsync(
+            f => f.ProjectId == projectId
+                 && f.Building == building
+                 && f.Level == level
+                 && (exceptId == null || f.Id != exceptId),
+            ct);
+
+    private static string FloorTaken(string? building, int level) =>
+        building is null
+            ? $"There is already a floor {level}."
+            : $"There is already a floor {level} in {building}.";
+
+    /// <summary>
     /// Saves, turning a lost race for a unique column into a sentence rather than a 500.
     /// </summary>
     /// <remarks>
@@ -661,6 +934,10 @@ public sealed class ProjectAdminService(
         });
 
     private static string Count(int n, string noun) => $"{n} {noun}{(n == 1 ? "" : "s")}";
+
+    /// <summary>An empty box means no value, not an empty string.</summary>
+    private static string? Blank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static IEnumerable<string> Part(int n, string singular, string? plural = null) =>
         n == 0 ? [] : [n == 1 ? $"{n} {singular}" : $"{n} {plural ?? singular + "s"}"];

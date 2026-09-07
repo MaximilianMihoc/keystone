@@ -11,6 +11,8 @@ import {
   type ProjectTranslationRow,
   type RentalProfile,
 } from './api';
+import { PricingPanel } from './PricingPanel';
+import { StructurePanel } from './StructurePanel';
 
 interface Props {
   projectId: string;
@@ -21,7 +23,14 @@ interface Props {
   onProjectDeleted: () => void;
 }
 
-type Section = 'details' | 'text';
+type Section = 'details' | 'text' | 'pricing' | 'structure';
+
+const SECTIONS: { key: Section; label: string }[] = [
+  { key: 'details', label: 'Details' },
+  { key: 'text', label: 'Text' },
+  { key: 'pricing', label: 'Payment plan' },
+  { key: 'structure', label: 'Types & floors' },
+];
 
 const CULTURE_NAMES: Record<string, string> = {
   'ro-RO': 'Romanian',
@@ -104,20 +113,16 @@ export function SetupPanel({
       {notice && <p className="banner">{notice}</p>}
 
       <nav className="views">
-        <button
-          className={`view${section === 'details' ? ' view-on' : ''}`}
-          type="button"
-          onClick={() => setSection('details')}
-        >
-          Details
-        </button>
-        <button
-          className={`view${section === 'text' ? ' view-on' : ''}`}
-          type="button"
-          onClick={() => setSection('text')}
-        >
-          Text
-        </button>
+        {SECTIONS.map((s) => (
+          <button
+            key={s.key}
+            className={`view${section === s.key ? ' view-on' : ''}`}
+            type="button"
+            onClick={() => setSection(s.key)}
+          >
+            {s.label}
+          </button>
+        ))}
       </nav>
 
       {section === 'details' && (
@@ -317,6 +322,14 @@ export function SetupPanel({
             </section>
           )}
         </>
+      )}
+
+      {section === 'pricing' && (
+        <PricingPanel projectId={projectId} canEdit={canEdit} onSessionExpired={onSessionExpired} />
+      )}
+
+      {section === 'structure' && (
+        <StructurePanel projectId={projectId} canEdit={canEdit} onSessionExpired={onSessionExpired} />
       )}
 
       {section === 'text' &&

@@ -140,6 +140,102 @@ export interface ProjectSetup {
   translations: ProjectTranslationRow[];
 }
 
+/** How a payment's apartment portion is worked out. */
+export const TRANCHE_BASES = ['AdvancePercentage', 'Percentage', 'Remainder'] as const;
+
+export type TrancheBasis = (typeof TRANCHE_BASES)[number];
+
+export const TRANCHE_DUES = ['AtSigning', 'Interim', 'AtDelivery'] as const;
+
+export type TrancheDue = (typeof TRANCHE_DUES)[number];
+
+export interface Tranche {
+  label: string;
+  basis: TrancheBasis;
+  /** Exactly one payment collects the cesiune; it is paid once. */
+  includesCesiune: boolean;
+  due: TrancheDue;
+  /** Required when basis is Percentage, ignored otherwise. */
+  percentage: number | null;
+}
+
+export interface PricingRule {
+  id: string;
+  effectiveFrom: string;
+  advancePct: number;
+  vatStandard: number;
+  cesiuneVatPct: number;
+  vatReduced: number | null;
+  tranches: Tranche[];
+}
+
+/** A plan without its identity — what the editor holds and sends. */
+export type PricingDraft = Omit<PricingRule, 'id' | 'effectiveFrom'>;
+
+export interface PricingResponse {
+  /** Null until somebody sets one. Every price on the public site depends on it. */
+  current: PricingRule | null;
+  /** Plans dated ahead, soonest first. They sit inert until their day. */
+  scheduled: PricingRule[];
+  sample: {
+    code: string;
+    basePriceNet: number;
+    cesiuneNet: number;
+    reducedVatEligible: boolean;
+  } | null;
+}
+
+export interface PricingPreview {
+  /** Empty means the plan is safe to save. */
+  problems: string[];
+  schedule: {
+    against: string | null;
+    basePriceNet: number;
+    cesiuneNet: number;
+    developerPriceNet: number;
+    vatRate: number;
+    totalNet: number;
+    totalVat: number;
+    totalGross: number;
+    tranches: {
+      label: string;
+      due: TrancheDue;
+      percentage: number | null;
+      apartmentNet: number;
+      cesiuneNet: number;
+      net: number;
+      vat: number;
+      gross: number;
+    }[];
+  } | null;
+}
+
+export interface UnitTypeRow {
+  id: string;
+  /** Canonical Romanian, and the importer's match key. Not editable. */
+  name: string;
+  sortOrder: number;
+  units: number;
+  waiting: number;
+  displayNames: { culture: string; displayName: string }[];
+}
+
+export interface FloorRow {
+  id: string;
+  building: string | null;
+  level: number;
+  label: string | null;
+  hasPlan: boolean;
+}
+
+export interface ProjectStructure {
+  types: UnitTypeRow[];
+  floors: FloorRow[];
+  /** Levels the apartments actually claim, joined by building and level, not by key. */
+  occupied: { building: string | null; level: number; units: number }[];
+  cultures: string[];
+}
+
 /** Mirrors the server enum, sent as its name rather than its ordinal. */
 export const PARKING_SPACE_KINDS = [
   'AboveGroundUncovered',
@@ -496,6 +592,62 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ published }),
     }),
+
+  pricing: (projectId: string) =>
+    request<PricingResponse>(`/api/admin/projects/${projectId}/pricing`),
+
+  previewPricing: (projectId: string, body: {
+    rule: PricingDraft;
+    samplePriceNet: number | null;
+    sampleCesiuneNet: number | null;
+    reducedVat: boolean;
+  }) =>
+    request<PricingPreview>(`/api/admin/projects/${projectId}/pricing/preview`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  savePricing: (projectId: string, rule: PricingDraft) =>
+    request<{ id?: string; changed?: Record<string, unknown> }>(
+      `/api/admin/projects/${projectId}/pricing`,
+      { method: 'PUT', body: JSON.stringify(rule) },
+    ),
+
+  schedulePricing: (projectId: string, rule: PricingDraft, effectiveFrom: string) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/pricing/scheduled`, {
+      method: 'POST',
+      body: JSON.stringify({ rule, effectiveFrom }),
+    }),
+
+  deleteScheduledPricing: (ruleId: string) =>
+    request<void>(`/api/admin/pricing/${ruleId}`, { method: 'DELETE' }),
+
+  structure: (projectId: string) =>
+    request<ProjectStructure>(`/api/admin/projects/${projectId}/structure`),
+
+  editUnitType: (unitTypeId: string, body: { sortOrder: number; displayNames: Record<string, string> }) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/unit-types/${unitTypeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteUnitType: (unitTypeId: string) =>
+    request<void>(`/api/admin/unit-types/${unitTypeId}`, { method: 'DELETE' }),
+
+  createFloor: (projectId: string, body: { building: string | null; level: number; label: string | null }) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/floors`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editFloor: (floorId: string, body: { building: string | null; level: number; label: string | null }) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/floors/${floorId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  deleteFloor: (floorId: string) =>
+    request<void>(`/api/admin/floors/${floorId}`, { method: 'DELETE' }),
 
   saveProjectTranslation: (
     projectId: string,
