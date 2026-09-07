@@ -249,6 +249,7 @@ export function App() {
           <OrganisationPanel
             projects={projects.data}
             canEdit={me.data.canEdit}
+            isAdmin={me.data.role === 'Admin'}
             initialSection={organisationSection}
             onSessionExpired={() => setExpired(true)}
             onProjectCreated={(id) => {
@@ -283,11 +284,16 @@ export function App() {
 
             {units?.status === 'ready' && me.status === 'ready' && (
               <UnitsGrid
-                key={units.data.project.id}
+                // The grid keeps its own copy of the rows so editing feels like a spreadsheet,
+                // which means a reload alone does not reach it. Adding the count remounts it
+                // when an apartment is added or removed, and never for an ordinary edit.
+                key={`${units.data.project.id}:${units.data.units.length}`}
                 units={units.data.units}
                 types={units.data.types}
                 canEdit={me.data.canEdit}
+                projectId={selected}
                 onSessionExpired={() => setExpired(true)}
+                onInventoryChanged={() => void reload(selected)}
               />
             )}
           </>

@@ -228,6 +228,37 @@ export interface FloorRow {
   hasPlan: boolean;
 }
 
+export const STAFF_ROLES = ['Admin', 'Sales', 'Viewer'] as const;
+
+export type StaffRole = (typeof STAFF_ROLES)[number];
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  name: string;
+  role: StaffRole;
+  /** Inactive keeps the history but refuses them a sign-in link. */
+  isActive: boolean;
+}
+
+/** What creating an apartment by hand needs. The four required fields match the importer's. */
+export interface UnitCreate {
+  code: string;
+  unitTypeId: string;
+  areaUsable: number;
+  basePriceNet: number;
+  crt: number | null;
+  building: string | null;
+  stair: string | null;
+  floorLevel: number | null;
+  orientation: string | null;
+  areaBuilt: number | null;
+  areaBalcony: number | null;
+  cesiunePriceNet: number | null;
+  reducedVatEligible: boolean;
+  adminNotes: string | null;
+}
+
 export interface ProjectStructure {
   types: UnitTypeRow[];
   floors: FloorRow[];
@@ -591,6 +622,34 @@ export const api = {
     request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}/published`, {
       method: 'POST',
       body: JSON.stringify({ published }),
+    }),
+
+  staff: () => request<StaffMember[]>('/api/admin/staff'),
+
+  createStaff: (body: { email: string; name: string; role: StaffRole; isActive: boolean }) =>
+    request<{ id: string }>('/api/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editStaff: (staffId: string, body: { name: string; role: StaffRole; isActive: boolean }) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+
+  createUnit: (projectId: string, body: UnitCreate) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/units`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  deleteUnit: (unitId: string) => request<void>(`/api/admin/units/${unitId}`, { method: 'DELETE' }),
+
+  renameUnit: (unitId: string, code: string) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/units/${unitId}/code`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
     }),
 
   pricing: (projectId: string) =>

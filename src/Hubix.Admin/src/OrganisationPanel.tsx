@@ -3,21 +3,26 @@ import {
   api,
   ApiError,
   SessionExpired,
+  STAFF_ROLES,
   type Developer,
   type DeveloperEdit,
   type ProjectSummary,
+  type StaffMember,
+  type StaffRole,
 } from './api';
 
 interface Props {
   projects: ProjectSummary[];
   canEdit: boolean;
-  /** Which half to open on, so the project picker's "+ New project" lands in the right place. */
+  /** People is admin-only, so the tab is hidden rather than shown and refused. */
+  isAdmin: boolean;
+  /** Which section to open on, so the project picker's "+ New project" lands in the right place. */
   initialSection?: Section;
   onSessionExpired: () => void;
   onProjectCreated: (projectId: string) => void;
 }
 
-type Section = 'projects' | 'developers';
+type Section = 'projects' | 'developers' | 'people';
 
 const EMPTY: DeveloperEdit = {
   name: '',
@@ -36,12 +41,15 @@ const EMPTY: DeveloperEdit = {
 export function OrganisationPanel({
   projects,
   canEdit,
+  isAdmin,
   initialSection = 'projects',
   onSessionExpired,
   onProjectCreated,
 }: Props) {
   const [section, setSection] = useState<Section>(initialSection);
   const [developers, setDevelopers] = useState<Developer[] | null>(null);
+  const [staff, setStaff] = useState<StaffMember[] | null>(null);
+  const [invite, setInvite] = useState({ email: '', name: '', role: 'Sales' as StaffRole });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -57,12 +65,13 @@ export function OrganisationPanel({
   const load = useCallback(async () => {
     try {
       setDevelopers(await api.developers());
+      if (isAdmin) setStaff(await api.staff());
       setError(null);
     } catch (e) {
       if (e instanceof SessionExpired) onSessionExpired();
       else setError(e instanceof ApiError ? e.message : 'Could not load the developers.');
     }
-  }, [onSessionExpired]);
+  }, [isAdmin, onSessionExpired]);
 
   useEffect(() => {
     void load();
@@ -111,6 +120,15 @@ export function OrganisationPanel({
         >
           Developers
         </button>
+        {isAdmin && (
+          <button
+            className={`view${section === 'people' ? ' view-on' : ''}`}
+            type="button"
+            onClick={() => setSection('people')}
+          >
+            People
+          </button>
+        )}
       </nav>
 
       {section === 'projects' && (
@@ -216,6 +234,135 @@ export function OrganisationPanel({
             <p className="hint">
               Choose a project at the top of the page to edit it, publish it or delete it.
             </p>
+          </section>
+        </>
+      )}
+
+      {section === 'people' && isAdmin && (
+        <>
+          <section className="panel">
+            <h2>Add a colleague</h2>
+            <p className="hint">
+              No invitation is sent, and none is needed: signing in is passwordless and
+              self-service, so once the account exists they can request their own link from the
+              sign-in page. <strong>Admin</strong> can change everything including this screen,
+              <strong> Sales</strong> can change inventory and reservations, and{' '}
+              <strong>Viewer</strong> can only look.
+            </p>
+            <div className="row">
+              <label>
+                Email
+                <input
+                  value={invite.email}
+                  size={26}
+                  onChange={(e) => setInvite({ ...invite, email: e.target.value })}
+                />
+              </label>
+              <label>
+                Name
+                <input
+                  value={invite.name}
+                  size={20}
+                  onChange={(e) => setInvite({ ...invite, name: e.target.value })}
+                />
+              </label>
+              <label>
+                Role
+                <select
+                  value={invite.role}
+                  onChange={(e) => setInvite({ ...invite, role: e.target.value as StaffRole })}
+                >
+                  {STAFF_ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="btn"
+                type="button"
+                disabled={busy || invite.email.trim() === '' || invite.name.trim() === ''}
+                onClick={() =>
+                  void run(async () => {
+                    await api.createStaff({
+                      email: invite.email.trim(),
+                      name: invite.name.trim(),
+                      role: invite.role,
+                      isActive: true,
+                    });
+
+                    setInvite({ email: '', name: '', role: 'Sales' });
+                  })
+                }
+              >
+                Add
+              </button>
+            </div>
+          </section>
+
+          <section className="panel">
+            <h2>People</h2>
+            {staff === null ? (
+              <p className="empty">Loading…</p>
+            ) : (
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Can sign in</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staff.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.name}</td>
+                      <td>{p.email}</td>
+                      <td>
+                        <select
+                          value={p.role}
+                          onChange={(e) =>
+                            void run(() =>
+                              api.editStaff(p.id, {
+                                name: p.name,
+                                role: e.target.value as StaffRole,
+                                isActive: p.isActive,
+                              }),
+                            )
+                          }
+                        >
+                          {STAFF_ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        {/* Deactivated rather than deleted: audit rows and sign-in tokens point
+                            at the person, and the record of what they did should outlast them. */}
+                        <input
+                          type="checkbox"
+                          checked={p.isActive}
+                          disabled={busy}
+                          onChange={(e) =>
+                            void run(() =>
+                              api.editStaff(p.id, {
+                                name: p.name,
+                                role: p.role,
+                                isActive: e.target.checked,
+                              }),
+                            )
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </section>
         </>
       )}

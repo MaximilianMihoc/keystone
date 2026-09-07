@@ -186,7 +186,60 @@ public static class AdminApi
                 };
             });
 
+        editable.MapPost("/projects/{projectId:guid}/units",
+            async (Guid projectId,
+                   CreateUnitRequest request,
+                   UnitAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                var result = await admin.CreateAsync(
+                    projectId,
+                    new UnitCreate(
+                        request.Code ?? "",
+                        request.UnitTypeId,
+                        request.AreaUsable,
+                        request.BasePriceNet,
+                        request.Crt,
+                        request.Building,
+                        request.Stair,
+                        request.FloorLevel,
+                        request.Orientation,
+                        request.AreaBuilt,
+                        request.AreaBalcony,
+                        request.CesiunePriceNet,
+                        request.ReducedVatEligible,
+                        request.AdminNotes),
+                    ActorId(user), ActorLabel(user), ct);
+
+                return ProjectApi.Respond(result);
+            });
+
+        editable.MapDelete("/units/{unitId:guid}",
+            async (Guid unitId,
+                   UnitAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                ProjectApi.Respond(await admin.DeleteAsync(unitId, ActorId(user), ActorLabel(user), ct)));
+
+        editable.MapPost("/units/{unitId:guid}/code",
+            async (Guid unitId,
+                   RenameUnitRequest request,
+                   UnitAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                if (request.Code is { Length: > 50 })
+                {
+                    return Results.BadRequest(new { error = "That apartment code is too long." });
+                }
+
+                return ProjectApi.Respond(await admin.RenameAsync(
+                    unitId, request.Code ?? "", ActorId(user), ActorLabel(user), ct));
+            });
+
         api.MapProjects();
+        api.MapStaff();
         api.MapParking();
         api.MapReservations();
         api.MapImport();
@@ -232,4 +285,22 @@ public static class AdminApi
         user.FindFirstValue(ClaimTypes.Email) ?? "unknown";
 
     public sealed record WithdrawRequest(bool Withdrawn);
+
+    public sealed record CreateUnitRequest(
+        string? Code,
+        Guid UnitTypeId,
+        decimal AreaUsable,
+        decimal BasePriceNet,
+        int? Crt,
+        string? Building,
+        string? Stair,
+        int? FloorLevel,
+        string? Orientation,
+        decimal? AreaBuilt,
+        decimal? AreaBalcony,
+        decimal? CesiunePriceNet,
+        bool ReducedVatEligible,
+        string? AdminNotes);
+
+    public sealed record RenameUnitRequest(string? Code);
 }

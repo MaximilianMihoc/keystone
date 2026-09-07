@@ -638,7 +638,7 @@ public static class ProjectApi
     /// <summary>
     /// Maps a write outcome onto HTTP, the same way every other admin endpoint does.
     /// </summary>
-    private static IResult Respond(AdminWriteResult result) => result switch
+    internal static IResult Respond(AdminWriteResult result) => result switch
     {
         AdminWriteResult.Created created => Results.Ok(new { id = created.Id }),
         AdminWriteResult.Updated updated => Results.Ok(new { changed = updated.Changes }),

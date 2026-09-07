@@ -376,11 +376,14 @@ public sealed class ProjectAdminService(
         diff.Set("Name", project.Name, edit.Name, v => project.Name = v);
         diff.Set("City", project.City, edit.City, v => project.City = v);
         diff.Set("DeveloperId", project.DeveloperId, edit.DeveloperId, v => project.DeveloperId = v);
-        diff.Set("Status", project.Status, edit.Status, v => project.Status = v);
+        // Enums are recorded by name. Boxed into the audit row they would otherwise serialise as
+        // their ordinal, and "Status: 2" tells nobody anything — worse, the numbers move if the
+        // enum ever gains a member, so old rows would quietly start meaning something else.
+        diff.SetEnum("Status", project.Status, edit.Status, v => project.Status = v);
+        diff.SetEnum("RentalProfile", project.RentalProfile, edit.RentalProfile, v => project.RentalProfile = v);
         diff.Set("UnitsCommitted", project.UnitsCommitted, edit.UnitsCommitted, v => project.UnitsCommitted = v);
         diff.Set("DeliveryDate", project.DeliveryDate, edit.DeliveryDate, v => project.DeliveryDate = v);
         diff.Set("DeliveryGraceMonths", project.DeliveryGraceMonths, edit.DeliveryGraceMonths, v => project.DeliveryGraceMonths = v);
-        diff.Set("RentalProfile", project.RentalProfile, edit.RentalProfile, v => project.RentalProfile = v);
         diff.Set("ReservationFee", project.ReservationFee, edit.ReservationFee, v => project.ReservationFee = v);
         diff.Set("Currency", project.Currency, edit.Currency, v => project.Currency = v);
         diff.Set("HoldDurationHours", project.HoldDurationHours, edit.HoldDurationHours, v => project.HoldDurationHours = v);
@@ -967,6 +970,32 @@ public sealed class ProjectAdminService(
 
             Before[name] = current;
             Changes[name] = incoming;
+            set(incoming);
+        }
+
+        /// <summary>Records an enum by name, so the audit row stays readable and stays correct.</summary>
+        public void SetEnum<T>(string name, T current, T incoming, Action<T> set) where T : struct, Enum
+        {
+            if (EqualityComparer<T>.Default.Equals(current, incoming))
+            {
+                return;
+            }
+
+            Before[name] = current.ToString();
+            Changes[name] = incoming.ToString();
+            set(incoming);
+        }
+
+        /// <summary>The nullable overload, where "not set" has to survive as null rather than "".</summary>
+        public void SetEnum<T>(string name, T? current, T? incoming, Action<T?> set) where T : struct, Enum
+        {
+            if (Nullable.Equals(current, incoming))
+            {
+                return;
+            }
+
+            Before[name] = current?.ToString();
+            Changes[name] = incoming?.ToString();
             set(incoming);
         }
     }
