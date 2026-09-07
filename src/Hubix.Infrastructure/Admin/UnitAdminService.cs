@@ -253,6 +253,95 @@ public sealed class UnitAdminService(
     }
 
     /// <summary>
+    /// Marks a unit reserved for a sale that happened somewhere else, or takes that mark off
+    /// again.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This records a fact, not a reservation. Hubix sell through agents and through
+    /// conversations that never touch this system, and a unit somebody has already agreed to
+    /// buy must be able to stop being offered without a buyer, a fee and a pipeline card
+    /// invented to justify it. <c>ReservationService.CreateAsync</c> then accepts exactly this
+    /// unit — reserved, no record — so the pipeline can be started on it later, when the
+    /// details are known.
+    /// </para>
+    /// <para>
+    /// Taking the mark off is refused once a reservation exists, because from that moment the
+    /// pipeline owns the unit's state and cancelling there is what returns it to sale.
+    /// </para>
+    /// </remarks>
+    public async Task<UnitEditResult> SetReservedAsync(
+        Guid unitId,
+        bool reserved,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var unit = await db.Units.FirstOrDefaultAsync(u => u.Id == unitId, ct);
+
+        if (unit is null)
+        {
+            return new UnitEditResult.NotFound();
+        }
+
+        var target = reserved ? UnitState.Reserved : UnitState.Available;
+
+        if (unit.State == target)
+        {
+            return new UnitEditResult.NoChange();
+        }
+
+        var booked = await db.Reservations
+            .AnyAsync(r => r.UnitId == unitId && r.State != ReservationState.Cancelled, ct);
+
+        if (booked)
+        {
+            return new UnitEditResult.Rejected(
+                $"{unit.Code} has a reservation behind it. Move it on the pipeline instead.");
+        }
+
+        // The state machine allows Held -> Reserved because that is how a hold converts, and
+        // converting is the reservation service's job: it has a prospect to carry across. A
+        // mark here would take the apartment from under them and leave the hold dangling.
+        if (reserved && unit.State is not (UnitState.Available or UnitState.Withdrawn))
+        {
+            return new UnitEditResult.Rejected(
+                $"{unit.Code} is {unit.State.ToString().ToLowerInvariant()}. Convert the hold " +
+                "on the pipeline instead.");
+        }
+
+        if (!UnitStateMachine.CanTransition(unit.State, target))
+        {
+            return new UnitEditResult.Rejected(
+                $"{unit.Code} is {unit.State.ToString().ToLowerInvariant()} and cannot be " +
+                $"{(reserved ? "marked reserved" : "put back on sale")} from there.");
+        }
+
+        var now = clock.GetUtcNow();
+        var previous = unit.State;
+
+        unit.State = target;
+        unit.StateChangedAt = now;
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "unit",
+            EntityId = unit.Id,
+            Action = "unit.state_changed",
+            Before = JsonSerializer.Serialize(new { State = previous.ToString() }),
+            After = JsonSerializer.Serialize(new { State = target.ToString(), Reason = "marked by staff, no reservation" })
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        return new UnitEditResult.Updated(
+            new Dictionary<string, object?> { ["State"] = target.ToString() });
+    }
+
+    /// <summary>
     /// Adds a single apartment by hand.
     /// </summary>
     /// <remarks>

@@ -9,6 +9,8 @@ public class UnitStateMachineTests
     [Theory]
     [InlineData(UnitState.Available, UnitState.Held)]
     [InlineData(UnitState.Available, UnitState.Withdrawn)]
+    [InlineData(UnitState.Available, UnitState.Reserved)]   // a sale made outside this system
+    [InlineData(UnitState.Withdrawn, UnitState.Reserved)]   // off sale, then found to be sold
     [InlineData(UnitState.Held, UnitState.Available)]      // expiry, cancellation, staff release
     [InlineData(UnitState.Held, UnitState.Reserved)]       // fee paid
     [InlineData(UnitState.Reserved, UnitState.Contracted)] // cesiune at the notary
@@ -21,13 +23,13 @@ public class UnitStateMachineTests
     }
 
     [Theory]
-    [InlineData(UnitState.Available, UnitState.Reserved)]   // must pass through Held
     [InlineData(UnitState.Available, UnitState.Sold)]
     [InlineData(UnitState.Held, UnitState.Contracted)]      // no skipping the fee
     [InlineData(UnitState.Held, UnitState.Sold)]
     [InlineData(UnitState.Reserved, UnitState.Sold)]        // the notary step is not optional
     [InlineData(UnitState.Sold, UnitState.Available)]       // corrections go through an explicit action
     [InlineData(UnitState.Sold, UnitState.Held)]
+    [InlineData(UnitState.Withdrawn, UnitState.Held)]       // put it back on sale first
     public void Refuses_transitions_that_would_skip_a_step(UnitState from, UnitState to)
     {
         UnitStateMachine.CanTransition(from, to).ShouldBeFalse();

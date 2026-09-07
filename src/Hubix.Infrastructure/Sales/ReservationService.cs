@@ -11,7 +11,10 @@ namespace Hubix.Infrastructure.Sales;
 /// Starting reservations and moving them through the pipeline.
 /// </summary>
 /// <remarks>
-/// This is the only place a unit reaches <see cref="UnitState.Reserved"/> and beyond. Where the
+/// The only place a unit reaches <see cref="UnitState.Reserved"/> with a buyer behind it, and
+/// the only one that goes beyond. A unit can also be <em>marked</em> reserved with no record —
+/// by the importer from a sheet, or by staff recording a sale made elsewhere — and
+/// <see cref="CreateAsync"/> takes exactly that unit as its starting point. Where the
 /// pipeline's shape lives in <see cref="ReservationPipeline"/>, the consequences live here: the
 /// unit follows the reservation, the price is frozen on the day it is agreed, and every move
 /// writes an audit row.

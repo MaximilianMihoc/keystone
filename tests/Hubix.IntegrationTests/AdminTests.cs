@@ -309,4 +309,45 @@ public class UnitAdminTests(DatabaseFixture fixture)
 
         result.ShouldBeOfType<UnitEditResult.Rejected>().Reason.ShouldContain("held");
     }
+    [Fact]
+    public async Task Marking_a_unit_reserved_records_a_sale_made_elsewhere_and_undoes_it()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var service = Service(db);
+
+        (await service.SetReservedAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<UnitEditResult.Updated>();
+
+        (await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId))
+            .State.ShouldBe(UnitState.Reserved);
+
+        // No reservation was invented to justify the state. That is the whole point: the
+        // pipeline is started later, when there is a buyer to name.
+        (await db.Reservations.AnyAsync(r => r.UnitId == fixture.UnitId)).ShouldBeFalse();
+
+        (await service.SetReservedAsync(fixture.UnitId, false, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<UnitEditResult.Updated>();
+
+        (await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId))
+            .State.ShouldBe(UnitState.Available);
+    }
+
+    [Fact]
+    public async Task A_held_unit_is_converted_on_the_pipeline_rather_than_marked_here()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        await db.Units.Where(u => u.Id == fixture.UnitId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Held));
+
+        // Held -> Reserved is a legal transition, and it belongs to the reservation service,
+        // which carries the prospect across. Marking here would strand them.
+        var result = await Service(db)
+            .SetReservedAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>().Reason.ShouldContain("Convert the hold");
+    }
 }

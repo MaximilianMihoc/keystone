@@ -136,7 +136,12 @@ public static class AdminApi
                         heldBy = u.Holds
                             .Where(h => h.ReleasedAt == null)
                             .Select(h => h.Prospect!.Email)
-                            .FirstOrDefault()
+                            .FirstOrDefault(),
+
+                        // Whether a reservation stands behind the state, which is what
+                        // separates "marked reserved" from one the pipeline is driving.
+                        hasReservation = u.Reservations
+                            .Any(r => r.State != ReservationState.Cancelled)
                     })
                     .ToListAsync(ct);
 
@@ -175,6 +180,28 @@ public static class AdminApi
             {
                 var result = await admin.SetWithdrawnAsync(
                     unitId, request.Withdrawn, ActorId(user), ActorLabel(user), ct);
+
+                return result switch
+                {
+                    UnitEditResult.Updated updated => Results.Ok(new { changed = updated.Changes }),
+                    UnitEditResult.NoChange => Results.Ok(new { changed = new Dictionary<string, object?>() }),
+                    UnitEditResult.NotFound => Results.NotFound(),
+                    UnitEditResult.Rejected rejected => Results.BadRequest(new { error = rejected.Reason }),
+                    _ => Results.Problem()
+                };
+            });
+
+        // A sale that happened somewhere else. This marks the unit and nothing more; the
+        // pipeline is started separately, once there is a buyer to name.
+        editable.MapPost("/units/{unitId:guid}/reserved",
+            async (Guid unitId,
+                   MarkReservedRequest request,
+                   UnitAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                var result = await admin.SetReservedAsync(
+                    unitId, request.Reserved, ActorId(user), ActorLabel(user), ct);
 
                 return result switch
                 {
@@ -285,6 +312,8 @@ public static class AdminApi
         user.FindFirstValue(ClaimTypes.Email) ?? "unknown";
 
     public sealed record WithdrawRequest(bool Withdrawn);
+
+    public sealed record MarkReservedRequest(bool Reserved);
 
     public sealed record CreateUnitRequest(
         string? Code,

@@ -183,6 +183,30 @@ export function UnitsGrid({
     [onInventoryChanged, onSessionExpired],
   );
 
+  /**
+   * Marks a unit reserved for a sale made somewhere else, or takes that mark off. Only ever
+   * a unit with no reservation behind it — once there is one, the pipeline moves it.
+   */
+  const markReserved = useCallback(
+    async (unit: Unit, on: boolean) => {
+      setError(null);
+
+      try {
+        await api.setReserved(unit.id, on);
+
+        setUnits((all) =>
+          all.map((u) => (u.id === unit.id ? { ...u, state: on ? 'Reserved' : 'Available' } : u)),
+        );
+
+        onInventoryChanged();
+      } catch (e) {
+        if (e instanceof SessionExpired) onSessionExpired();
+        else setError(e instanceof ApiError ? e.message : 'Could not change that apartment.');
+      }
+    },
+    [onInventoryChanged, onSessionExpired],
+  );
+
   function render(unit: Unit, column: Column) {
     const value = unit[column.key];
     const cellId = `${unit.id}:${column.key}`;
@@ -428,7 +452,7 @@ export function UnitsGrid({
                   {c.label}
                 </th>
               ))}
-              {canEdit && <th style={{ width: 150 }} />}
+              {canEdit && <th style={{ width: 250 }} />}
             </tr>
           </thead>
           <tbody>
@@ -441,6 +465,27 @@ export function UnitsGrid({
                 ))}
                 {canEdit && (
                   <td>
+                    {/* A sale Hubix made through an agent or a conversation. The unit stops
+                        being offered now; the pipeline is started from the board later, when
+                        there is a buyer to name. */}
+                    <button
+                      className="btn-small quiet"
+                      type="button"
+                      disabled={
+                        unit.hasReservation ||
+                        (unit.state !== 'Available' &&
+                          unit.state !== 'Withdrawn' &&
+                          unit.state !== 'Reserved')
+                      }
+                      title={
+                        unit.hasReservation
+                          ? `${unit.code} has a reservation. Move it on the Pipeline.`
+                          : 'A sale made outside this system. The pipeline can be started on it later.'
+                      }
+                      onClick={() => void markReserved(unit, unit.state !== 'Reserved')}
+                    >
+                      {unit.state === 'Reserved' ? 'Not reserved' : 'Mark reserved'}
+                    </button>{' '}
                     <button
                       className="btn-small quiet"
                       type="button"
