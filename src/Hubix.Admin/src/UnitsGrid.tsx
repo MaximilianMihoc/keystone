@@ -11,7 +11,13 @@ interface Props {
 }
 
 /** Fields that hold money or measurements, so the input can be numeric and right-aligned. */
-const NUMERIC = new Set(['areaUsable', 'areaBalcony', 'areaBuilt', 'basePriceNet', 'cesiunePriceNet']);
+const NUMERIC = new Set([
+  'areaUsable',
+  'areaBalcony',
+  'areaBuilt',
+  'basePriceNet',
+  'cesiunePriceNet',
+]);
 
 interface Column {
   key: keyof Unit;

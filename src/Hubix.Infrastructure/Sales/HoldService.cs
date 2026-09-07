@@ -33,6 +33,22 @@ public sealed class HoldService(
         Guid unitId,
         ProspectDetails details,
         string? ipAddress,
+        CancellationToken ct) =>
+        await TryHoldAsync(unitId, details, parking: null, ipAddress, ct);
+
+    /// <summary>
+    /// Holds a unit, and with it the parking spaces the buyer asked for.
+    /// </summary>
+    /// <param name="parking">
+    /// What they want from the car park, or null for none. The spaces are claimed inside this
+    /// method's transaction, so an apartment is never held with the parking half-applied, and
+    /// they expire and release together.
+    /// </param>
+    public async Task<HoldOutcome> TryHoldAsync(
+        Guid unitId,
+        ProspectDetails details,
+        ParkingRequest? parking,
+        string? ipAddress,
         CancellationToken ct)
     {
         var now = clock.GetUtcNow();
@@ -46,7 +62,8 @@ public sealed class HoldService(
                 u.Code,
                 u.ProjectId,
                 u.State,
-                HoldHours = u.Project!.HoldDurationHours
+                HoldHours = u.Project!.HoldDurationHours,
+                MaxParking = u.Project.MaxParkingSpacesPerReservation
             })
             .FirstOrDefaultAsync(ct);
 
@@ -81,6 +98,15 @@ public sealed class HoldService(
         if (activeHolds >= MaxActiveHoldsPerProject)
         {
             return new HoldOutcome.TooManyHolds(MaxActiveHoldsPerProject);
+        }
+
+        // Asking for more than the project allows is a different answer from the car park
+        // being full, and saying "only 2 are left" when ten are free and the limit is two
+        // would be a lie. Availability is only pre-checked inside the transaction; the
+        // guarantee comes from the conditional UPDATE there.
+        if (parking is { Quantity: > 0 } && parking.Quantity > unit.MaxParking)
+        {
+            return new HoldOutcome.TooManyParkingSpaces(unit.MaxParking, parking.Quantity);
         }
 
         var prospectId = prospect.Id;
@@ -150,16 +176,141 @@ public sealed class HoldService(
                 IpAddress = ipAddress
             });
 
+            // The hold row has to exist before a space can point at it, and the space claim
+            // has to be able to abandon the whole thing, so this is saved inside the
+            // transaction rather than at the end of it.
             await db.SaveChangesAsync(ct);
+
+            IReadOnlyList<string> claimed = [];
+
+            if (parking is { Quantity: > 0 })
+            {
+                var spaces = await ClaimSpacesAsync(
+                    unit.ProjectId, parking, hold.Id, prospectId, prospectEmail, ipAddress, now, ct);
+
+                if (spaces is null)
+                {
+                    // Nothing is held, the apartment included. Handing someone a flat on its
+                    // own because the parking they asked for had gone is a worse answer than
+                    // telling them and letting them choose again.
+                    await transaction.RollbackAsync(ct);
+
+                    var free = await CountFreeSpacesAsync(unit.ProjectId, parking.Kind, ct);
+
+                    logger.LogInformation(
+                        "Hold on {UnitCode} abandoned: {Requested} {Kind} space(s) wanted, {Free} free",
+                        unit.Code, parking.Quantity, parking.Kind, free);
+
+                    return new HoldOutcome.NotEnoughParking(parking.Kind, parking.Quantity, free);
+                }
+
+                claimed = spaces;
+            }
+
             await transaction.CommitAsync(ct);
 
             logger.LogInformation(
-                "Unit {UnitCode} held by prospect {ProspectId} until {ExpiresAt:u}",
-                unit.Code, prospectId, hold.ExpiresAt);
+                "Unit {UnitCode} held by prospect {ProspectId} until {ExpiresAt:u}{Parking}",
+                unit.Code, prospectId, hold.ExpiresAt,
+                claimed.Count == 0 ? "" : $" with space(s) {string.Join(", ", claimed)}");
 
-            return new HoldOutcome.Created(hold.Id, hold.AccessToken, hold.ExpiresAt);
+            return new HoldOutcome.Created(hold.Id, hold.AccessToken, hold.ExpiresAt, claimed);
         });
     }
+
+    /// <summary>
+    /// Claims spaces for a hold, or returns null having claimed none.
+    /// </summary>
+    /// <remarks>
+    /// Runs inside the caller's transaction. Each space is won by the same conditional UPDATE
+    /// that wins a unit: the guard is in the Where, no entity is loaded first, and the row count
+    /// says whether this caller got it. Losing any one of them abandons the lot — a buyer who
+    /// asked for two spaces and can have one has not got what they agreed to.
+    /// </remarks>
+    private async Task<IReadOnlyList<string>?> ClaimSpacesAsync(
+        Guid projectId,
+        ParkingRequest parking,
+        Guid holdId,
+        Guid prospectId,
+        string prospectEmail,
+        string? ipAddress,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        // Ordered by code so allocation is deterministic: the same free car park hands out the
+        // same spaces every time, which is what makes it testable. More candidates than are
+        // needed, because a space can be taken between this read and the update below — two
+        // buyers shortlist the same bay, and the loser should move to the next one rather than
+        // being told the car park is full while twenty bays stand empty.
+        var candidates = await db.ParkingSpaces
+            .Where(s => s.ProjectId == projectId
+                        && s.Kind == parking.Kind
+                        && s.State == UnitState.Available)
+            .OrderBy(s => s.Code)
+            .Select(s => new { s.Id, s.Code })
+            .ToListAsync(ct);
+
+        if (candidates.Count < parking.Quantity)
+        {
+            return null;
+        }
+
+        var claimed = new List<string>(parking.Quantity);
+        var audits = new List<AuditLog>(parking.Quantity);
+
+        foreach (var candidate in candidates)
+        {
+            if (claimed.Count == parking.Quantity)
+            {
+                break;
+            }
+
+            var rows = await db.ParkingSpaces
+                .Where(s => s.Id == candidate.Id && s.State == UnitState.Available)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(p => p.State, UnitState.Held)
+                    .SetProperty(p => p.HoldId, holdId)
+                    .SetProperty(p => p.StateChangedAt, now)
+                    .SetProperty(p => p.UpdatedAt, now), ct);
+
+            if (rows == 0)
+            {
+                continue; // somebody else got this one; try the next
+            }
+
+            audits.Add(new AuditLog
+            {
+                ActorType = "prospect",
+                ActorId = prospectId,
+                ActorLabel = prospectEmail,
+                EntityType = "parking-space",
+                EntityId = candidate.Id,
+                Action = "parking.held",
+                Before = Json(new { State = nameof(UnitState.Available) }),
+                After = Json(new { State = nameof(UnitState.Held), HoldId = holdId }),
+                IpAddress = ipAddress
+            });
+
+            claimed.Add(candidate.Code);
+        }
+
+        if (claimed.Count < parking.Quantity)
+        {
+            // The car park emptied underneath us. The caller rolls back, which returns
+            // whatever was claimed here along with the apartment; the audit rows were never
+            // added to the tracker, so nothing claims a hold that did not happen.
+            return null;
+        }
+
+        db.AuditLogs.AddRange(audits);
+        await db.SaveChangesAsync(ct);
+
+        return claimed;
+    }
+
+    private Task<int> CountFreeSpacesAsync(Guid projectId, ParkingSpaceKind kind, CancellationToken ct) =>
+        db.ParkingSpaces.CountAsync(
+            s => s.ProjectId == projectId && s.Kind == kind && s.State == UnitState.Available, ct);
 
     /// <summary>
     /// Releases a hold and returns the unit to sale.
@@ -204,6 +355,16 @@ public sealed class HoldService(
                         .SetProperty(u => u.State, UnitState.Available)
                         .SetProperty(u => u.StateChangedAt, now)
                         .SetProperty(u => u.UpdatedAt, now), ct);
+
+                // Parking falls with the apartment. A buyer who loses the flat has no use for
+                // the space, and one left Held with a dead hold is inventory nobody can reach.
+                await db.ParkingSpaces
+                    .Where(s => s.HoldId == hold.Id && s.State == UnitState.Held)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(p => p.State, UnitState.Available)
+                        .SetProperty(p => p.HoldId, (Guid?)null)
+                        .SetProperty(p => p.StateChangedAt, now)
+                        .SetProperty(p => p.UpdatedAt, now), ct);
             }
 
             // Only the prospect's own lapse counts against them. A staff release does not:
@@ -281,6 +442,7 @@ public sealed class HoldService(
             .Include(h => h.Unit!).ThenInclude(u => u.Project)
             .Include(h => h.Unit!).ThenInclude(u => u.UnitType!).ThenInclude(t => t.Translations)
             .Include(h => h.Prospect)
+            .Include(h => h.ParkingSpaces)
             .FirstOrDefaultAsync(h => h.AccessToken == token, ct);
 
     private async Task<Prospect> FindOrCreateProspectAsync(ProspectDetails details, CancellationToken ct)

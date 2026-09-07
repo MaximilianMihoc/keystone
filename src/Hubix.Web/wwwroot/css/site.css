@@ -382,6 +382,10 @@ h3 {
     max-width: 66ch;
 }
 
+/* A note directly under the specification grid explains the figures in it, so the two read
+   as one block rather than as two. */
+.spec + .note { margin-top: 16px; }
+
 /* ---------- the elevation board (signature) ----------------------------- */
 
 .elevation {

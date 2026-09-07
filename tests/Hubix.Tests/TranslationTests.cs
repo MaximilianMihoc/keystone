@@ -50,6 +50,30 @@ public class TranslationTests
         new List<ProjectTranslation>().CityFor(Cultures.English, "București").ShouldBe("București");
     }
 
+    [Fact]
+    public void Parking_prose_falls_back_to_romanian_rather_than_to_nothing()
+    {
+        // The opposite of CityFor above. A note explaining that parking is bought from the
+        // developer is worth reading in Romanian; a blank panel tells an English reader
+        // nothing at all.
+        List<ProjectTranslation> romanianOnly =
+        [
+            new() { Culture = Cultures.Romanian, Parking = "Parcarea se cumpără direct de la dezvoltator." }
+        ];
+
+        romanianOnly.ForCulture(Cultures.English)!.Parking
+            .ShouldBe("Parcarea se cumpără direct de la dezvoltator.");
+
+        List<ProjectTranslation> both =
+        [
+            new() { Culture = Cultures.Romanian, Parking = "Supraterană" },
+            new() { Culture = Cultures.English, Parking = "Above ground" }
+        ];
+
+        both.ForCulture(Cultures.English)!.Parking.ShouldBe("Above ground");
+        both.ForCulture(Cultures.Romanian)!.Parking.ShouldBe("Supraterană");
+    }
+
     [Theory]
     [InlineData("ro", "Ansamblu rezidențial premium")]
     [InlineData("ro-MD", "Ansamblu rezidențial premium")] // Romanian as spoken in Moldova

@@ -25,7 +25,7 @@ public class TrancheLabelTests
     }
 
     [Theory]
-    [InlineData("en-GB", "Advance (15%)", "Advance", "Assignment price")]
+    [InlineData("en-GB", "Deposit (15%)", "Deposit", "Assignment price")]
     [InlineData("ro-RO", "Avans (15%)", "Avans", "Preț cesiune")]
     public void The_first_instalment_names_the_two_columns_the_sheets_keep_it_in(
         string culture, string advance, string advanceNoRate, string cesiune)

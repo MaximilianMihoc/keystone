@@ -103,9 +103,25 @@
   <data name="Tranche.DueAtSigning"><value>On signing</value></data>
   <data name="Tranche.DueInterim"><value>Interim</value></data>
   <data name="Tranche.DueAtDelivery"><value>On delivery</value></data>
-  <data name="Tranche.Advance"><value>Advance ({0}%)</value></data>
-  <data name="Tranche.AdvanceNoRate"><value>Advance</value></data>
+  <data name="Tranche.Advance"><value>Deposit ({0}%)</value></data>
+  <data name="Tranche.AdvanceNoRate"><value>Deposit</value></data>
   <data name="Tranche.Cesiune"><value>Assignment price</value></data>
+
+  <!-- Parking -->
+  <data name="Parking.Heading"><value>Parking</value></data>
+  <data name="Parking.Advance"><value>Deposit + assignment</value></data>
+  <data name="Parking.Space"><value>Space</value></data>
+  <data name="Parking.AboveGroundUncovered"><value>Above-ground, uncovered</value></data>
+  <data name="Parking.AboveGroundCovered"><value>Above-ground, covered</value></data>
+  <data name="Parking.Underground"><value>Underground</value></data>
+  <data name="Parking.LevelGround"><value>Ground level</value></data>
+  <data name="Parking.LevelUnder"><value>Level -{0}</value></data>
+  <data name="Parking.LevelAbove"><value>Level {0}</value></data>
+  <data name="Parking.Available"><value>{0} available</value></data>
+  <data name="Parking.None"><value>No parking</value></data>
+  <data name="Parking.Choose"><value>Add parking</value></data>
+  <data name="Parking.YourSpaces"><value>Your parking</value></data>
+  <data name="Parking.Quantity"><value>How many spaces</value></data>
 
   <!-- Reservation -->
   <data name="Reserve.Action"><value>Reserve</value></data>
@@ -157,7 +173,7 @@
 
   <!-- Payment schedule -->
   <data name="Tranche.Explainer"><value>VAT shown at {0}% on the apartment and {1}% on the assignment, for an individual buyer. A reduced rate may apply depending on the buyer and the unit; the rate that applies to you is confirmed before you sign.</value></data>
-  <data name="Tranche.AdvanceBasis"><value>The advance is {0}% of the price less the assignment price.</value></data>
+  <data name="Tranche.AdvanceBasis"><value>The deposit is {0}% of the price less the assignment price.</value></data>
   <data name="Reserve.Unavailable"><value>This apartment is no longer available. Ask to be told if it comes back.</value></data>
 
   <!-- Reservation form -->
@@ -169,6 +185,8 @@
   <data name="Reserve.LostTheRace"><value>Somebody reserved this apartment a moment before you. Nothing has been charged, and nothing is being held in your name.</value></data>
   <data name="Reserve.Blocked"><value>An earlier hold in your name ran out without going ahead, so we cannot hold another apartment for you automatically. Email contact@hubix.ro and we will sort it out.</value></data>
   <data name="Reserve.TooMany"><value>You are already holding {0} apartments in this development. Let one of them go, or go ahead with one, before holding another.</value></data>
+  <data name="Reserve.NotEnoughParking"><value>Only {0} {1} space(s) are left and you asked for {2}. Nothing has been held, the apartment included, so you can choose again.</value></data>
+  <data name="Reserve.TooManyParking"><value>This development allows {0} parking space(s) with one apartment and you asked for {1}. Nothing has been held.</value></data>
 
   <data name="Form.FullName"><value>Your name</value></data>
   <data name="Form.Email"><value>Email</value></data>
@@ -182,6 +200,7 @@
   <data name="Validation.EmailInvalid"><value>That does not look like an email address.</value></data>
   <data name="Validation.PhoneInvalid"><value>That does not look like a phone number.</value></data>
   <data name="Validation.ConsentRequired"><value>We need your agreement before we can hold an apartment for you.</value></data>
+  <data name="Validation.ParkingQuantity"><value>Choose between 0 and 10 parking spaces.</value></data>
 
   <!-- Hold status -->
   <data name="Hold.Title"><value>Your hold</value></data>

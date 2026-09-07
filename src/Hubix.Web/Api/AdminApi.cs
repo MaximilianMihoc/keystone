@@ -120,9 +120,6 @@ public static class AdminApi
                         basePriceNet = u.BasePriceNet,
                         cesiunePriceNet = u.CesiunePriceNet,
                         reducedVatEligible = u.ReducedVatEligible,
-                        parkingAvailable = u.ParkingAvailable,
-                        parkingPriceNet = u.ParkingPriceNet,
-                        parkingAdvanceNet = u.ParkingAdvanceNet,
                         state = u.State.ToString(),
                         adminNotes = u.AdminNotes,
 
@@ -185,6 +182,7 @@ public static class AdminApi
                 };
             });
 
+        api.MapParking();
         api.MapReservations();
         api.MapImport();
         api.MapAssets();

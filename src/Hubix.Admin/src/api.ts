@@ -56,6 +56,45 @@ export interface ProjectSummary {
   sold: number;
 }
 
+/** Mirrors the server enum, sent as its name rather than its ordinal. */
+export const PARKING_SPACE_KINDS = [
+  'AboveGroundUncovered',
+  'AboveGroundCovered',
+  'Underground',
+] as const;
+
+export type ParkingSpaceKind = (typeof PARKING_SPACE_KINDS)[number];
+
+/** One numbered space in a project's car park. */
+export interface ParkingSpace {
+  id: string;
+  code: string;
+  kind: ParkingSpaceKind;
+  /** Signed: underground negative, ground 0, above ground positive. */
+  level: number;
+  state: string;
+  adminNotes: string | null;
+  /** The apartment this space is held or reserved against, when it is. */
+  heldForUnit: string | null;
+}
+
+/** What a kind of space costs here. A space of a kind with no price is not for sale. */
+export interface ParkingPrice {
+  kind: ParkingSpaceKind;
+  priceNet: number;
+  depositNet: number;
+}
+
+export interface ParkingResponse {
+  maxPerReservation: number;
+  prices: ParkingPrice[];
+  spaces: ParkingSpace[];
+}
+
+export type ParkingSpaceEdit = Partial<
+  Pick<ParkingSpace, 'code' | 'kind' | 'level' | 'adminNotes'>
+>;
+
 export interface UnitType {
   id: string;
   name: string;
@@ -77,9 +116,6 @@ export interface Unit {
   basePriceNet: number;
   cesiunePriceNet: number | null;
   reducedVatEligible: boolean;
-  parkingAvailable: boolean;
-  parkingPriceNet: number | null;
-  parkingAdvanceNet: number | null;
   state: string;
   adminNotes: string | null;
   holdExpiresAt: string | null;
@@ -107,9 +143,6 @@ export type UnitEdit = Partial<
     | 'basePriceNet'
     | 'cesiunePriceNet'
     | 'reducedVatEligible'
-    | 'parkingAvailable'
-    | 'parkingPriceNet'
-    | 'parkingAdvanceNet'
     | 'adminNotes'
   >
 >;
@@ -161,6 +194,28 @@ export interface Reservation {
   internalNotes: string | null;
   reservationFee: number | null;
   totalGross: number;
+  parkingNet: number;
+  parkingDepositNet: number;
+  parking: ReservationParking[];
+}
+
+/** One space on a sale, with what was agreed for it. */
+export interface ReservationParking {
+  id: string;
+  code: string;
+  kind: ParkingSpaceKind;
+  level: number;
+  /** Null only for a space that joined before prices were kept per space. */
+  priceNet: number | null;
+}
+
+/** A free bay this buyer could still add, at today's price. */
+export interface AvailableParking {
+  id: string;
+  code: string;
+  kind: ParkingSpaceKind;
+  level: number;
+  priceNet: number;
 }
 
 /** Somebody waiting for an apartment type. */
@@ -324,6 +379,64 @@ export const api = {
     request<{ changed: Record<string, unknown> }>(`/api/admin/units/${unitId}`, {
       method: 'PATCH',
       body: JSON.stringify(edit),
+    }),
+
+  parking: (projectId: string) =>
+    request<ParkingResponse>(`/api/admin/projects/${projectId}/parking`),
+
+  addParkingSpaces: (projectId: string, body: {
+    prefix: string;
+    from: number;
+    to: number;
+    kind: ParkingSpaceKind;
+    level: number;
+  }) =>
+    request<{ created: number; skipped: string[] }>(
+      `/api/admin/projects/${projectId}/parking`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  editParkingSpace: (spaceId: string, edit: ParkingSpaceEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/parking/${spaceId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(edit),
+    }),
+
+  reservationParkingAvailable: (reservationId: string) =>
+    request<AvailableParking[]>(`/api/admin/reservations/${reservationId}/parking-available`),
+
+  addReservationParking: (reservationId: string, spaceId: string) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/reservations/${reservationId}/parking/${spaceId}`,
+      { method: 'POST' },
+    ),
+
+  removeReservationParking: (reservationId: string, spaceId: string) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/reservations/${reservationId}/parking/${spaceId}`,
+      { method: 'DELETE' },
+    ),
+
+  removeParkingSpace: (spaceId: string) =>
+    request<void>(`/api/admin/parking/${spaceId}`, { method: 'DELETE' }),
+
+  removeParkingSpaces: (projectId: string, prefix: string, from: number, to: number) =>
+    request<{ removed: number; kept: string[] }>(
+      `/api/admin/projects/${projectId}/parking` +
+        `?prefix=${encodeURIComponent(prefix)}&from=${from}&to=${to}`,
+      { method: 'DELETE' },
+    ),
+
+  setParkingPrice: (projectId: string, price: ParkingPrice) =>
+    request<void>(`/api/admin/projects/${projectId}/parking-prices`, {
+      method: 'PUT',
+      body: JSON.stringify(price),
+    }),
+
+  setMaxParkingPerReservation: (projectId: string, max: number) =>
+    request<void>(`/api/admin/projects/${projectId}/parking-max`, {
+      method: 'PUT',
+      body: JSON.stringify({ max }),
     }),
 
   setWithdrawn: (unitId: string, withdrawn: boolean) =>

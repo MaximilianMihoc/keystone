@@ -26,9 +26,6 @@ public sealed record UnitEdit(
     decimal? BasePriceNet,
     decimal? CesiunePriceNet,
     bool? ReducedVatEligible,
-    bool? ParkingAvailable,
-    decimal? ParkingPriceNet,
-    decimal? ParkingAdvanceNet,
     string? AdminNotes);
 
 public abstract record UnitEditResult
@@ -128,9 +125,6 @@ public sealed class UnitAdminService(
         ApplyVal("BasePriceNet", unit.BasePriceNet, edit.BasePriceNet, v => unit.BasePriceNet = v);
         ApplyVal("CesiunePriceNet", unit.CesiunePriceNet, edit.CesiunePriceNet, v => unit.CesiunePriceNet = v);
         ApplyVal("ReducedVatEligible", unit.ReducedVatEligible, edit.ReducedVatEligible, v => unit.ReducedVatEligible = v);
-        ApplyVal("ParkingAvailable", unit.ParkingAvailable, edit.ParkingAvailable, v => unit.ParkingAvailable = v);
-        ApplyVal("ParkingPriceNet", unit.ParkingPriceNet, edit.ParkingPriceNet, v => unit.ParkingPriceNet = v);
-        ApplyVal("ParkingAdvanceNet", unit.ParkingAdvanceNet, edit.ParkingAdvanceNet, v => unit.ParkingAdvanceNet = v);
 
         if (changes.Count == 0)
         {

@@ -36,6 +36,39 @@ public class ApartmentModel(
     public bool IsFree => Display.IsFree(Unit.State);
 
     /// <summary>
+    /// What this project says about parking, in the reader's language.
+    /// </summary>
+    /// <remarks>
+    /// Prose, so the row for the reader's culture is chosen with a fallback to Romanian rather
+    /// than to nothing — the opposite of CityFor, where a Romanian city name would be worse
+    /// than the canonical one. The fallback picks a whole row, not a field: an English row
+    /// that exists but leaves this empty gives an English reader nothing, the same way
+    /// Summary already behaves.
+    /// </remarks>
+    public string? ParkingNote { get; private set; }
+
+    /// <summary>
+    /// What the project's car park offers, by kind: the price, and how many are actually free.
+    /// </summary>
+    /// <remarks>
+    /// A kind with no price is not for sale and is left out — a space nobody can be charged for
+    /// is not an offer. Availability is counted rather than stored, so it cannot claim spaces
+    /// the car park does not have.
+    /// </remarks>
+    public IReadOnlyList<ParkingOffer> ParkingOnOffer { get; private set; } = [];
+
+    public sealed record ParkingOffer(
+        ParkingSpaceKind Kind,
+        int Level,
+        decimal PriceNet,
+        decimal DepositNet,
+        int Available);
+
+    /// <summary>Nothing to say about parking is a reason to say nothing.</summary>
+    public bool ShowParking =>
+        ParkingOnOffer.Count > 0 || ParkingNote is { Length: > 0 };
+
+    /// <summary>
     /// Drawings for this apartment: its own RLV and renders, plus the plan for its floor.
     /// </summary>
     /// <remarks>
@@ -55,7 +88,14 @@ public class ApartmentModel(
         var project = await db.Projects
             .AsNoTracking()
             .Where(p => p.Slug == slug && p.PublishedAt != null)
-            .Select(p => new { p.Id, p.Name, p.Slug, p.HoldDurationHours })
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.Slug,
+                p.HoldDurationHours,
+                Parking = p.Translations.Select(t => new { t.Culture, t.Parking }).ToList()
+            })
             .FirstOrDefaultAsync(ct);
 
         if (project is null)
@@ -82,6 +122,12 @@ public class ApartmentModel(
         Unit = unit;
         TypeDisplay = unit.UnitType?.DisplayName(culture) ?? "";
 
+        ParkingNote = project.Parking
+            .Select(t => new ProjectTranslation { Culture = t.Culture, Parking = t.Parking })
+            .ForCulture(culture)?.Parking;
+
+        ParkingOnOffer = await LoadParkingAsync(project.Id, ct);
+
         var rule = await db.PricingRules
             .AsNoTracking()
             .Where(r => r.ProjectId == project.Id)
@@ -103,6 +149,43 @@ public class ApartmentModel(
         Drawings = await LoadDrawingsAsync(project.Id, unit, ct);
 
         return Page();
+    }
+
+    private async Task<IReadOnlyList<ParkingOffer>> LoadParkingAsync(Guid projectId, CancellationToken ct)
+    {
+        var prices = await db.ParkingPrices
+            .AsNoTracking()
+            .Where(p => p.ProjectId == projectId)
+            .Select(p => new { p.Kind, p.PriceNet, p.DepositNet })
+            .ToListAsync(ct);
+
+        if (prices.Count == 0)
+        {
+            return [];
+        }
+
+        // Grouped in the database rather than counted per kind in a loop: one query however
+        // many kinds a car park has.
+        var spaces = await db.ParkingSpaces
+            .AsNoTracking()
+            .Where(s => s.ProjectId == projectId)
+            .GroupBy(s => s.Kind)
+            .Select(g => new
+            {
+                Kind = g.Key,
+                Level = g.Min(s => s.Level),
+                Available = g.Count(s => s.State == UnitState.Available)
+            })
+            .ToListAsync(ct);
+
+        return
+        [
+            .. from price in prices
+               join space in spaces on price.Kind equals space.Kind
+               orderby space.Available descending, price.PriceNet descending
+               select new ParkingOffer(
+                   price.Kind, space.Level, price.PriceNet, price.DepositNet, space.Available)
+        ];
     }
 
     private async Task<IReadOnlyList<Drawing>> LoadDrawingsAsync(

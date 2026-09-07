@@ -185,8 +185,6 @@ public sealed class ImportService(
                 case ImportField.BasePriceNet: unit.BasePriceNet = (decimal)change.After!; break;
                 case ImportField.CesiunePriceNet: unit.CesiunePriceNet = (decimal?)change.After; break;
                 case ImportField.ReducedVat: unit.ReducedVatEligible = (bool)change.After!; break;
-                case ImportField.ParkingPriceNet: unit.ParkingPriceNet = (decimal?)change.After; break;
-                case ImportField.ParkingAdvanceNet: unit.ParkingAdvanceNet = (decimal?)change.After; break;
                 case ImportField.Notes: unit.AdminNotes = (string?)change.After; break;
 
                 case ImportField.TypeName:
@@ -204,8 +202,5 @@ public sealed class ImportService(
                     break;
             }
         }
-
-        // Parking is a fact about the unit, not a separate purchase to track here.
-        unit.ParkingAvailable = unit.ParkingPriceNet is > 0;
     }
 }

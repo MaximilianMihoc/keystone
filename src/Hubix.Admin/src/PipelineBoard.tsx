@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   api,
   SessionExpired,
+  type AvailableParking,
   type Pipeline,
   type Reservation,
   type ReservationEdit,
@@ -276,6 +277,7 @@ export function PipelineBoard({ projectId, canEdit, onSessionExpired }: Props) {
           onClose={() => setSelectedId(null)}
           onEdit={(change) => void edit(selected, change)}
           onMove={(state, reason) => void move(selected, state, reason)}
+          onChanged={() => void reload()}
         />
       )}
     </>
@@ -347,6 +349,7 @@ function Detail({
   onClose,
   onEdit,
   onMove,
+  onChanged,
 }: {
   reservation: Reservation;
   pipeline: Pipeline;
@@ -354,6 +357,7 @@ function Detail({
   onClose: () => void;
   onEdit: (change: ReservationEdit) => void;
   onMove: (state: string, reason?: string) => void;
+  onChanged: () => void;
 }) {
   const [reason, setReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
@@ -404,6 +408,15 @@ function Detail({
 
         <dt>Reservation fee</dt>
         <dd>{reservation.reservationFee ? money.format(reservation.reservationFee) : '—'}</dd>
+
+        <dt>Parking</dt>
+        <dd>
+          <ParkingOnSale
+            reservation={reservation}
+            canEdit={canEdit}
+            onChanged={onChanged}
+          />
+        </dd>
 
         <dt>Buyer type</dt>
         <dd>
@@ -533,5 +546,152 @@ function Detail({
         </>
       )}
     </aside>
+  );
+}
+
+/** Stages at which what was bought can still change. Mirrors ReservationService. */
+const PARKING_CAN_CHANGE = new Set([
+  'PendingFee',
+  'FeePaid',
+  'AgreementSent',
+  'AgreementSigned',
+  'NotaryScheduled',
+]);
+
+function levelLabel(level: number): string {
+  if (level === 0) return 'ground';
+  return level < 0 ? `level -${Math.abs(level)}` : `level ${level}`;
+}
+
+/**
+ * The parking on one sale, and a way to change it.
+ *
+ * Buyers change their minds in both directions, and the alternative to this was cancelling the
+ * reservation and starting again. Locked once the cesiune is signed, because from then on the
+ * deed names the space and the record must not disagree with it.
+ */
+function ParkingOnSale({
+  reservation,
+  canEdit,
+  onChanged,
+}: {
+  reservation: Reservation;
+  canEdit: boolean;
+  onChanged: () => void;
+}) {
+  const [free, setFree] = useState<AvailableParking[] | null>(null);
+  const [chosen, setChosen] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const open = canEdit && PARKING_CAN_CHANGE.has(reservation.state);
+
+  // Only when it can actually be used: the free list is a second request, and a locked sale
+  // has no use for it.
+  useEffect(() => {
+    if (!open) {
+      setFree(null);
+      return;
+    }
+
+    void (async () => {
+      try {
+        setFree(await api.reservationParkingAvailable(reservation.id));
+      } catch {
+        setFree([]);
+      }
+    })();
+  }, [open, reservation.id]);
+
+  const run = async (action: () => Promise<unknown>) => {
+    setBusy(true);
+    setError(null);
+
+    try {
+      await action();
+      setChosen('');
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      {reservation.parking.length === 0 ? (
+        <span className="muted">None</span>
+      ) : (
+        <ul className="space-list">
+          {reservation.parking.map((space) => (
+            <li key={space.id}>
+              <strong>{space.code}</strong>{' '}
+              <span className="muted">
+                {levelLabel(space.level)}
+                {space.priceNet !== null && ` · ${money.format(space.priceNet)}`}
+              </span>
+              {open && (
+                <button
+                  className="link"
+                  type="button"
+                  disabled={busy}
+                  title={`Take ${space.code} off this sale and put it back on the market`}
+                  onClick={() =>
+                    void run(() => api.removeReservationParking(reservation.id, space.id))
+                  }
+                >
+                  Remove
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {reservation.parking.length > 0 && (
+        <span className="muted">
+          {money.format(reservation.parkingNet)} net · {money.format(reservation.parkingDepositNet)}{' '}
+          deposit
+        </span>
+      )}
+
+      {open && free !== null && (
+        <div className="add-space">
+          <select
+            className="project-picker"
+            value={chosen}
+            disabled={busy || free.length === 0}
+            onChange={(e) => setChosen(e.target.value)}
+          >
+            <option value="">
+              {free.length === 0 ? 'No free spaces' : 'Add a space…'}
+            </option>
+            {free.map((space) => (
+              <option key={space.id} value={space.id}>
+                {space.code} — {levelLabel(space.level)} · {money.format(space.priceNet)}
+              </option>
+            ))}
+          </select>
+
+          <button
+            className="btn btn-small"
+            type="button"
+            disabled={busy || !chosen}
+            onClick={() => void run(() => api.addReservationParking(reservation.id, chosen))}
+          >
+            Add
+          </button>
+        </div>
+      )}
+
+      {open && (
+        <span className="muted hint-line">
+          Priced as it stands today. Locked once the cesiune is signed.
+        </span>
+      )}
+
+      {error && <span className="save-failed">{error}</span>}
+    </>
   );
 }

@@ -765,3 +765,87 @@ main { padding: 22px 20px 60px; }
 .plan-changes .change { font-family: var(--mono); color: var(--ink-2); }
 .plan-changes .change s { color: var(--ink-3); }
 .plan-changes .reason { color: var(--ink-3); font-style: italic; }
+
+/* ---------- parking ------------------------------------------------------ */
+
+/* A settings block above a grid: the car park is configured as well as listed. */
+.panel {
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 6px;
+}
+
+.hint { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); max-width: 68ch; }
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.row label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.row input, .row select { font-size: 13px; padding: 5px 7px; }
+.row input[type="number"] { width: 92px; }
+
+.row-label { min-width: 180px; font-size: 13px; color: var(--ink-2); }
+
+/* A destructive control should not be the loudest thing in a row of data. */
+.btn-small.danger {
+  color: var(--ink-3);
+  border-color: var(--rule);
+  background: none;
+  padding: 2px 7px;
+  line-height: 1.4;
+}
+
+.btn-small.danger:hover:not(:disabled) { color: #d24b3e; border-color: #d24b3e; }
+.btn-small.danger:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* The units grid shows an input only while a cell is being edited, so its inputs are
+   loud on purpose. The parking grid leaves its fields open, which would make every row
+   look mid-edit. These read as text until you go near them. */
+.grid td > .cell-in,
+.grid td > .cell-in:not([type="checkbox"]) {
+  border-color: transparent;
+  background: none;
+  padding: 6px 8px;
+}
+
+.grid td > .cell-in:hover { border-color: var(--rule); }
+.grid td > .cell-in:focus { border-color: var(--amber); background: var(--surface); }
+
+.grid td > input.code-in { width: 90px; font-family: var(--mono); font-size: 12.5px; }
+.grid td > input.level-in { width: 66px; }
+
+/* Parking on a sale: a short list with a control each, inside the facts list. */
+.space-list { list-style: none; margin: 0 0 6px; padding: 0; }
+.space-list li { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; }
+.space-list li strong { font-family: var(--mono); font-size: 12.5px; }
+.space-list .link { font-size: 11px; margin-left: auto; }
+
+.add-space { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.add-space select { flex: 1; min-width: 0; }
+
+.hint-line { display: block; margin-top: 6px; font-size: 11px; }

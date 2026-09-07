@@ -35,6 +35,13 @@ public class Hold : Entity
 
     public HoldReleaseReason? ReleaseReason { get; set; }
 
+    /// <summary>
+    /// Spaces claimed in the same transaction as this hold. They rise and fall with it: a buyer
+    /// who loses the apartment has no use for the space, and a stranded Held space is inventory
+    /// nobody can reach.
+    /// </summary>
+    public ICollection<ParkingSpace> ParkingSpaces { get; set; } = [];
+
     public bool IsActive => ReleasedAt is null;
 
     public bool HasExpired(DateTimeOffset now) => IsActive && ExpiresAt <= now;

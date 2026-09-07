@@ -80,6 +80,21 @@ public class Reservation : Entity
     /// </summary>
     public decimal? SnapReservationFee { get; set; }
 
+    /// <summary>
+    /// The spaces bought with this apartment, claimed under the same hold and carried here when
+    /// it converted. Usually none.
+    /// </summary>
+    public ICollection<ParkingSpace> ParkingSpaces { get; set; } = [];
+
+    /// <summary>
+    /// Parking as agreed, net, summed across those spaces. Snapshotted for the same reason the
+    /// apartment money is: a project may reprice its car park, and an agreed sale must not move.
+    /// </summary>
+    public decimal SnapParkingNet { get; set; }
+
+    /// <summary>The parking deposit as agreed: Hubix's "Avans + cesiune parcare fara TVA".</summary>
+    public decimal SnapParkingDepositNet { get; set; }
+
     /// <summary>Was "Comments Istratescu".</summary>
     public string? InternalNotes { get; set; }
 

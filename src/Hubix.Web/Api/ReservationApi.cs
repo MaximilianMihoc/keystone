@@ -78,6 +78,13 @@ public static class ReservationApi
                         r.CancellationReason,
                         r.InternalNotes,
                         r.SnapReservationFee,
+                        r.SnapParkingNet,
+                        r.SnapParkingDepositNet,
+                        r.ParkingSpaces
+                            .OrderBy(s => s.Code)
+                            .Select(s => new ReservationParking(
+                                s.Id, s.Code, s.Kind.ToString(), s.Level, s.SnapPriceNet))
+                            .ToList(),
                         r.SnapTranches))
                     .ToListAsync(ct);
 
@@ -235,6 +242,72 @@ public static class ReservationApi
 
                 return Render(result);
             });
+
+        // Buyers change their minds about parking after reserving, in both directions. Before
+        // this the only way to act on that was to cancel the sale and start again, losing its
+        // place in the pipeline and its agreed price.
+        editable.MapPost("/reservations/{reservationId:guid}/parking/{spaceId:guid}",
+            async (Guid reservationId,
+                   Guid spaceId,
+                   ReservationService reservations,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                var result = await reservations.AddParkingAsync(
+                    reservationId, spaceId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
+
+                return Render(result);
+            });
+
+        editable.MapDelete("/reservations/{reservationId:guid}/parking/{spaceId:guid}",
+            async (Guid reservationId,
+                   Guid spaceId,
+                   ReservationService reservations,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                var result = await reservations.RemoveParkingAsync(
+                    reservationId, spaceId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
+
+                return Render(result);
+            });
+
+        // What sales can offer this buyer right now: free bays on their project, priced.
+        api.MapGet("/reservations/{reservationId:guid}/parking-available",
+            async (Guid reservationId, HubixDbContext db, CancellationToken ct) =>
+            {
+                var projectId = await db.Reservations
+                    .Where(r => r.Id == reservationId)
+                    .Select(r => (Guid?)r.Unit!.ProjectId)
+                    .FirstOrDefaultAsync(ct);
+
+                if (projectId is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var spaces = await db.ParkingSpaces
+                    .AsNoTracking()
+                    .Where(s => s.ProjectId == projectId && s.State == UnitState.Available)
+                    .OrderBy(s => s.Level).ThenBy(s => s.Code)
+                    .Select(s => new
+                    {
+                        id = s.Id,
+                        code = s.Code,
+                        kind = s.Kind.ToString(),
+                        level = s.Level,
+
+                        // Today's price: that is what they would be agreeing to.
+                        priceNet = db.ParkingPrices
+                            .Where(p => p.ProjectId == s.ProjectId && p.Kind == s.Kind)
+                            .Select(p => (decimal?)p.PriceNet)
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync(ct);
+
+                // A bay with no price for its kind cannot be sold, so it is not offered.
+                return Results.Ok(spaces.Where(s => s.priceNet is not null).ToList());
+            });
     }
 
     private static IResult Render(ReservationOutcome outcome) => outcome switch
@@ -282,10 +355,21 @@ public static class ReservationApi
         string? CancellationReason,
         string? InternalNotes,
         decimal? ReservationFee,
+        decimal ParkingNet,
+        decimal ParkingDepositNet,
+        IReadOnlyList<ReservationParking> Parking,
         [property: JsonIgnore] IReadOnlyList<TrancheAmount> Tranches)
     {
         public decimal TotalGross => Tranches.Sum(t => t.Gross);
     }
+
+    /// <summary>One space on a sale, with what was agreed for it.</summary>
+    public sealed record ReservationParking(
+        Guid Id,
+        string Code,
+        string Kind,
+        int Level,
+        decimal? PriceNet);
 
     /// <summary>Starting a reservation. Everything is optional when a hold already names the buyer.</summary>
     public sealed record StartRequest(

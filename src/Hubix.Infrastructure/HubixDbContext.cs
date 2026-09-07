@@ -22,6 +22,10 @@ public class HubixDbContext(DbContextOptions<HubixDbContext> options) : DbContex
 
     public DbSet<Unit> Units => Set<Unit>();
 
+    public DbSet<ParkingSpace> ParkingSpaces => Set<ParkingSpace>();
+
+    public DbSet<ParkingPrice> ParkingPrices => Set<ParkingPrice>();
+
     public DbSet<Hold> Holds => Set<Hold>();
 
     public DbSet<Prospect> Prospects => Set<Prospect>();

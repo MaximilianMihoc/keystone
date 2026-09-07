@@ -98,7 +98,12 @@ public sealed class DatabaseFixture : IAsyncLifetime
     {
         await using var db = CreateContext();
 
-        // Reservations first: they hold restricting foreign keys to both units and prospects,
+        // Parking first of all: a space points at a hold and a reservation with NoAction, so
+        // neither can be deleted while one still references it.
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [ParkingSpaces]");
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [ParkingPrices]");
+
+        // Reservations next: they hold restricting foreign keys to both units and prospects,
         // so deleting either out from under them fails.
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [Reservations]");
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [Holds]");
@@ -114,6 +119,12 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
         // Projects other tests created; the fixture's own must survive.
         await db.Projects.Where(p => p.Id != ProjectId).ExecuteDeleteAsync();
+
+        // SeedParkingAsync writes this, so it has to come back too — the same rule as every
+        // writable column on the unit below.
+        await db.Projects
+            .Where(p => p.Id == ProjectId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.MaxParkingSpacesPerReservation, 0));
 
         // Units other tests created — the importer makes them by the sheetful.
         await db.Units.Where(u => u.ProjectId == ProjectId && u.Id != UnitId).ExecuteDeleteAsync();
@@ -139,10 +150,79 @@ public sealed class DatabaseFixture : IAsyncLifetime
                 .SetProperty(u => u.CesiunePriceNet, seeded.Cesiune)
                 .SetProperty(u => u.AreaUsable, seeded.AreaUsable)
                 .SetProperty(u => u.ReducedVatEligible, false)
-                .SetProperty(u => u.ParkingAvailable, false)
-                .SetProperty(u => u.ParkingPriceNet, (decimal?)null)
-                .SetProperty(u => u.ParkingAdvanceNet, (decimal?)null)
                 .SetProperty(u => u.AdminNotes, (string?)null));
+    }
+
+    /// <summary>
+    /// Adds <paramref name="count"/> extra apartments and returns their ids, so a test can race
+    /// buyers of different flats for the same parking space. ResetUnitAsync deletes them again.
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> AddUnitsAsync(int count)
+    {
+        await using var db = CreateContext();
+
+        var typeId = await db.UnitTypes
+            .Where(t => t.ProjectId == ProjectId)
+            .Select(t => t.Id)
+            .FirstAsync();
+
+        var units = Enumerable.Range(0, count).Select(i => new Unit
+        {
+            ProjectId = ProjectId,
+            Code = $"Ap.9{i:D2}",
+            UnitTypeId = typeId,
+            FloorLevel = 9,
+            AreaUsable = 45m,
+            AreaBalcony = 4m,
+            BasePriceNet = 100_000m,
+            CesiunePriceNet = 10_000m,
+            State = UnitState.Available
+        }).ToList();
+
+        db.Units.AddRange(units);
+        await db.SaveChangesAsync();
+
+        return [.. units.Select(u => u.Id)];
+    }
+
+    /// <summary>
+    /// Gives the fixture's project a car park: one price for the kind, and <paramref name="spaces"/>
+    /// numbered spaces of it. Call after <see cref="ResetUnitAsync"/>, which clears both tables.
+    /// </summary>
+    public async Task SeedParkingAsync(
+        int spaces,
+        ParkingSpaceKind kind = ParkingSpaceKind.Underground,
+        int maxPerReservation = 2,
+        decimal priceNet = 8_000m,
+        decimal depositNet = 2_176m)
+    {
+        await using var db = CreateContext();
+
+        await db.Projects
+            .Where(p => p.Id == ProjectId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.MaxParkingSpacesPerReservation, maxPerReservation));
+
+        db.ParkingPrices.Add(new ParkingPrice
+        {
+            ProjectId = ProjectId,
+            Kind = kind,
+            PriceNet = priceNet,
+            DepositNet = depositNet
+        });
+
+        for (var i = 1; i <= spaces; i++)
+        {
+            db.ParkingSpaces.Add(new ParkingSpace
+            {
+                ProjectId = ProjectId,
+                Code = $"A{i}",
+                Kind = kind,
+                Level = kind is ParkingSpaceKind.Underground ? -1 : 0
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private async Task SeedAsync(HubixDbContext db)

@@ -99,6 +99,21 @@
   <data name="Tranche.AdvanceNoRate"><value>Avans</value></data>
   <data name="Tranche.Cesiune"><value>Preț cesiune</value></data>
 
+  <data name="Parking.Heading"><value>Parcare</value></data>
+  <data name="Parking.Advance"><value>Avans + cesiune</value></data>
+  <data name="Parking.Space"><value>Tip loc</value></data>
+  <data name="Parking.AboveGroundUncovered"><value>Supraterană, neacoperită</value></data>
+  <data name="Parking.AboveGroundCovered"><value>Supraterană, acoperită</value></data>
+  <data name="Parking.Underground"><value>Subterană</value></data>
+  <data name="Parking.LevelGround"><value>La sol</value></data>
+  <data name="Parking.LevelUnder"><value>Nivel -{0}</value></data>
+  <data name="Parking.LevelAbove"><value>Nivel {0}</value></data>
+  <data name="Parking.Available"><value>{0} disponibile</value></data>
+  <data name="Parking.None"><value>Fără parcare</value></data>
+  <data name="Parking.Choose"><value>Adaugă parcare</value></data>
+  <data name="Parking.YourSpaces"><value>Parcarea ta</value></data>
+  <data name="Parking.Quantity"><value>Câte locuri</value></data>
+
   <data name="Reserve.Action"><value>Rezervă</value></data>
   <data name="Reserve.HoldExplainer"><value>Rezervarea îți blochează acest apartament timp de {0} ore, cât te decizi.</value></data>
   <data name="Reserve.NoLongerAvailable"><value>Acest apartament a fost rezervat de altcineva acum câteva momente. Nu ți s-a debitat nimic.</value></data>
@@ -154,6 +169,8 @@
   <data name="Reserve.LostTheRace"><value>Cineva a rezervat acest apartament cu câteva momente înaintea ta. Nu ți s-a debitat nimic și nu este nimic blocat pe numele tău.</value></data>
   <data name="Reserve.Blocked"><value>O rezervare anterioară pe numele tău a expirat fără să continue, așa că nu putem bloca automat un alt apartament. Scrie-ne la contact@hubix.ro și rezolvăm.</value></data>
   <data name="Reserve.TooMany"><value>Ai deja {0} apartamente blocate în acest proiect. Renunță la unul, sau mergi mai departe cu unul dintre ele, înainte de a bloca altul.</value></data>
+  <data name="Reserve.NotEnoughParking"><value>Au mai rămas doar {0} locuri {1} și ai cerut {2}. Nu s-a rezervat nimic, nici apartamentul, așa că poți alege din nou.</value></data>
+  <data name="Reserve.TooManyParking"><value>La acest proiect se pot lua {0} locuri de parcare la un apartament, iar tu ai cerut {1}. Nu s-a rezervat nimic.</value></data>
 
   <data name="Form.FullName"><value>Numele tău</value></data>
   <data name="Form.Email"><value>Email</value></data>
@@ -167,6 +184,7 @@
   <data name="Validation.EmailInvalid"><value>Nu pare o adresă de email validă.</value></data>
   <data name="Validation.PhoneInvalid"><value>Nu pare un număr de telefon valid.</value></data>
   <data name="Validation.ConsentRequired"><value>Avem nevoie de acordul tău ca să putem bloca un apartament.</value></data>
+  <data name="Validation.ParkingQuantity"><value>Alege între 0 și 10 locuri de parcare.</value></data>
 
   <data name="Hold.Title"><value>Rezervarea ta</value></data>
   <data name="Hold.TimeLeft"><value>Timp rămas pentru decizie</value></data>

@@ -123,6 +123,41 @@
         </div>
     }
 
+    @if (Model.ShowParking)
+    {
+        <div class="section">
+            <p class="section-label">@L["Parking.Heading"]</p>
+
+            @* What the car park actually holds, priced per kind. The count is the honest part:
+               these are finite, and a buyer deciding today should see how finite. *@
+            @if (Model.ParkingOnOffer.Count > 0)
+            {
+                <dl class="spec">
+                    @foreach (var offer in Model.ParkingOnOffer)
+                    {
+                        <div>
+                            <dt>@L[Display.ParkingSpaceKey(offer.Kind)]</dt>
+                            <dd>
+                                @Display.Money(offer.PriceNet)
+                                <small>
+                                    @L["Parking.Advance"] @Display.Money(offer.DepositNet)
+                                    · @Display.ParkingLevel(offer.Level, T)
+                                    · @L["Parking.Available", offer.Available]
+                                </small>
+                            </dd>
+                        </div>
+                    }
+                </dl>
+            }
+
+            @* Why there is no price, or whatever else the project needs to say about parking. *@
+            @if (Model.ParkingNote is { Length: > 0 } parkingNote)
+            {
+                <p class="note">@parkingNote</p>
+            }
+        </div>
+    }
+
     @if (Model.Drawings.Count > 0)
     {
         <div class="section">

@@ -73,6 +73,12 @@ public class ProjectTranslation : Entity
     /// Coresi is 25% plus 1,000 EUR a month, Torontal is 100%, Roka is 50%.
     /// </summary>
     public string? PenaltyClause { get; set; }
+
+    /// <summary>
+    /// What a buyer needs to know about parking on this project — typically that it is not
+    /// sold with the apartment at all. The kind of space, where there is one, is on the unit.
+    /// </summary>
+    public string? Parking { get; set; }
 }
 
 /// <summary>

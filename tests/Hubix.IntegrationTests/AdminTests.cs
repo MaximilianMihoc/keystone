@@ -147,7 +147,7 @@ public class UnitAdminTests(DatabaseFixture fixture)
         string? notes = null,
         Guid? typeId = null) =>
         new(null, null, null, typeId, null, null, areaUsable, null, price, cesiune,
-            null, null, null, null, notes);
+            null, notes);
 
     [Fact]
     public async Task An_edit_applies_and_is_audited()

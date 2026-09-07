@@ -13,6 +13,7 @@ public class ProjectTranslationConfiguration : IEntityTypeConfiguration<ProjectT
         builder.Property(t => t.Summary).HasMaxLength(2000);
         builder.Property(t => t.Body).HasColumnType("nvarchar(max)");
         builder.Property(t => t.PenaltyClause).HasMaxLength(2000);
+        builder.Property(t => t.Parking).HasMaxLength(400);
 
         builder.HasOne(t => t.Project)
             .WithMany(p => p.Translations)
