@@ -104,6 +104,15 @@ public abstract record AdminWriteResult
 
     public sealed record Deleted : AdminWriteResult;
 
+    /// <summary>
+    /// A write whose result the caller needs back, rather than just a confirmation.
+    /// </summary>
+    /// <remarks>
+    /// Adding or removing a range of parking spaces is the case this exists for: both are
+    /// forgiving, and what they skipped is the useful half of the answer.
+    /// </remarks>
+    public sealed record Payload(object Value) : AdminWriteResult;
+
     public sealed record NotFound : AdminWriteResult;
 
     public sealed record Rejected(string Reason) : AdminWriteResult;

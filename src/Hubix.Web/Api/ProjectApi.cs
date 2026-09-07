@@ -641,6 +641,7 @@ public static class ProjectApi
     internal static IResult Respond(AdminWriteResult result) => result switch
     {
         AdminWriteResult.Created created => Results.Ok(new { id = created.Id }),
+        AdminWriteResult.Payload payload => Results.Ok(payload.Value),
         AdminWriteResult.Updated updated => Results.Ok(new { changed = updated.Changes }),
         AdminWriteResult.NoChange => Results.Ok(new { changed = new Dictionary<string, object?>() }),
         AdminWriteResult.Deleted => Results.NoContent(),
