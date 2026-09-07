@@ -12,7 +12,11 @@ public static class UnitStateMachine
 {
     private static readonly Dictionary<UnitState, UnitState[]> Allowed = new()
     {
-        [UnitState.Available] = [UnitState.Held, UnitState.Withdrawn],
+        // Reserved without passing through Held is how a sale that happened somewhere else
+        // gets in: an agent's own paperwork, a deal struck before this system existed. The
+        // importer already creates units that way from a sheet's "Disponibil? NU", and staff
+        // need the same door for the ones that arrive one at a time.
+        [UnitState.Available] = [UnitState.Held, UnitState.Reserved, UnitState.Withdrawn],
 
         // Held returns to Available on expiry, prospect cancellation or staff release,
         // and advances to Reserved once the fee is confirmed.
@@ -32,7 +36,10 @@ public static class UnitStateMachine
         // that writes its own audit trail.
         [UnitState.Sold] = [],
 
-        [UnitState.Withdrawn] = [UnitState.Available]
+        // Withdrawn to Reserved for the same reason: a unit taken off sale because it went
+        // elsewhere is exactly the one somebody later wants a pipeline for, and routing that
+        // through Available would put it back on the public site on the way past.
+        [UnitState.Withdrawn] = [UnitState.Available, UnitState.Reserved]
     };
 
     public static bool CanTransition(UnitState from, UnitState to) =>

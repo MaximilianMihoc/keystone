@@ -1,6 +1,7 @@
 using Hubix.Domain;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
+using Hubix.Infrastructure.Admin;
 using Hubix.Infrastructure.Sales;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -730,5 +731,36 @@ public class ReservationTests(DatabaseFixture fixture)
                 reservationId, spaceId, Actor, "dev", CancellationToken.None))
             .ShouldBeOfType<ReservationOutcome.Refused>()
             .Reason.ShouldContain("notary");
+    }
+    [Fact]
+    public async Task A_unit_marked_reserved_elsewhere_can_start_a_pipeline()
+    {
+        await fixture.ResetUnitAsync();
+
+        // How a sale made through an agent arrives: the unit is marked, nobody is named yet.
+        await using (var mark = fixture.CreateContext())
+        {
+            (await new UnitAdminService(mark, TimeProvider.System, NullLogger<UnitAdminService>.Instance)
+                    .SetReservedAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<UnitEditResult.Updated>();
+        }
+
+        // Later, with a buyer to name, the pipeline picks it up from there. No hold exists, so
+        // the details are required and the unit stays where it already is.
+        await using (var start = fixture.CreateContext())
+        {
+            (await Service(start).CreateAsync(
+                    fixture.UnitId, Buyer(), BuyerType.Individual, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ReservationOutcome.Created>();
+        }
+
+        (await UnitStateAsync()).ShouldBe(UnitState.Reserved);
+
+        // And from that moment the mark is the pipeline's to undo, not the grid's.
+        await using var db = fixture.CreateContext();
+        var undo = await new UnitAdminService(db, TimeProvider.System, NullLogger<UnitAdminService>.Instance)
+            .SetReservedAsync(fixture.UnitId, false, Actor, "dev", CancellationToken.None);
+
+        undo.ShouldBeOfType<UnitEditResult.Rejected>().Reason.ShouldContain("pipeline");
     }
 }

@@ -331,6 +331,8 @@ export interface Unit {
   adminNotes: string | null;
   holdExpiresAt: string | null;
   heldBy: string | null;
+  /** A reservation stands behind the state, so the pipeline owns it and this grid does not. */
+  hasReservation: boolean;
 }
 
 export interface UnitsResponse {
@@ -790,6 +792,12 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ max }),
     }),
+
+  setReserved: (unitId: string, reserved: boolean) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/units/${unitId}/reserved`,
+      { method: 'POST', body: JSON.stringify({ reserved }) },
+    ),
 
   setWithdrawn: (unitId: string, withdrawn: boolean) =>
     request<{ changed: Record<string, unknown> }>(
