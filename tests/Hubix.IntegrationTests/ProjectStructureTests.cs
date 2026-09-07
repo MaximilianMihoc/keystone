@@ -223,4 +223,34 @@ public class ProjectStructureTests(DatabaseFixture fixture)
         (await verify.Units.AnyAsync(u => u.Id == fixture.UnitId)).ShouldBeTrue();
         (await verify.Floors.AnyAsync(f => f.Id == id)).ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task A_type_can_be_added_by_hand_and_not_twice()
+    {
+        Guid id;
+
+        await using (var create = fixture.CreateContext())
+        {
+            // Typed-in inventory has to start somewhere: without this the add-an-apartment form
+            // has no type to choose, and only an import could create one.
+            var created = await Service(create).CreateUnitTypeAsync(
+                fixture.ProjectId, "  3 camere  ", 7, Actor, "dev", CancellationToken.None);
+
+            id = created.ShouldBeOfType<AdminWriteResult.Created>().Id;
+        }
+
+        await using (var verify = fixture.CreateContext())
+        {
+            var type = await verify.UnitTypes.SingleAsync(t => t.Id == id);
+            type.Name.ShouldBe("3 camere");
+            type.SortOrder.ShouldBe(7);
+        }
+
+        // The name is the importer's match key, so a project may only hold one of each.
+        await using var again = fixture.CreateContext();
+        var second = await Service(again).CreateUnitTypeAsync(
+            fixture.ProjectId, "3 camere", 8, Actor, "dev", CancellationToken.None);
+
+        second.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("already");
+    }
 }

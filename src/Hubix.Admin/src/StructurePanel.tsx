@@ -26,6 +26,8 @@ export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [typeName, setTypeName] = useState('');
+
   const [building, setBuilding] = useState('');
   const [level, setLevel] = useState(1);
   const [label, setLabel] = useState('');
@@ -94,8 +96,41 @@ export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) 
           so it stays put. What a visitor reads is the translation next to it.
         </p>
 
+        {canEdit && (
+          <div className="row">
+            <label>
+              Name
+              <input
+                value={typeName}
+                placeholder="2 camere"
+                onChange={(e) => setTypeName(e.target.value)}
+              />
+            </label>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy || typeName.trim() === ''}
+              onClick={() =>
+                void run(async () => {
+                  await api.createUnitType(projectId, {
+                    name: typeName.trim(),
+                    sortOrder: data.types.length,
+                  });
+
+                  setTypeName('');
+                })
+              }
+            >
+              Add
+            </button>
+          </div>
+        )}
+
         {data.types.length === 0 ? (
-          <p className="empty">No apartment types yet. Importing apartments creates them.</p>
+          <p className="empty">
+            No apartment types yet. Add them here, or import apartments and they are created for
+            you.
+          </p>
         ) : (
           <table className="grid">
             <thead>

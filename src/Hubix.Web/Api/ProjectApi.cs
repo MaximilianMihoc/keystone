@@ -485,6 +485,28 @@ public static class ProjectApi
                 Respond(await pricing.DeleteScheduledAsync(
                     ruleId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
 
+        editable.MapPost("/projects/{projectId:guid}/unit-types",
+            async (Guid projectId,
+                   UnitTypeCreateRequest request,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+            {
+                if (Blank(request.Name) is not { } name)
+                {
+                    return Results.BadRequest(new { error = "An apartment type needs a name." });
+                }
+
+                if (Length(name, "type name", 100) is { } problem)
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
+                return Respond(await admin.CreateUnitTypeAsync(
+                    projectId, name, request.SortOrder,
+                    AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
+
         editable.MapPut("/unit-types/{unitTypeId:guid}",
             async (Guid unitTypeId,
                    UnitTypeRequest request,
@@ -804,6 +826,8 @@ public static class ProjectApi
         bool ReducedVat);
 
     public sealed record ScheduleRequest(PricingRequest Rule, DateTimeOffset EffectiveFrom);
+
+    public sealed record UnitTypeCreateRequest(string? Name, int SortOrder);
 
     public sealed record UnitTypeRequest(int SortOrder, Dictionary<string, string>? DisplayNames);
 

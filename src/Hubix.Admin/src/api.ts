@@ -684,6 +684,12 @@ export const api = {
   structure: (projectId: string) =>
     request<ProjectStructure>(`/api/admin/projects/${projectId}/structure`),
 
+  createUnitType: (projectId: string, body: { name: string; sortOrder: number }) =>
+    request<{ id: string }>(`/api/admin/projects/${projectId}/unit-types`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   editUnitType: (unitTypeId: string, body: { sortOrder: number; displayNames: Record<string, string> }) =>
     request<{ changed: Record<string, unknown> }>(`/api/admin/unit-types/${unitTypeId}`, {
       method: 'PUT',
