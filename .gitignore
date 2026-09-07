@@ -124,3 +124,6 @@ asset-store/
 
 # Database backups, taken locally by ops/backup.ps1.
 backups/
+
+# Playwright MCP scratch: page snapshots and console logs from browser-driven checks.
+.playwright-mcp/

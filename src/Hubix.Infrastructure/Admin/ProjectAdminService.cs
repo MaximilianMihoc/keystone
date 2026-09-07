@@ -619,6 +619,42 @@ public sealed class ProjectAdminService(
     }
 
     /// <summary>
+    /// Adds an apartment type by hand, for inventory that is typed in rather than imported.
+    /// </summary>
+    public async Task<AdminWriteResult> CreateUnitTypeAsync(
+        Guid projectId,
+        string name,
+        int sortOrder,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var type = new UnitType
+        {
+            ProjectId = projectId,
+            Name = name.Trim(),
+            SortOrder = sortOrder
+        };
+
+        db.UnitTypes.Add(type);
+        Audit(actorId, actorLabel, "project", projectId, "unittype.created", null,
+            new { type.Name, type.SortOrder });
+
+        return await SaveAsync(
+            ct,
+            () => new AdminWriteResult.Created(type.Id),
+            async () => await db.UnitTypes.AnyAsync(
+                t => t.ProjectId == projectId && t.Name == type.Name, ct)
+                ? $"\"{type.Name}\" is already an apartment type here."
+                : null);
+    }
+
+    /// <summary>
     /// Changes what a type is called in each language, and where it sorts.
     /// </summary>
     public async Task<AdminWriteResult> EditUnitTypeAsync(
