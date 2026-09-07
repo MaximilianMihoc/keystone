@@ -272,7 +272,15 @@ export function UnitsGrid({ units: initial, types, canEdit, onSessionExpired }: 
           </tbody>
         </table>
 
-        {visible.length === 0 && <p className="empty">Nothing matches that filter.</p>}
+        {/* A project can now exist before its apartments do, so "nothing matches that filter"
+            would be a confusing answer to a project that simply has nothing in it yet. */}
+        {visible.length === 0 && (
+          <p className="empty">
+            {units.length === 0
+              ? 'No apartments here yet. Add them from the Import tab.'
+              : 'Nothing matches that filter.'}
+          </p>
+        )}
       </div>
     </>
   );

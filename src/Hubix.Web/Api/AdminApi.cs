@@ -46,6 +46,8 @@ public static class AdminApi
                     p.City,
                     p.Status,
                     p.UnitsCommitted,
+                    p.PublishedAt,
+                    p.DeveloperId,
                     Total = p.Units.Count,
                     Available = p.Units.Count(u => u.State == UnitState.Available),
                     Held = p.Units.Count(u => u.State == UnitState.Held),
@@ -68,6 +70,8 @@ public static class AdminApi
                     .CityFor(culture, p.City),
                 status = p.Status.ToString(),
                 unitsCommitted = p.UnitsCommitted,
+                publishedAt = p.PublishedAt,
+                developerId = p.DeveloperId,
                 total = p.Total,
                 available = p.Available,
                 held = p.Held,
@@ -182,6 +186,7 @@ public static class AdminApi
                 };
             });
 
+        api.MapProjects();
         api.MapParking();
         api.MapReservations();
         api.MapImport();

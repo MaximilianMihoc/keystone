@@ -49,11 +49,95 @@ export interface ProjectSummary {
   city: string;
   status: string;
   unitsCommitted: number | null;
+  /** Null until somebody publishes it; the public site gates on exactly this. */
+  publishedAt: string | null;
+  developerId: string | null;
   total: number;
   available: number;
   held: number;
   reserved: number;
   sold: number;
+}
+
+/** Mirrors the server enum. Draft is where a project starts. */
+export const PROJECT_STATUSES = [
+  'Draft',
+  'Upcoming',
+  'Selling',
+  'SoldOut',
+  'Delivered',
+  'Archived',
+] as const;
+
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+/** How the homes are meant to be let. Drives the yield model Hubix publishes. */
+export const RENTAL_PROFILES = ['ShortTerm', 'MidTerm', 'LongTerm', 'Mixed'] as const;
+
+export type RentalProfile = (typeof RENTAL_PROFILES)[number];
+
+/** The two languages the site offers. Romanian is the one Hubix writes in. */
+export const CULTURES = ['en-GB', 'ro-RO'] as const;
+
+export interface Developer {
+  id: string;
+  name: string;
+  description: string | null;
+  yearsActive: number | null;
+  unitsBuilt: number | null;
+  website: string | null;
+  /** Shown by the delete button, so "this cannot go" is visible before it is clicked. */
+  projectCount: number;
+}
+
+export interface DeveloperEdit {
+  name: string;
+  description: string | null;
+  yearsActive: number | null;
+  unitsBuilt: number | null;
+  website: string | null;
+}
+
+/** Everything the setup form owns. Unlike a unit edit, null here means null. */
+export interface ProjectEdit {
+  name: string;
+  city: string;
+  slug: string;
+  developerId: string | null;
+  status: ProjectStatus;
+  unitsCommitted: number | null;
+  deliveryDate: string | null;
+  deliveryGraceMonths: number;
+  rentalProfile: RentalProfile | null;
+  reservationFee: number | null;
+  currency: string;
+  holdDurationHours: number;
+  mapsUrl: string | null;
+}
+
+export interface ProjectDetails extends ProjectEdit {
+  id: string;
+  publishedAt: string | null;
+  /** Publishing is refused below one, so the button can say why before it is pressed. */
+  units: number;
+}
+
+export interface ProjectTranslationRow {
+  culture: string;
+  /** Romanian is what the public pages fall back to, so it is labelled as the source. */
+  isSource: boolean;
+  city: string | null;
+  summary: string | null;
+  body: string | null;
+  penaltyClause: string | null;
+  parking: string | null;
+}
+
+export interface ProjectSetup {
+  project: ProjectDetails;
+  developers: { id: string; name: string }[];
+  /** Always one row per offered language, blank where nothing is stored yet. */
+  translations: ProjectTranslationRow[];
 }
 
 /** Mirrors the server enum, sent as its name rather than its ordinal. */
@@ -371,6 +455,57 @@ export const api = {
   me: () => request<Me>('/api/admin/me'),
 
   projects: () => request<ProjectSummary[]>('/api/admin/projects'),
+
+  developers: () => request<Developer[]>('/api/admin/developers'),
+
+  createDeveloper: (edit: DeveloperEdit) =>
+    request<{ id: string }>('/api/admin/developers', {
+      method: 'POST',
+      body: JSON.stringify(edit),
+    }),
+
+  editDeveloper: (developerId: string, edit: DeveloperEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/developers/${developerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(edit),
+    }),
+
+  deleteDeveloper: (developerId: string) =>
+    request<void>(`/api/admin/developers/${developerId}`, { method: 'DELETE' }),
+
+  projectSetup: (projectId: string) =>
+    request<ProjectSetup>(`/api/admin/projects/${projectId}/setup`),
+
+  createProject: (body: { name: string; city: string; slug: string | null; developerId: string | null }) =>
+    request<{ id: string }>('/api/admin/projects', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  editProject: (projectId: string, edit: ProjectEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(edit),
+    }),
+
+  deleteProject: (projectId: string) =>
+    request<void>(`/api/admin/projects/${projectId}`, { method: 'DELETE' }),
+
+  setProjectPublished: (projectId: string, published: boolean) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}/published`, {
+      method: 'POST',
+      body: JSON.stringify({ published }),
+    }),
+
+  saveProjectTranslation: (
+    projectId: string,
+    culture: string,
+    body: Omit<ProjectTranslationRow, 'culture' | 'isSource'>,
+  ) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/projects/${projectId}/translations/${culture}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
 
   units: (projectId: string) =>
     request<UnitsResponse>(`/api/admin/projects/${projectId}/units`),
