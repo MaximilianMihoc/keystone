@@ -53,8 +53,12 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
   const [data, setData] = useState<PricingResponse | null>(null);
   const [draft, setDraft] = useState<PricingDraft>(BLANK);
   const [preview, setPreview] = useState<PricingPreview | null>(null);
-  const [samplePrice, setSamplePrice] = useState(100000);
+  // Null means "whatever apartment the server picks". Held as a string so the field can be
+  // emptied mid-edit without a stray 0 being priced. Deliberately not persisted: it is a
+  // what-if, and clearing it returns to the real apartment.
+  const [samplePrice, setSamplePrice] = useState<string | null>(null);
   const [reducedVat, setReducedVat] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -85,15 +89,24 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
       try {
         const result = await api.previewPricing(projectId, {
           rule: draft,
-          samplePriceNet: samplePrice,
+          samplePriceNet:
+            samplePrice === null || samplePrice.trim() === '' ? null : Number(samplePrice),
           sampleCesiuneNet: null,
           reducedVat,
         });
 
-        if (!cancelled) setPreview(result);
+        if (!cancelled) {
+          setPreview(result);
+          setPreviewError(null);
+        }
       } catch (e) {
         if (e instanceof SessionExpired) onSessionExpired();
-        else if (!cancelled) setPreview(null);
+        else if (!cancelled) {
+          setPreview(null);
+          // A typed price the plan cannot be worked out against — below the cesiune, say.
+          // Saying so beats leaving the reader on "Working it out…" forever.
+          setPreviewError(e instanceof ApiError ? e.message : null);
+        }
       }
     })();
 
@@ -138,6 +151,10 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
     [next[index], next[target]] = [next[target], next[index]];
     setDraft({ ...draft, tranches: next });
   };
+
+  // An emptied field is not an override: the request sends null and the apartment answers
+  // again, so the hint must not claim a price was typed.
+  const overridden = samplePrice !== null && samplePrice.trim() !== '';
 
   const problems = preview?.problems ?? [];
   const blocked = problems.length > 0;
@@ -338,31 +355,36 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
         ) : preview?.schedule ? (
           <>
             <p className="hint">
-              {preview.schedule.against
-                ? `Worked out against ${preview.schedule.against}, the cheapest apartment here.`
-                : 'This project has no apartments yet, so this is against a price you can change below.'}
+              {overridden
+                ? 'Worked out against the price below, which you have changed.'
+                : preview.schedule.against
+                  ? `Worked out against ${preview.schedule.against}, the cheapest apartment here.`
+                  : 'This project has no apartments yet, so this is against the price below.'}
             </p>
 
-            {!preview.schedule.against && (
+            <div className="row">
               <label className="field">
-                <span>Sample price excl. VAT</span>
+                <span>Price excl. VAT</span>
                 <input
                   type="number"
-                  value={samplePrice}
-                  onChange={(e) => setSamplePrice(Number(e.target.value))}
+                  value={samplePrice ?? preview.schedule.basePriceNet}
+                  onChange={(e) => setSamplePrice(e.target.value)}
                 />
               </label>
-            )}
+              {samplePrice !== null && preview.schedule.against && (
+                <button className="btn ghost" type="button" onClick={() => setSamplePrice(null)}>
+                  Back to {preview.schedule.against}
+                </button>
+              )}
+            </div>
 
-            <label className="field">
-              <span>
-                <input
-                  type="checkbox"
-                  checked={reducedVat}
-                  onChange={(e) => setReducedVat(e.target.checked)}
-                />{' '}
-                Show it at the reduced VAT rate
-              </span>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={reducedVat}
+                onChange={(e) => setReducedVat(e.target.checked)}
+              />
+              Show it at the reduced VAT rate
             </label>
 
             <table className="grid">
@@ -409,6 +431,8 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
               </tbody>
             </table>
           </>
+        ) : previewError ? (
+          <p className="banner error">{previewError}</p>
         ) : (
           <p className="empty">Working it out…</p>
         )}

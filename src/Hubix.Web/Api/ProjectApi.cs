@@ -182,11 +182,13 @@ public static class ProjectApi
                     .Select(u => new { u.Code, u.BasePriceNet, Cesiune = u.CesiunePriceNet ?? 0m })
                     .FirstOrDefaultAsync(ct);
 
-                // A project with no apartments is reachable now, so the editor sends a price to
-                // preview against instead. Without this the pricing screen would be unusable
-                // until an import had run, which is the wrong way round.
-                var basePrice = sample?.BasePriceNet ?? request.SamplePriceNet ?? 100_000m;
-                var cesiune = sample?.Cesiune ?? request.SampleCesiuneNet ?? 0m;
+                // A price sent by the editor wins over the sample apartment. The preview is a
+                // what-if, and trying the plan against a different number is the point of it —
+                // the cheapest apartment is only where the number starts. With nothing sent the
+                // sample answers, and a project with no apartments at all falls back to a round
+                // number, so the screen is usable before an import has ever run.
+                var basePrice = request.SamplePriceNet ?? sample?.BasePriceNet ?? 100_000m;
+                var cesiune = request.SampleCesiuneNet ?? sample?.Cesiune ?? 0m;
 
                 if (cesiune > basePrice)
                 {
@@ -816,8 +818,8 @@ public static class ProjectApi
         IReadOnlyList<TrancheRequest>? Tranches);
 
     /// <summary>
-    /// A plan to try out. The sample figures are only consulted when the project has no
-    /// apartments to preview against yet.
+    /// A plan to try out. A sample figure sent here overrides the apartment the preview would
+    /// otherwise use, and is what answers for a project with no apartments at all.
     /// </summary>
     public sealed record PreviewRequest(
         PricingRequest Rule,

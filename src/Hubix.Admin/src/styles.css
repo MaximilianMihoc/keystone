@@ -260,7 +260,12 @@ main { padding: 22px 20px 60px; }
   font-size: inherit;
 }
 
-.grid td.num, .grid td .num { text-align: right; }
+.grid th.num, .grid td.num, .grid td .num { text-align: right; }
+
+/* .grid td carries no padding of its own: the span, input or select inside it is what gets
+   padded, so an editable cell and its header line up. A cell holding bare text has no such
+   child and sat flush against the border, a header's 10px out of step with it. */
+.grid td:not(:has(> span, > select, > input, > button)) { padding: 9px 10px; }
 
 .grid td > input:not([type='checkbox']),
 .grid td > select {
@@ -592,6 +597,19 @@ main { padding: 22px 20px 60px; }
 }
 .field input:disabled,
 .field textarea:disabled { opacity: 0.6; }
+
+/* A checkbox reads as one thing with its label, so it sits beside the words rather than
+   under a caption the way .field arranges a text input. */
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.check input[type='checkbox'] { margin: 0; accent-color: var(--amber); }
 
 .project-picker.full { width: 100%; margin-bottom: 14px; }
 
