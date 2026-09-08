@@ -104,9 +104,9 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
       } catch (e) {
         if (e instanceof SessionExpired) onSessionExpired();
         else if (!cancelled) {
-          setPreview(null);
-          // A typed price the plan cannot be worked out against — below the cesiune, say.
-          // Saying so beats leaving the reader on "Working it out…" forever.
+          // The last good preview stays. A figure the plan cannot be worked out against —
+          // a price below the cesiune, say — replaces the table with the reason, but the
+          // fields that produced it have to survive, or there is nothing left to correct.
           setPreviewError(e instanceof ApiError ? e.message : null);
         }
       }
@@ -406,49 +406,53 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
               Show it at the reduced VAT rate
             </label>
 
-            <table className="grid">
-              <thead>
-                <tr>
-                  <th>Payment</th>
-                  <th>Due</th>
-                  <th className="num">Apartment</th>
-                  <th className="num">Cesiune</th>
-                  <th className="num">Net</th>
-                  <th className="num">VAT</th>
-                  <th className="num">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.schedule.tranches.map((t, i) => (
-                  <tr key={i}>
-                    <td>
-                      {t.label}
-                      {t.percentage !== null && ` (${(t.percentage * 100).toFixed(0)}%)`}
-                    </td>
-                    <td>{DUE_LABELS[t.due]}</td>
-                    <td className="num">{money(t.apartmentNet)}</td>
-                    <td className="num">{t.cesiuneNet > 0 ? money(t.cesiuneNet) : '—'}</td>
-                    <td className="num">{money(t.net)}</td>
-                    <td className="num">{money(t.vat)}</td>
-                    <td className="num">{money(t.gross)}</td>
+            {previewError ? (
+              <p className="banner error">{previewError}</p>
+            ) : (
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>Payment</th>
+                    <th>Due</th>
+                    <th className="num">Apartment</th>
+                    <th className="num">Cesiune</th>
+                    <th className="num">Net</th>
+                    <th className="num">VAT</th>
+                    <th className="num">Total</th>
                   </tr>
-                ))}
-                <tr>
-                  <td colSpan={4}>
-                    <strong>Total</strong>
-                  </td>
-                  <td className="num">
-                    <strong>{money(preview.schedule.totalNet)}</strong>
-                  </td>
-                  <td className="num">
-                    <strong>{money(preview.schedule.totalVat)}</strong>
-                  </td>
-                  <td className="num">
-                    <strong>{money(preview.schedule.totalGross)}</strong>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {preview.schedule.tranches.map((t, i) => (
+                    <tr key={i}>
+                      <td>
+                        {t.label}
+                        {t.percentage !== null && ` (${(t.percentage * 100).toFixed(0)}%)`}
+                      </td>
+                      <td>{DUE_LABELS[t.due]}</td>
+                      <td className="num">{money(t.apartmentNet)}</td>
+                      <td className="num">{t.cesiuneNet > 0 ? money(t.cesiuneNet) : '—'}</td>
+                      <td className="num">{money(t.net)}</td>
+                      <td className="num">{money(t.vat)}</td>
+                      <td className="num">{money(t.gross)}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan={4}>
+                      <strong>Total</strong>
+                    </td>
+                    <td className="num">
+                      <strong>{money(preview.schedule.totalNet)}</strong>
+                    </td>
+                    <td className="num">
+                      <strong>{money(preview.schedule.totalVat)}</strong>
+                    </td>
+                    <td className="num">
+                      <strong>{money(preview.schedule.totalGross)}</strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
           </>
         ) : previewError ? (
           <p className="banner error">{previewError}</p>
