@@ -53,8 +53,13 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
   const [data, setData] = useState<PricingResponse | null>(null);
   const [draft, setDraft] = useState<PricingDraft>(BLANK);
   const [preview, setPreview] = useState<PricingPreview | null>(null);
-  const [samplePrice, setSamplePrice] = useState(100000);
+  // Null means "whatever apartment the server picks". Held as a string so the field can be
+  // emptied mid-edit without a stray 0 being priced. Deliberately not persisted: it is a
+  // what-if, and clearing it returns to the real apartment.
+  const [samplePrice, setSamplePrice] = useState<string | null>(null);
+  const [sampleCesiune, setSampleCesiune] = useState<string | null>(null);
   const [reducedVat, setReducedVat] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -85,22 +90,32 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
       try {
         const result = await api.previewPricing(projectId, {
           rule: draft,
-          samplePriceNet: samplePrice,
-          sampleCesiuneNet: null,
+          samplePriceNet:
+            samplePrice === null || samplePrice.trim() === '' ? null : Number(samplePrice),
+          sampleCesiuneNet:
+            sampleCesiune === null || sampleCesiune.trim() === '' ? null : Number(sampleCesiune),
           reducedVat,
         });
 
-        if (!cancelled) setPreview(result);
+        if (!cancelled) {
+          setPreview(result);
+          setPreviewError(null);
+        }
       } catch (e) {
         if (e instanceof SessionExpired) onSessionExpired();
-        else if (!cancelled) setPreview(null);
+        else if (!cancelled) {
+          // The last good preview stays. A figure the plan cannot be worked out against —
+          // a price below the cesiune, say — replaces the table with the reason, but the
+          // fields that produced it have to survive, or there is nothing left to correct.
+          setPreviewError(e instanceof ApiError ? e.message : null);
+        }
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [projectId, draft, samplePrice, reducedVat, onSessionExpired]);
+  }, [projectId, draft, samplePrice, sampleCesiune, reducedVat, onSessionExpired]);
 
   const run = useCallback(
     async (action: () => Promise<unknown>) => {
@@ -138,6 +153,12 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
     [next[index], next[target]] = [next[target], next[index]];
     setDraft({ ...draft, tranches: next });
   };
+
+  // An emptied field is not an override: the request sends null and the apartment answers
+  // again, so the hint must not claim a figure was typed.
+  const typed = (v: string | null) => v !== null && v.trim() !== '';
+  const overridden = typed(samplePrice) || typed(sampleCesiune);
+  const touched = samplePrice !== null || sampleCesiune !== null;
 
   const problems = preview?.problems ?? [];
   const blocked = problems.length > 0;
@@ -338,77 +359,103 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
         ) : preview?.schedule ? (
           <>
             <p className="hint">
-              {preview.schedule.against
-                ? `Worked out against ${preview.schedule.against}, the cheapest apartment here.`
-                : 'This project has no apartments yet, so this is against a price you can change below.'}
+              {overridden
+                ? 'Worked out against the figures below, which you have changed.'
+                : preview.schedule.against
+                  ? `Worked out against ${preview.schedule.against}, the cheapest apartment here.`
+                  : 'This project has no apartments yet, so this is against the figures below.'}
             </p>
 
-            {!preview.schedule.against && (
+            <div className="row">
               <label className="field">
-                <span>Sample price excl. VAT</span>
+                <span>Price excl. VAT</span>
                 <input
                   type="number"
-                  value={samplePrice}
-                  onChange={(e) => setSamplePrice(Number(e.target.value))}
+                  value={samplePrice ?? preview.schedule.basePriceNet}
+                  onChange={(e) => setSamplePrice(e.target.value)}
                 />
               </label>
-            )}
-
-            <label className="field">
-              <span>
+              <label className="field">
+                <span>Cesiune excl. VAT</span>
                 <input
-                  type="checkbox"
-                  checked={reducedVat}
-                  onChange={(e) => setReducedVat(e.target.checked)}
-                />{' '}
-                Show it at the reduced VAT rate
-              </span>
+                  type="number"
+                  value={sampleCesiune ?? preview.schedule.cesiuneNet}
+                  onChange={(e) => setSampleCesiune(e.target.value)}
+                />
+              </label>
+              {touched && preview.schedule.against && (
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setSamplePrice(null);
+                    setSampleCesiune(null);
+                  }}
+                >
+                  Back to {preview.schedule.against}
+                </button>
+              )}
+            </div>
+
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={reducedVat}
+                onChange={(e) => setReducedVat(e.target.checked)}
+              />
+              Show it at the reduced VAT rate
             </label>
 
-            <table className="grid">
-              <thead>
-                <tr>
-                  <th>Payment</th>
-                  <th>Due</th>
-                  <th className="num">Apartment</th>
-                  <th className="num">Cesiune</th>
-                  <th className="num">Net</th>
-                  <th className="num">VAT</th>
-                  <th className="num">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.schedule.tranches.map((t, i) => (
-                  <tr key={i}>
-                    <td>
-                      {t.label}
-                      {t.percentage !== null && ` (${(t.percentage * 100).toFixed(0)}%)`}
-                    </td>
-                    <td>{DUE_LABELS[t.due]}</td>
-                    <td className="num">{money(t.apartmentNet)}</td>
-                    <td className="num">{t.cesiuneNet > 0 ? money(t.cesiuneNet) : '—'}</td>
-                    <td className="num">{money(t.net)}</td>
-                    <td className="num">{money(t.vat)}</td>
-                    <td className="num">{money(t.gross)}</td>
+            {previewError ? (
+              <p className="banner error">{previewError}</p>
+            ) : (
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>Payment</th>
+                    <th>Due</th>
+                    <th className="num">Apartment</th>
+                    <th className="num">Cesiune</th>
+                    <th className="num">Net</th>
+                    <th className="num">VAT</th>
+                    <th className="num">Total</th>
                   </tr>
-                ))}
-                <tr>
-                  <td colSpan={4}>
-                    <strong>Total</strong>
-                  </td>
-                  <td className="num">
-                    <strong>{money(preview.schedule.totalNet)}</strong>
-                  </td>
-                  <td className="num">
-                    <strong>{money(preview.schedule.totalVat)}</strong>
-                  </td>
-                  <td className="num">
-                    <strong>{money(preview.schedule.totalGross)}</strong>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {preview.schedule.tranches.map((t, i) => (
+                    <tr key={i}>
+                      <td>
+                        {t.label}
+                        {t.percentage !== null && ` (${(t.percentage * 100).toFixed(0)}%)`}
+                      </td>
+                      <td>{DUE_LABELS[t.due]}</td>
+                      <td className="num">{money(t.apartmentNet)}</td>
+                      <td className="num">{t.cesiuneNet > 0 ? money(t.cesiuneNet) : '—'}</td>
+                      <td className="num">{money(t.net)}</td>
+                      <td className="num">{money(t.vat)}</td>
+                      <td className="num">{money(t.gross)}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan={4}>
+                      <strong>Total</strong>
+                    </td>
+                    <td className="num">
+                      <strong>{money(preview.schedule.totalNet)}</strong>
+                    </td>
+                    <td className="num">
+                      <strong>{money(preview.schedule.totalVat)}</strong>
+                    </td>
+                    <td className="num">
+                      <strong>{money(preview.schedule.totalGross)}</strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
           </>
+        ) : previewError ? (
+          <p className="banner error">{previewError}</p>
         ) : (
           <p className="empty">Working it out…</p>
         )}
