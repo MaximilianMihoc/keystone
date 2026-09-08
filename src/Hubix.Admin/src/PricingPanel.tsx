@@ -57,6 +57,7 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
   // emptied mid-edit without a stray 0 being priced. Deliberately not persisted: it is a
   // what-if, and clearing it returns to the real apartment.
   const [samplePrice, setSamplePrice] = useState<string | null>(null);
+  const [sampleCesiune, setSampleCesiune] = useState<string | null>(null);
   const [reducedVat, setReducedVat] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [effectiveFrom, setEffectiveFrom] = useState('');
@@ -91,7 +92,8 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
           rule: draft,
           samplePriceNet:
             samplePrice === null || samplePrice.trim() === '' ? null : Number(samplePrice),
-          sampleCesiuneNet: null,
+          sampleCesiuneNet:
+            sampleCesiune === null || sampleCesiune.trim() === '' ? null : Number(sampleCesiune),
           reducedVat,
         });
 
@@ -113,7 +115,7 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, draft, samplePrice, reducedVat, onSessionExpired]);
+  }, [projectId, draft, samplePrice, sampleCesiune, reducedVat, onSessionExpired]);
 
   const run = useCallback(
     async (action: () => Promise<unknown>) => {
@@ -153,8 +155,10 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
   };
 
   // An emptied field is not an override: the request sends null and the apartment answers
-  // again, so the hint must not claim a price was typed.
-  const overridden = samplePrice !== null && samplePrice.trim() !== '';
+  // again, so the hint must not claim a figure was typed.
+  const typed = (v: string | null) => v !== null && v.trim() !== '';
+  const overridden = typed(samplePrice) || typed(sampleCesiune);
+  const touched = samplePrice !== null || sampleCesiune !== null;
 
   const problems = preview?.problems ?? [];
   const blocked = problems.length > 0;
@@ -356,10 +360,10 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
           <>
             <p className="hint">
               {overridden
-                ? 'Worked out against the price below, which you have changed.'
+                ? 'Worked out against the figures below, which you have changed.'
                 : preview.schedule.against
                   ? `Worked out against ${preview.schedule.against}, the cheapest apartment here.`
-                  : 'This project has no apartments yet, so this is against the price below.'}
+                  : 'This project has no apartments yet, so this is against the figures below.'}
             </p>
 
             <div className="row">
@@ -371,8 +375,23 @@ export function PricingPanel({ projectId, canEdit, onSessionExpired }: Props) {
                   onChange={(e) => setSamplePrice(e.target.value)}
                 />
               </label>
-              {samplePrice !== null && preview.schedule.against && (
-                <button className="btn ghost" type="button" onClick={() => setSamplePrice(null)}>
+              <label className="field">
+                <span>Cesiune excl. VAT</span>
+                <input
+                  type="number"
+                  value={sampleCesiune ?? preview.schedule.cesiuneNet}
+                  onChange={(e) => setSampleCesiune(e.target.value)}
+                />
+              </label>
+              {touched && preview.schedule.against && (
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setSamplePrice(null);
+                    setSampleCesiune(null);
+                  }}
+                >
                   Back to {preview.schedule.against}
                 </button>
               )}
