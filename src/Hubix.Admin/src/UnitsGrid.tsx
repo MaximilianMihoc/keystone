@@ -67,6 +67,10 @@ export function UnitsGrid({
     basePriceNet: '',
     floorLevel: '',
     building: '',
+    stair: '',
+    orientation: '',
+    areaBalcony: '',
+    cesiunePriceNet: '',
   });
 
   const typeName = useMemo(
@@ -362,12 +366,28 @@ export function UnitsGrid({
               />
             </label>
             <label>
+              Stair
+              <input
+                value={draft.stair}
+                size={5}
+                onChange={(e) => setDraft({ ...draft, stair: e.target.value })}
+              />
+            </label>
+            <label>
               Floor
               <input
                 type="number"
                 value={draft.floorLevel}
                 size={4}
                 onChange={(e) => setDraft({ ...draft, floorLevel: e.target.value })}
+              />
+            </label>
+            <label>
+              Facing
+              <input
+                value={draft.orientation}
+                size={6}
+                onChange={(e) => setDraft({ ...draft, orientation: e.target.value })}
               />
             </label>
             <label>
@@ -381,12 +401,31 @@ export function UnitsGrid({
               />
             </label>
             <label>
+              Balcony
+              <input
+                type="number"
+                step="0.01"
+                value={draft.areaBalcony}
+                size={7}
+                onChange={(e) => setDraft({ ...draft, areaBalcony: e.target.value })}
+              />
+            </label>
+            <label>
               Price excl. VAT
               <input
                 type="number"
                 value={draft.basePriceNet}
                 size={10}
                 onChange={(e) => setDraft({ ...draft, basePriceNet: e.target.value })}
+              />
+            </label>
+            <label>
+              Cesiune net
+              <input
+                type="number"
+                value={draft.cesiunePriceNet}
+                size={10}
+                onChange={(e) => setDraft({ ...draft, cesiunePriceNet: e.target.value })}
               />
             </label>
             <button
@@ -410,17 +449,26 @@ export function UnitsGrid({
                       basePriceNet: Number(draft.basePriceNet),
                       crt: null,
                       building: draft.building.trim() === '' ? null : draft.building.trim(),
-                      stair: null,
+                      stair: draft.stair.trim() === '' ? null : draft.stair.trim(),
                       floorLevel: draft.floorLevel === '' ? null : Number(draft.floorLevel),
-                      orientation: null,
+                      orientation:
+                        draft.orientation.trim() === '' ? null : draft.orientation.trim(),
                       areaBuilt: null,
-                      areaBalcony: null,
-                      cesiunePriceNet: null,
+                      areaBalcony: draft.areaBalcony === '' ? null : Number(draft.areaBalcony),
+                      cesiunePriceNet:
+                        draft.cesiunePriceNet === '' ? null : Number(draft.cesiunePriceNet),
                       reducedVatEligible: false,
                       adminNotes: null,
                     });
 
-                    setDraft({ ...draft, code: '', areaUsable: '', basePriceNet: '' });
+                    setDraft({
+                      ...draft,
+                      code: '',
+                      areaUsable: '',
+                      areaBalcony: '',
+                      basePriceNet: '',
+                      cesiunePriceNet: '',
+                    });
                     setAdding(false);
                     onInventoryChanged();
                   } catch (e) {
