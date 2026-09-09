@@ -9,6 +9,7 @@ import {
   type ProjectSummary,
   type StaffMember,
   type StaffRole,
+  type UnitTypeCatalogue,
 } from './api';
 
 interface Props {
@@ -22,7 +23,12 @@ interface Props {
   onProjectCreated: (projectId: string) => void;
 }
 
-type Section = 'projects' | 'developers' | 'people';
+type Section = 'projects' | 'developers' | 'types' | 'people';
+
+const CULTURE_NAMES: Record<string, string> = {
+  'ro-RO': 'Romanian',
+  'en-GB': 'English',
+};
 
 const EMPTY: DeveloperEdit = {
   name: '',
@@ -33,7 +39,8 @@ const EMPTY: DeveloperEdit = {
 };
 
 /**
- * The things that exist above any one project: the projects themselves, and who built them.
+ * The things that exist above any one project: the projects themselves, who built them, the
+ * apartment types they are all described in, and who may sign in.
  *
  * This is the screen that did not exist, and its absence is why onboarding a second project
  * meant editing the seeder and redeploying.
@@ -62,14 +69,32 @@ export function OrganisationPanel({
   const [draft, setDraft] = useState<DeveloperEdit>(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
 
+  const [catalogue, setCatalogue] = useState<UnitTypeCatalogue | null>(null);
+  const [typeName, setTypeName] = useState('');
+  const [displayNames, setDisplayNames] = useState<Record<string, Record<string, string>>>({});
+  const [orders, setOrders] = useState<Record<string, number>>({});
+
   const load = useCallback(async () => {
     try {
       setDevelopers(await api.developers());
       if (isAdmin) setStaff(await api.staff());
+
+      const types = await api.unitTypes();
+      setCatalogue(types);
+
+      setDisplayNames(Object.fromEntries(types.types.map((t) => [
+        t.id,
+        Object.fromEntries(types.cultures.map((c) => [
+          c,
+          t.displayNames.find((d) => d.culture === c)?.displayName ?? '',
+        ])),
+      ])));
+
+      setOrders(Object.fromEntries(types.types.map((t) => [t.id, t.sortOrder])));
       setError(null);
     } catch (e) {
       if (e instanceof SessionExpired) onSessionExpired();
-      else setError(e instanceof ApiError ? e.message : 'Could not load the developers.');
+      else setError(e instanceof ApiError ? e.message : 'Could not load the organisation.');
     }
   }, [isAdmin, onSessionExpired]);
 
@@ -119,6 +144,13 @@ export function OrganisationPanel({
           onClick={() => setSection('developers')}
         >
           Developers
+        </button>
+        <button
+          className={`view${section === 'types' ? ' view-on' : ''}`}
+          type="button"
+          onClick={() => setSection('types')}
+        >
+          Apartment types
         </button>
         {isAdmin && (
           <button
@@ -514,6 +546,130 @@ export function OrganisationPanel({
             )}
           </section>
         </>
+      )}
+
+      {section === 'types' && (
+        <section className="panel">
+          <h2>Apartment types</h2>
+          <p className="hint">
+            One list for every project: "2 camere" means the same thing in each of them. The name
+            on the left is Hubix’s own, and it is what the spreadsheet importer matches on — so it
+            stays put. What a visitor reads is the translation next to it.
+          </p>
+
+          {canEdit && (
+            <div className="row">
+              <label>
+                Name
+                <input
+                  value={typeName}
+                  placeholder="2 camere"
+                  onChange={(e) => setTypeName(e.target.value)}
+                />
+              </label>
+              <button
+                className="btn"
+                type="button"
+                disabled={busy || typeName.trim() === ''}
+                onClick={() =>
+                  void run(async () => {
+                    await api.createUnitType({
+                      name: typeName.trim(),
+                      sortOrder: catalogue?.types.length ?? 0,
+                    });
+
+                    setTypeName('');
+                  })
+                }
+              >
+                Add
+              </button>
+            </div>
+          )}
+
+          {!catalogue ? (
+            <p className="empty">Loading…</p>
+          ) : catalogue.types.length === 0 ? (
+            <p className="empty">
+              No apartment types yet. Add them here, or import apartments and they are created for
+              you.
+            </p>
+          ) : (
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  {catalogue.cultures.map((c) => (
+                    <th key={c}>{CULTURE_NAMES[c] ?? c}</th>
+                  ))}
+                  <th className="num">Order</th>
+                  <th className="num">Apartments</th>
+                  {canEdit && <th />}
+                </tr>
+              </thead>
+              <tbody>
+                {catalogue.types.map((t) => (
+                  <tr key={t.id}>
+                    <td>{t.name}</td>
+                    {catalogue.cultures.map((c) => (
+                      <td key={c}>
+                        <input
+                          value={displayNames[t.id]?.[c] ?? ''}
+                          placeholder={t.name}
+                          disabled={!canEdit}
+                          onChange={(e) =>
+                            setDisplayNames({
+                              ...displayNames,
+                              [t.id]: { ...displayNames[t.id], [c]: e.target.value },
+                            })
+                          }
+                        />
+                      </td>
+                    ))}
+                    <td className="num">
+                      <input
+                        type="number"
+                        value={orders[t.id] ?? 0}
+                        disabled={!canEdit}
+                        onChange={(e) => setOrders({ ...orders, [t.id]: Number(e.target.value) })}
+                      />
+                    </td>
+                    <td className="num">{t.units}</td>
+                    {canEdit && (
+                      <td>
+                        <button
+                          className="btn"
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            void run(() =>
+                              api.editUnitType(t.id, {
+                                sortOrder: orders[t.id] ?? 0,
+                                displayNames: displayNames[t.id] ?? {},
+                              }),
+                            )
+                          }
+                        >
+                          Save
+                        </button>{' '}
+                        {/* Restricted by the foreign key too, but saying why beats a constraint
+                            violation. Reassigning apartments between types is not offered. */}
+                        <button
+                          className="btn danger"
+                          type="button"
+                          disabled={busy || t.units > 0 || t.waiting > 0}
+                          onClick={() => void run(() => api.deleteUnitType(t.id))}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
       )}
     </>
   );

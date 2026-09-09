@@ -7,26 +7,17 @@ interface Props {
   onSessionExpired: () => void;
 }
 
-const CULTURE_NAMES: Record<string, string> = {
-  'ro-RO': 'Romanian',
-  'en-GB': 'English',
-};
-
 /**
- * How a project's inventory is organised: what its apartment types are called, and what its
- * floors are named.
+ * The floors of a project, and the plans pinned to them.
  *
- * Both are joined to apartments loosely — a type by key, a floor by building and level — so this
- * screen also shows where the two disagree.
+ * Apartments join a floor by building and level rather than by key, so this screen also shows
+ * where the two disagree. Apartment types used to live here too; they are one catalogue for the
+ * whole portal now, and are edited under Organisation.
  */
 export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) {
   const [data, setData] = useState<ProjectStructure | null>(null);
-  const [names, setNames] = useState<Record<string, Record<string, string>>>({});
-  const [orders, setOrders] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const [typeName, setTypeName] = useState('');
 
   const [building, setBuilding] = useState('');
   const [level, setLevel] = useState(1);
@@ -34,18 +25,7 @@ export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) 
 
   const load = useCallback(async () => {
     try {
-      const structure = await api.structure(projectId);
-      setData(structure);
-
-      setNames(Object.fromEntries(structure.types.map((t) => [
-        t.id,
-        Object.fromEntries(structure.cultures.map((c) => [
-          c,
-          t.displayNames.find((d) => d.culture === c)?.displayName ?? '',
-        ])),
-      ])));
-
-      setOrders(Object.fromEntries(structure.types.map((t) => [t.id, t.sortOrder])));
+      setData(await api.structure(projectId));
       setError(null);
     } catch (e) {
       if (e instanceof SessionExpired) onSessionExpired();
@@ -88,123 +68,6 @@ export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) 
   return (
     <>
       {error && <p className="banner error">{error}</p>}
-
-      <section className="panel">
-        <h2>Apartment types</h2>
-        <p className="hint">
-          The name on the left is Hubix’s own, and it is what the spreadsheet importer matches on —
-          so it stays put. What a visitor reads is the translation next to it. This list is shared
-          by every project, so the apartment count is across all of them.
-        </p>
-
-        {canEdit && (
-          <div className="row">
-            <label>
-              Name
-              <input
-                value={typeName}
-                placeholder="2 camere"
-                onChange={(e) => setTypeName(e.target.value)}
-              />
-            </label>
-            <button
-              className="btn"
-              type="button"
-              disabled={busy || typeName.trim() === ''}
-              onClick={() =>
-                void run(async () => {
-                  await api.createUnitType({
-                    name: typeName.trim(),
-                    sortOrder: data.types.length,
-                  });
-
-                  setTypeName('');
-                })
-              }
-            >
-              Add
-            </button>
-          </div>
-        )}
-
-        {data.types.length === 0 ? (
-          <p className="empty">
-            No apartment types yet. Add them here, or import apartments and they are created for
-            you.
-          </p>
-        ) : (
-          <table className="grid">
-            <thead>
-              <tr>
-                <th>Name</th>
-                {data.cultures.map((c) => (
-                  <th key={c}>{CULTURE_NAMES[c] ?? c}</th>
-                ))}
-                <th className="num">Order</th>
-                <th className="num">Apartments</th>
-                {canEdit && <th />}
-              </tr>
-            </thead>
-            <tbody>
-              {data.types.map((t) => (
-                <tr key={t.id}>
-                  <td>{t.name}</td>
-                  {data.cultures.map((c) => (
-                    <td key={c}>
-                      <input
-                        value={names[t.id]?.[c] ?? ''}
-                        placeholder={t.name}
-                        disabled={!canEdit}
-                        onChange={(e) =>
-                          setNames({ ...names, [t.id]: { ...names[t.id], [c]: e.target.value } })
-                        }
-                      />
-                    </td>
-                  ))}
-                  <td className="num">
-                    <input
-                      type="number"
-                      value={orders[t.id] ?? 0}
-                      disabled={!canEdit}
-                      onChange={(e) => setOrders({ ...orders, [t.id]: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td className="num">{t.units}</td>
-                  {canEdit && (
-                    <td>
-                      <button
-                        className="btn"
-                        type="button"
-                        disabled={busy}
-                        onClick={() =>
-                          void run(() =>
-                            api.editUnitType(t.id, {
-                              sortOrder: orders[t.id] ?? 0,
-                              displayNames: names[t.id] ?? {},
-                            }),
-                          )
-                        }
-                      >
-                        Save
-                      </button>{' '}
-                      {/* Restricted by the foreign key too, but saying why beats a constraint
-                          violation. Reassigning apartments between types is not offered. */}
-                      <button
-                        className="btn danger"
-                        type="button"
-                        disabled={busy || t.units > 0 || t.waiting > 0}
-                        onClick={() => void run(() => api.deleteUnitType(t.id))}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
 
       <section className="panel">
         <h2>Floors</h2>
