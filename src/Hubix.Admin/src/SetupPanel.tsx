@@ -29,7 +29,7 @@ const SECTIONS: { key: Section; label: string }[] = [
   { key: 'details', label: 'Details' },
   { key: 'text', label: 'Text' },
   { key: 'pricing', label: 'Payment plan' },
-  { key: 'structure', label: 'Types & floors' },
+  { key: 'structure', label: 'Floors' },
 ];
 
 const CULTURE_NAMES: Record<string, string> = {

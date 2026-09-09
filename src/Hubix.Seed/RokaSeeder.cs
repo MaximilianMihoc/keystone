@@ -134,8 +134,13 @@ public static class RokaSeeder
             ]
         });
 
-        var unitTypes = new Dictionary<string, UnitType>(StringComparer.OrdinalIgnoreCase);
-        var order = 0;
+        // The catalogue is portal-wide, so a type another project already introduced is reused
+        // rather than added again — the same shape as the developer lookup above.
+        var unitTypes = await db.UnitTypes
+            .Include(t => t.Translations)
+            .ToDictionaryAsync(t => t.Name, StringComparer.OrdinalIgnoreCase, ct);
+
+        var order = unitTypes.Count;
 
         UnitType TypeFor(string name)
         {
@@ -157,7 +162,7 @@ public static class RokaSeeder
             }
 
             unitTypes[name] = created;
-            project.UnitTypes.Add(created);
+            db.UnitTypes.Add(created);
             return created;
         }
 

@@ -90,8 +90,6 @@ public class Project : Entity
 
     public ICollection<PricingRule> PricingRules { get; set; } = [];
 
-    public ICollection<UnitType> UnitTypes { get; set; } = [];
-
     public ICollection<Floor> Floors { get; set; } = [];
 
     public ICollection<Unit> Units { get; set; } = [];

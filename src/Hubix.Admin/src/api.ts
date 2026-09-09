@@ -260,10 +260,14 @@ export interface UnitCreate {
 }
 
 export interface ProjectStructure {
-  types: UnitTypeRow[];
   floors: FloorRow[];
   /** Levels the apartments actually claim, joined by building and level, not by key. */
   occupied: { building: string | null; level: number; units: number }[];
+}
+
+/** The apartment types, which belong to the portal rather than to any one project. */
+export interface UnitTypeCatalogue {
+  types: UnitTypeRow[];
   cultures: string[];
 }
 
@@ -686,8 +690,10 @@ export const api = {
   structure: (projectId: string) =>
     request<ProjectStructure>(`/api/admin/projects/${projectId}/structure`),
 
-  createUnitType: (projectId: string, body: { name: string; sortOrder: number }) =>
-    request<{ id: string }>(`/api/admin/projects/${projectId}/unit-types`, {
+  unitTypes: () => request<UnitTypeCatalogue>('/api/admin/unit-types'),
+
+  createUnitType: (body: { name: string; sortOrder: number }) =>
+    request<{ id: string }>('/api/admin/unit-types', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

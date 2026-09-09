@@ -247,29 +247,17 @@ public class UnitAdminTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task A_unit_type_from_another_project_is_refused()
+    public async Task A_unit_type_that_does_not_exist_is_refused()
     {
         await fixture.ResetUnitAsync();
 
         await using var db = fixture.CreateContext();
 
-        var foreign = new Project
-        {
-            Slug = $"other-{Guid.NewGuid():N}",
-            Name = "Other",
-            City = "Sibiu",
-            PublishedAt = DateTimeOffset.UtcNow
-        };
-        var foreignType = new UnitType { Name = "3 camere", SortOrder = 0 };
-        foreign.UnitTypes.Add(foreignType);
-        db.Projects.Add(foreign);
-        await db.SaveChangesAsync();
-
         var result = await Service(db).EditAsync(
-            fixture.UnitId, Edit(typeId: foreignType.Id), Actor, "dev", CancellationToken.None);
+            fixture.UnitId, Edit(typeId: Guid.CreateVersion7()), Actor, "dev", CancellationToken.None);
 
         result.ShouldBeOfType<UnitEditResult.Rejected>()
-            .Reason.ShouldContain("another project");
+            .Reason.ShouldContain("does not exist");
     }
 
     [Fact]

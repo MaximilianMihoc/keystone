@@ -27,7 +27,9 @@ public class UnitCreateTests(DatabaseFixture fixture)
     private async Task<Guid> TypeIdAsync()
     {
         await using var db = fixture.CreateContext();
-        return await db.UnitTypes.Where(t => t.ProjectId == fixture.ProjectId).Select(t => t.Id).FirstAsync();
+        // By name, not "the first one": the catalogue is portal-wide, so another test's type
+        // could otherwise be picked up here.
+        return await db.UnitTypes.Where(t => t.Name == "2 camere").Select(t => t.Id).SingleAsync();
     }
 
     private async Task<Guid> AddAsync(string code, Guid? typeId = null)
@@ -124,30 +126,57 @@ public class UnitCreateTests(DatabaseFixture fixture)
             .ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("cesiune");
     }
 
+    /// <summary>
+    /// The catalogue is portal-wide, so a type another project introduced is usable here.
+    /// This test used to assert the opposite; it is the one that pins the change.
+    /// </summary>
     [Fact]
-    public async Task A_type_from_another_project_is_refused()
+    public async Task A_type_another_project_introduced_is_accepted()
     {
         await fixture.ResetUnitAsync();
 
-        Guid otherType;
+        Guid elsewhere;
 
         await using (var setup = fixture.CreateContext())
         {
             var project = new Project { Slug = "other-project", Name = "Other", City = "Cluj" };
             var type = new UnitType { Name = "Studio", SortOrder = 0 };
-            project.UnitTypes.Add(type);
             setup.Projects.Add(project);
+            setup.UnitTypes.Add(type);
+            setup.Units.Add(new Unit
+            {
+                Project = project,
+                UnitType = type,
+                Code = "Ot.01",
+                AreaUsable = 30m,
+                BasePriceNet = 60_000m
+            });
+
             await setup.SaveChangesAsync();
-            otherType = type.Id;
+            elsewhere = type.Id;
         }
 
         await using var db = fixture.CreateContext();
         var result = await Service(db).CreateAsync(
             fixture.ProjectId,
-            new UnitCreate("Man.06", otherType, 50m, 100_000m),
+            new UnitCreate("Man.06", elsewhere, 50m, 100_000m),
             Actor, "dev", CancellationToken.None);
 
-        result.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("another project");
+        result.ShouldBeOfType<AdminWriteResult.Created>();
+    }
+
+    [Fact]
+    public async Task A_type_that_does_not_exist_is_refused()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var result = await Service(db).CreateAsync(
+            fixture.ProjectId,
+            new UnitCreate("Man.06", Guid.CreateVersion7(), 50m, 100_000m),
+            Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("does not exist");
     }
 
     [Fact]

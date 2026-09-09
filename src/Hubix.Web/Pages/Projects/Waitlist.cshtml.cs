@@ -165,7 +165,6 @@ public class WaitlistModel(
 
         var types = await db.UnitTypes
             .AsNoTracking()
-            .Where(t => t.ProjectId == project.Id)
             .OrderBy(t => t.SortOrder)
             .Select(t => new
             {
@@ -174,7 +173,8 @@ public class WaitlistModel(
                 Translations = t.Translations
                     .Select(x => new { x.Culture, x.DisplayName })
                     .ToList(),
-                Free = t.Units.Count(u => u.State == UnitState.Available)
+                // The catalogue is portal-wide, so this has to say "free here", not "free".
+                Free = t.Units.Count(u => u.ProjectId == project.Id && u.State == UnitState.Available)
             })
             .ToListAsync(ct);
 

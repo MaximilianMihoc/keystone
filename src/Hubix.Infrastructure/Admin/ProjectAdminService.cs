@@ -622,35 +622,27 @@ public sealed class ProjectAdminService(
     /// Adds an apartment type by hand, for inventory that is typed in rather than imported.
     /// </summary>
     public async Task<AdminWriteResult> CreateUnitTypeAsync(
-        Guid projectId,
         string name,
         int sortOrder,
         Guid actorId,
         string actorLabel,
         CancellationToken ct)
     {
-        if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
-        {
-            return new AdminWriteResult.NotFound();
-        }
-
         var type = new UnitType
         {
-            ProjectId = projectId,
             Name = name.Trim(),
             SortOrder = sortOrder
         };
 
         db.UnitTypes.Add(type);
-        Audit(actorId, actorLabel, "project", projectId, "unittype.created", null,
+        Audit(actorId, actorLabel, "unittype", type.Id, "unittype.created", null,
             new { type.Name, type.SortOrder });
 
         return await SaveAsync(
             ct,
             () => new AdminWriteResult.Created(type.Id),
-            async () => await db.UnitTypes.AnyAsync(
-                t => t.ProjectId == projectId && t.Name == type.Name, ct)
-                ? $"\"{type.Name}\" is already an apartment type here."
+            async () => await db.UnitTypes.AnyAsync(t => t.Name == type.Name, ct)
+                ? $"\"{type.Name}\" is already an apartment type."
                 : null);
     }
 
@@ -718,7 +710,7 @@ public sealed class ProjectAdminService(
             return new AdminWriteResult.NoChange();
         }
 
-        Audit(actorId, actorLabel, "project", type.ProjectId, "unittype.edited", diff.Before,
+        Audit(actorId, actorLabel, "unittype", type.Id, "unittype.edited", diff.Before,
             new { type.Name, Fields = diff.Changes });
 
         await db.SaveChangesAsync(ct);
@@ -767,7 +759,7 @@ public sealed class ProjectAdminService(
         }
 
         db.UnitTypes.Remove(type);
-        Audit(actorId, actorLabel, "project", type.ProjectId, "unittype.deleted", new { type.Name }, null);
+        Audit(actorId, actorLabel, "unittype", type.Id, "unittype.deleted", new { type.Name }, null);
 
         await db.SaveChangesAsync(ct);
 

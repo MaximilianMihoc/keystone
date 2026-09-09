@@ -21,7 +21,9 @@ public class ProjectStructureTests(DatabaseFixture fixture)
     private async Task<Guid> SeededTypeAsync()
     {
         await using var db = fixture.CreateContext();
-        return await db.UnitTypes.Where(t => t.ProjectId == fixture.ProjectId).Select(t => t.Id).FirstAsync();
+        // By name, not "the first one": the catalogue is portal-wide, so another test's type
+        // could otherwise be picked up here.
+        return await db.UnitTypes.Where(t => t.Name == "2 camere").Select(t => t.Id).SingleAsync();
     }
 
     [Fact]
@@ -104,7 +106,7 @@ public class ProjectStructureTests(DatabaseFixture fixture)
 
         await using (var setup = fixture.CreateContext())
         {
-            var type = new UnitType { ProjectId = fixture.ProjectId, Name = "Penthouse", SortOrder = 9 };
+            var type = new UnitType { Name = "Penthouse", SortOrder = 9 };
             setup.UnitTypes.Add(type);
             await setup.SaveChangesAsync();
             typeId = type.Id;
@@ -234,7 +236,7 @@ public class ProjectStructureTests(DatabaseFixture fixture)
             // Typed-in inventory has to start somewhere: without this the add-an-apartment form
             // has no type to choose, and only an import could create one.
             var created = await Service(create).CreateUnitTypeAsync(
-                fixture.ProjectId, "  3 camere  ", 7, Actor, "dev", CancellationToken.None);
+                "  3 camere  ", 7, Actor, "dev", CancellationToken.None);
 
             id = created.ShouldBeOfType<AdminWriteResult.Created>().Id;
         }
@@ -246,10 +248,10 @@ public class ProjectStructureTests(DatabaseFixture fixture)
             type.SortOrder.ShouldBe(7);
         }
 
-        // The name is the importer's match key, so a project may only hold one of each.
+        // The name is the importer's match key, so the catalogue holds one of each.
         await using var again = fixture.CreateContext();
         var second = await Service(again).CreateUnitTypeAsync(
-            fixture.ProjectId, "3 camere", 8, Actor, "dev", CancellationToken.None);
+            "3 camere", 8, Actor, "dev", CancellationToken.None);
 
         second.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("already");
     }

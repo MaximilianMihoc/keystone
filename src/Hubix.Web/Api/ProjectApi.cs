@@ -235,17 +235,14 @@ public static class ProjectApi
                 });
             });
 
-        api.MapGet("/projects/{projectId:guid}/structure",
-            async (Guid projectId, HubixDbContext db, CancellationToken ct) =>
+        // The catalogue belongs to the portal, not to a project, so it is read without one.
+        // Its counts are portal-wide for the same reason: they gate the delete button, and
+        // DeleteUnitTypeAsync refuses on those same numbers.
+        api.MapGet("/unit-types",
+            async (HubixDbContext db, CancellationToken ct) =>
             {
-                if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
-                {
-                    return Results.NotFound();
-                }
-
                 var types = await db.UnitTypes
                     .AsNoTracking()
-                    .Where(t => t.ProjectId == projectId)
                     .OrderBy(t => t.SortOrder).ThenBy(t => t.Name)
                     .Select(t => new
                     {
@@ -259,6 +256,17 @@ public static class ProjectApi
                             .ToList()
                     })
                     .ToListAsync(ct);
+
+                return Results.Ok(new { types, cultures = Cultures.Offered });
+            });
+
+        api.MapGet("/projects/{projectId:guid}/structure",
+            async (Guid projectId, HubixDbContext db, CancellationToken ct) =>
+            {
+                if (!await db.Projects.AnyAsync(p => p.Id == projectId, ct))
+                {
+                    return Results.NotFound();
+                }
 
                 var floors = await db.Floors
                     .AsNoTracking()
@@ -286,10 +294,8 @@ public static class ProjectApi
 
                 return Results.Ok(new
                 {
-                    types,
                     floors,
-                    occupied = occupied.OrderBy(o => o.building).ThenBy(o => o.level),
-                    cultures = Cultures.Offered
+                    occupied = occupied.OrderBy(o => o.building).ThenBy(o => o.level)
                 });
             });
 
@@ -487,9 +493,8 @@ public static class ProjectApi
                 Respond(await pricing.DeleteScheduledAsync(
                     ruleId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
 
-        editable.MapPost("/projects/{projectId:guid}/unit-types",
-            async (Guid projectId,
-                   UnitTypeCreateRequest request,
+        editable.MapPost("/unit-types",
+            async (UnitTypeCreateRequest request,
                    ProjectAdminService admin,
                    ClaimsPrincipal user,
                    CancellationToken ct) =>
@@ -505,7 +510,7 @@ public static class ProjectApi
                 }
 
                 return Respond(await admin.CreateUnitTypeAsync(
-                    projectId, name, request.SortOrder,
+                    name, request.SortOrder,
                     AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
             });
 

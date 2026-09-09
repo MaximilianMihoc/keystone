@@ -3,12 +3,12 @@ using Hubix.Domain.Common;
 namespace Hubix.Domain.Entities;
 
 /// <summary>Studio, Studio Dublu, 2 camere, 3 camere. Waitlists queue by this.</summary>
+/// <remarks>
+/// One catalogue for the whole portal rather than a list per project: "2 camere" means the
+/// same thing in every development, and a shared row is translated once instead of per project.
+/// </remarks>
 public class UnitType : Entity
 {
-    public Guid ProjectId { get; set; }
-
-    public Project? Project { get; set; }
-
     /// <summary>
     /// Canonical name, in Hubix's own Romanian. This is what the importer matches on, so it
     /// stays put; <see cref="Translations"/> only changes what a visitor reads.

@@ -86,7 +86,6 @@ public sealed class ImportPlanner(HubixDbContext db)
 
         var knownTypes = await db.UnitTypes
             .AsNoTracking()
-            .Where(t => t.ProjectId == projectId)
             .Select(t => t.Name)
             .ToListAsync(ct);
 

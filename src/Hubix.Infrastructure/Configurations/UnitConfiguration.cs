@@ -10,12 +10,7 @@ public class UnitTypeConfiguration : IEntityTypeConfiguration<UnitType>
     {
         builder.Property(t => t.Name).HasMaxLength(100).IsRequired();
 
-        builder.HasOne(t => t.Project)
-            .WithMany(p => p.UnitTypes)
-            .HasForeignKey(t => t.ProjectId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasIndex(t => new { t.ProjectId, t.Name }).IsUnique();
+        builder.HasIndex(t => t.Name).IsUnique();
     }
 }
 
