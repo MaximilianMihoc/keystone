@@ -93,15 +93,10 @@ public sealed class UnitAdminService(
                 "Its price cannot be changed here.");
         }
 
-        if (edit.UnitTypeId is { } typeId)
+        if (edit.UnitTypeId is { } typeId
+            && !await db.UnitTypes.AnyAsync(t => t.Id == typeId, ct))
         {
-            var typeBelongs = await db.UnitTypes
-                .AnyAsync(t => t.Id == typeId && t.ProjectId == unit.ProjectId, ct);
-
-            if (!typeBelongs)
-            {
-                return new UnitEditResult.Rejected("That apartment type belongs to another project.");
-            }
+            return new UnitEditResult.Rejected("That apartment type does not exist.");
         }
 
         var changes = new Dictionary<string, object?>();
@@ -368,12 +363,9 @@ public sealed class UnitAdminService(
             return new AdminWriteResult.Rejected("An apartment needs a code.");
         }
 
-        var typeBelongs = await db.UnitTypes
-            .AnyAsync(t => t.Id == create.UnitTypeId && t.ProjectId == projectId, ct);
-
-        if (!typeBelongs)
+        if (!await db.UnitTypes.AnyAsync(t => t.Id == create.UnitTypeId, ct))
         {
-            return new AdminWriteResult.Rejected("That apartment type belongs to another project.");
+            return new AdminWriteResult.Rejected("That apartment type does not exist.");
         }
 
         if (Unreasonable(create.AreaUsable, create.BasePriceNet, create.CesiunePriceNet) is { } problem)

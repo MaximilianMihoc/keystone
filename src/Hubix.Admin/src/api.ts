@@ -686,8 +686,8 @@ export const api = {
   structure: (projectId: string) =>
     request<ProjectStructure>(`/api/admin/projects/${projectId}/structure`),
 
-  createUnitType: (projectId: string, body: { name: string; sortOrder: number }) =>
-    request<{ id: string }>(`/api/admin/projects/${projectId}/unit-types`, {
+  createUnitType: (body: { name: string; sortOrder: number }) =>
+    request<{ id: string }>('/api/admin/unit-types', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

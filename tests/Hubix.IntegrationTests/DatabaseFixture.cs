@@ -197,7 +197,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
 
         // Units other tests created — the importer makes them by the sheetful.
         await db.Units.Where(u => u.ProjectId == ProjectId && u.Id != UnitId).ExecuteDeleteAsync();
-        await db.UnitTypes.Where(t => t.ProjectId == ProjectId && !t.Units.Any()).ExecuteDeleteAsync();
+        await db.UnitTypes.Where(t => !t.Units.Any()).ExecuteDeleteAsync();
 
         var seeded = SeedPrice;
 
@@ -230,10 +230,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
     {
         await using var db = CreateContext();
 
-        var typeId = await db.UnitTypes
-            .Where(t => t.ProjectId == ProjectId)
-            .Select(t => t.Id)
-            .FirstAsync();
+        var typeId = await db.UnitTypes.Select(t => t.Id).FirstAsync();
 
         var units = Enumerable.Range(0, count).Select(i => new Unit
         {
@@ -313,7 +310,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         project.PricingRules.Add(SeededRule());
 
         var type = new UnitType { Name = "2 camere", SortOrder = 0 };
-        project.UnitTypes.Add(type);
+        db.UnitTypes.Add(type);
 
         var unit = new Unit
         {

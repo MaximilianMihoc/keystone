@@ -45,7 +45,7 @@ public sealed class WaitlistService(
         }
 
         if (unitTypeId is { } typeId
-            && !await db.UnitTypes.AnyAsync(t => t.Id == typeId && t.ProjectId == projectId, ct))
+            && !await db.UnitTypes.AnyAsync(t => t.Id == typeId, ct))
         {
             return new WaitlistOutcome.UnknownType();
         }

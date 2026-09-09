@@ -23,8 +23,10 @@ public class WaitlistTests(DatabaseFixture fixture)
     private async Task<Guid> TypeIdAsync()
     {
         await using var db = fixture.CreateContext();
-        return await db.UnitTypes.Where(t => t.ProjectId == fixture.ProjectId)
-            .Select(t => t.Id).FirstAsync();
+        // By name, not "the first one": the catalogue is portal-wide, so another test's type
+        // could otherwise be picked up here.
+        return await db.UnitTypes.Where(t => t.Name == "2 camere")
+            .Select(t => t.Id).SingleAsync();
     }
 
     private async Task<WaitlistOutcome.Joined> JoinAsync(string email, Guid? typeId)
@@ -171,26 +173,14 @@ public class WaitlistTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task A_type_from_another_project_is_refused()
+    public async Task A_type_that_does_not_exist_is_refused()
     {
         await fixture.ResetUnitAsync();
 
         await using var db = fixture.CreateContext();
 
-        var other = new Project
-        {
-            Slug = $"elsewhere-{Guid.NewGuid():N}",
-            Name = "Elsewhere",
-            City = "Cluj",
-            PublishedAt = DateTimeOffset.UtcNow
-        };
-        var foreignType = new UnitType { Name = "4 camere", SortOrder = 0 };
-        other.UnitTypes.Add(foreignType);
-        db.Projects.Add(other);
-        await db.SaveChangesAsync();
-
         (await Service(db).JoinAsync(
-                fixture.ProjectId, foreignType.Id, Person("confused@example.ro"), CancellationToken.None))
+                fixture.ProjectId, Guid.CreateVersion7(), Person("confused@example.ro"), CancellationToken.None))
             .ShouldBeOfType<WaitlistOutcome.UnknownType>();
     }
 

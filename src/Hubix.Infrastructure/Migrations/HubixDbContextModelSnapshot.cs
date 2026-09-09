@@ -1014,9 +1014,6 @@ namespace Hubix.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -1025,7 +1022,7 @@ namespace Hubix.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId", "Name")
+                    b.HasIndex("Name")
                         .IsUnique();
 
                     b.ToTable("UnitTypes");
@@ -1334,17 +1331,6 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("Hubix.Domain.Entities.UnitType", b =>
-                {
-                    b.HasOne("Hubix.Domain.Entities.Project", "Project")
-                        .WithMany("UnitTypes")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("Hubix.Domain.Entities.UnitTypeTranslation", b =>
                 {
                     b.HasOne("Hubix.Domain.Entities.UnitType", "UnitType")
@@ -1410,8 +1396,6 @@ namespace Hubix.Infrastructure.Migrations
                     b.Navigation("PricingRules");
 
                     b.Navigation("Translations");
-
-                    b.Navigation("UnitTypes");
 
                     b.Navigation("Units");
                 });

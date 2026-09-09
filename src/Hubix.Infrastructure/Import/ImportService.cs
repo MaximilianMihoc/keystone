@@ -48,7 +48,6 @@ public sealed class ImportService(
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
             var types = await db.UnitTypes
-                .Where(t => t.ProjectId == projectId)
                 .ToDictionaryAsync(t => t.Name, StringComparer.OrdinalIgnoreCase, ct);
 
             foreach (var name in plan.NewTypes)
@@ -60,7 +59,6 @@ public sealed class ImportService(
 
                 var type = new UnitType
                 {
-                    ProjectId = projectId,
                     Name = name,
                     SortOrder = types.Count
                 };

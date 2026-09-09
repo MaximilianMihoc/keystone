@@ -93,7 +93,8 @@ export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) 
         <h2>Apartment types</h2>
         <p className="hint">
           The name on the left is Hubix’s own, and it is what the spreadsheet importer matches on —
-          so it stays put. What a visitor reads is the translation next to it.
+          so it stays put. What a visitor reads is the translation next to it. This list is shared
+          by every project, so the apartment count is across all of them.
         </p>
 
         {canEdit && (
@@ -112,7 +113,7 @@ export function StructurePanel({ projectId, canEdit, onSessionExpired }: Props) 
               disabled={busy || typeName.trim() === ''}
               onClick={() =>
                 void run(async () => {
-                  await api.createUnitType(projectId, {
+                  await api.createUnitType({
                     name: typeName.trim(),
                     sortOrder: data.types.length,
                   });

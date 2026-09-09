@@ -243,9 +243,11 @@ public static class ProjectApi
                     return Results.NotFound();
                 }
 
+                // The catalogue is shared, so every type is listed here and both counts are
+                // portal-wide — they gate the delete button, and DeleteUnitTypeAsync refuses
+                // on the same portal-wide numbers.
                 var types = await db.UnitTypes
                     .AsNoTracking()
-                    .Where(t => t.ProjectId == projectId)
                     .OrderBy(t => t.SortOrder).ThenBy(t => t.Name)
                     .Select(t => new
                     {
@@ -487,9 +489,8 @@ public static class ProjectApi
                 Respond(await pricing.DeleteScheduledAsync(
                     ruleId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
 
-        editable.MapPost("/projects/{projectId:guid}/unit-types",
-            async (Guid projectId,
-                   UnitTypeCreateRequest request,
+        editable.MapPost("/unit-types",
+            async (UnitTypeCreateRequest request,
                    ProjectAdminService admin,
                    ClaimsPrincipal user,
                    CancellationToken ct) =>
@@ -505,7 +506,7 @@ public static class ProjectApi
                 }
 
                 return Respond(await admin.CreateUnitTypeAsync(
-                    projectId, name, request.SortOrder,
+                    name, request.SortOrder,
                     AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
             });
 

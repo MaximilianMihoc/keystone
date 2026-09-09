@@ -98,7 +98,6 @@ public static class AdminApi
 
                 var types = await db.UnitTypes
                     .AsNoTracking()
-                    .Where(t => t.ProjectId == projectId)
                     .OrderBy(t => t.SortOrder)
                     .Select(t => new { id = t.Id, name = t.Name })
                     .ToListAsync(ct);
