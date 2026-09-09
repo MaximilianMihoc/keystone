@@ -271,6 +271,7 @@ public static class AdminApi
         api.MapImport();
         api.MapAssets();
         api.MapPrivacy();
+        api.MapProspects();
 
         api.MapGet("/audit", async (
             HubixDbContext db,

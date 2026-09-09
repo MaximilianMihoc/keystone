@@ -559,6 +559,64 @@ export interface ImportOutcome {
   notes: string[];
 }
 
+/** Someone who has held, reserved or queued for a unit. Not a staff account. */
+export interface Prospect {
+  id: string;
+  email: string;
+  fullName: string | null;
+  phone: string | null;
+  source: string | null;
+  firstSeen: string;
+  /** False means they are barred from taking a hold, and blockReason says why. */
+  canHold: boolean;
+  blockReason: string | null;
+  /** Holds they let lapse. Counted by the rule, never by a member of staff. */
+  lapsedHoldCount: number;
+  activeHolds: number;
+  openReservations: number;
+}
+
+export interface ProspectHold {
+  id: string;
+  unitCode: string;
+  project: string;
+  takenAt: string;
+  expiresAt: string;
+  releasedAt: string | null;
+  releaseReason: string | null;
+}
+
+export interface ProspectReservation {
+  id: string;
+  unitCode: string;
+  project: string;
+  state: string;
+  startedAt: string;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+}
+
+export interface ProspectWaitlist {
+  id: string;
+  project: string;
+  typeName: string | null;
+  position: number;
+  joinedAt: string;
+  notifiedAt: string | null;
+  removedAt: string | null;
+}
+
+export interface ProspectDetail extends Prospect {
+  locale: string;
+  gdprConsentAt: string | null;
+  gdprConsentPurpose: string[];
+  gdprConsentSource: string | null;
+  deletionRequestedAt: string | null;
+  holds: ProspectHold[];
+  reservations: ProspectReservation[];
+  waitlist: ProspectWaitlist[];
+}
+
 async function upload<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
   const body = new FormData();
   body.append('file', file);
@@ -809,6 +867,28 @@ export const api = {
     request<{ changed: Record<string, unknown> }>(
       `/api/admin/units/${unitId}/withdrawn`,
       { method: 'POST', body: JSON.stringify({ withdrawn }) },
+    ),
+
+  /**
+   * Searching and filtering happen on the server, unlike every other list here. This is the
+   * one table that grows with visitors rather than with the inventory, so the response is
+   * bounded and the browser is not asked to hold all of it.
+   */
+  prospects: (search: string, blockedOnly: boolean) => {
+    const query = new URLSearchParams();
+    if (search.trim()) query.set('search', search.trim());
+    if (blockedOnly) query.set('blocked', 'true');
+
+    return request<Prospect[]>(`/api/admin/prospects?${query}`);
+  },
+
+  prospect: (prospectId: string) =>
+    request<ProspectDetail>(`/api/admin/prospects/${prospectId}`),
+
+  setProspectBlocked: (prospectId: string, blocked: boolean, reason?: string) =>
+    request<{ changed: Record<string, unknown> }>(
+      `/api/admin/prospects/${prospectId}/blocked`,
+      { method: 'POST', body: JSON.stringify({ blocked, reason }) },
     ),
 
   pipeline: () => request<Pipeline>('/api/admin/pipeline'),

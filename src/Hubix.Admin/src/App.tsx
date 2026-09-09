@@ -7,6 +7,7 @@ import { WaitlistPanel } from './WaitlistPanel';
 import { ImportPanel } from './ImportPanel';
 import { AssetsPanel } from './AssetsPanel';
 import { OrganisationPanel } from './OrganisationPanel';
+import { ProspectsPanel } from './ProspectsPanel';
 import { SetupPanel } from './SetupPanel';
 import { ThemeSwitch } from './ThemeSwitch';
 
@@ -18,7 +19,8 @@ type View =
   | 'files'
   | 'import'
   | 'setup'
-  | 'organisation';
+  | 'organisation'
+  | 'prospects';
 
 /** The picker's last entry, which opens the create form rather than choosing a project. */
 const NEW_PROJECT = '__new';
@@ -242,7 +244,24 @@ export function App() {
             >
               Organisation
             </button>
+
+            {/* A prospect belongs to no project — they are joined to one only through a hold,
+                a reservation or a queue — so this is ungated too. Hidden rather than shown and
+                refused, the way the People section is. */}
+            {me.status === 'ready' && me.data.role === 'Admin' && (
+              <button
+                className={`view${view === 'prospects' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('prospects')}
+              >
+                Prospects
+              </button>
+            )}
           </nav>
+        )}
+
+        {view === 'prospects' && me.status === 'ready' && me.data.role === 'Admin' && (
+          <ProspectsPanel onSessionExpired={() => setExpired(true)} />
         )}
 
         {view === 'organisation' && me.status === 'ready' && projects.status === 'ready' && (

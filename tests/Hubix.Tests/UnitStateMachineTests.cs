@@ -131,4 +131,19 @@ public class HoldTests
         prospect.CanHold.ShouldBeTrue();
         prospect.LapsedHoldCount.ShouldBe(1); // history is kept
     }
+
+    [Fact]
+    public void A_hand_block_is_not_counted_as_a_lapse()
+    {
+        var prospect = new Prospect { Email = "test@example.ro" };
+
+        prospect.Block("Never turns up");
+
+        prospect.CanHold.ShouldBeFalse();
+        prospect.BlockReason.ShouldBe("Never turns up");
+
+        // The count is what the automatic rule uses. A staff decision must not inflate it, or
+        // "blocked, 0 lapses" stops telling anybody who did this.
+        prospect.LapsedHoldCount.ShouldBe(0);
+    }
 }
