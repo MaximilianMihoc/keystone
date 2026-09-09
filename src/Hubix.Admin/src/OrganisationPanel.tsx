@@ -15,7 +15,7 @@ import {
 interface Props {
   projects: ProjectSummary[];
   canEdit: boolean;
-  /** People is admin-only, so the tab is hidden rather than shown and refused. */
+  /** Staff is admin-only, so the tab is hidden rather than shown and refused. */
   isAdmin: boolean;
   /** Which section to open on, so the project picker's "+ New project" lands in the right place. */
   initialSection?: Section;
@@ -23,7 +23,7 @@ interface Props {
   onProjectCreated: (projectId: string) => void;
 }
 
-type Section = 'projects' | 'developers' | 'types' | 'people';
+type Section = 'projects' | 'developers' | 'types' | 'staff';
 
 const CULTURE_NAMES: Record<string, string> = {
   'ro-RO': 'Romanian',
@@ -154,11 +154,11 @@ export function OrganisationPanel({
         </button>
         {isAdmin && (
           <button
-            className={`view${section === 'people' ? ' view-on' : ''}`}
+            className={`view${section === 'staff' ? ' view-on' : ''}`}
             type="button"
-            onClick={() => setSection('people')}
+            onClick={() => setSection('staff')}
           >
-            People
+            Staff
           </button>
         )}
       </nav>
@@ -270,7 +270,7 @@ export function OrganisationPanel({
         </>
       )}
 
-      {section === 'people' && isAdmin && (
+      {section === 'staff' && isAdmin && (
         <>
           <section className="panel">
             <h2>Add a colleague</h2>
@@ -334,7 +334,7 @@ export function OrganisationPanel({
           </section>
 
           <section className="panel">
-            <h2>People</h2>
+            <h2>Staff</h2>
             {staff === null ? (
               <p className="empty">Loading…</p>
             ) : (
