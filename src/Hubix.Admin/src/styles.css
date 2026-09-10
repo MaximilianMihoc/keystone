@@ -249,6 +249,35 @@ main { padding: 22px 20px 60px; }
 
 .grid tbody tr:hover td { background: var(--surface-2); }
 
+/* ---------- audit log ---------- */
+
+.audit-detail td { background: var(--surface-2); padding: 14px 16px !important; }
+.audit-detail .facts { margin: 0; }
+.audit-change { display: flex; gap: 12px; align-items: baseline; padding: 3px 0; }
+.audit-change dt { min-width: 160px; }
+.audit-change dd { margin: 0; word-break: break-word; }
+
+/* The old value stays legible rather than struck through: it is often the answer. */
+.audit-was { color: var(--ink-3); }
+
+.audit-raw { display: flex; gap: 24px; flex-wrap: wrap; }
+.audit-raw pre {
+  margin: 4px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 46ch;
+}
+
+.audit-id { font-family: var(--mono); font-size: 10px; margin: 10px 0 0; }
+
+/* Keeps "someone@example.ro · prospect" on one line, so those rows are not double height.
+   The override is needed because .grid td > span is display:block for the editable cells in
+   the units grid, which would otherwise push the actor type onto its own line. */
+.audit-who { white-space: nowrap; }
+.grid td.audit-who > span { display: inline; width: auto; padding: 0; }
+
 /* Rows that open a drawer, so the pointer says so and the open one stays findable. */
 .grid tbody tr.pickable { cursor: pointer; }
 .grid tbody tr.pickable-on td { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--amber); }

@@ -48,6 +48,7 @@ builder.Services.AddScoped<ProjectAdminService>();
 builder.Services.AddScoped<PricingAdminService>();
 builder.Services.AddScoped<StaffAdminService>();
 builder.Services.AddScoped<ProspectAdminService>();
+builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<ParkingAdminService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<WaitlistPromoter>();
