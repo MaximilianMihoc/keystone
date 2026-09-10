@@ -8,6 +8,7 @@ import { ImportPanel } from './ImportPanel';
 import { AssetsPanel } from './AssetsPanel';
 import { OrganisationPanel } from './OrganisationPanel';
 import { ProspectsPanel } from './ProspectsPanel';
+import { AuditPanel } from './AuditPanel';
 import { SetupPanel } from './SetupPanel';
 import { ThemeSwitch } from './ThemeSwitch';
 
@@ -20,7 +21,8 @@ type View =
   | 'import'
   | 'setup'
   | 'organisation'
-  | 'prospects';
+  | 'prospects'
+  | 'audit';
 
 /** The picker's last entry, which opens the create form rather than choosing a project. */
 const NEW_PROJECT = '__new';
@@ -257,11 +259,27 @@ export function App() {
                 Prospects
               </button>
             )}
+
+            {/* Also ungated and also admin-only: the log spans every project and names
+                colleagues, so reading all of it is a supervisory view. */}
+            {me.status === 'ready' && me.data.role === 'Admin' && (
+              <button
+                className={`view${view === 'audit' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('audit')}
+              >
+                Audit
+              </button>
+            )}
           </nav>
         )}
 
         {view === 'prospects' && me.status === 'ready' && me.data.role === 'Admin' && (
           <ProspectsPanel onSessionExpired={() => setExpired(true)} />
+        )}
+
+        {view === 'audit' && me.status === 'ready' && me.data.role === 'Admin' && (
+          <AuditPanel onSessionExpired={() => setExpired(true)} />
         )}
 
         {view === 'organisation' && me.status === 'ready' && projects.status === 'ready' && (

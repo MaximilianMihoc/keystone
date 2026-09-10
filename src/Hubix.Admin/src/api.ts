@@ -617,6 +617,47 @@ export interface ProspectDetail extends Prospect {
   waitlist: ProspectWaitlist[];
 }
 
+/** One line of the audit log. */
+export interface AuditRow {
+  at: string;
+  /** The actor's label, falling back to their type, so this is never blank. */
+  actor: string;
+  actorType: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  /** JSON as the service wrote it, or null where the action had no prior state. */
+  before: string | null;
+  after: string | null;
+}
+
+/**
+ * The vocabulary present in the log.
+ *
+ * Read from the rows rather than listed here. The action names are spread across every service
+ * that writes one, so a copy in this file would be a second place to update and the first to go
+ * stale — and it would offer filters matching nothing.
+ */
+export interface AuditKinds {
+  entityTypes: string[];
+  /**
+   * Paired with their entity type, because the action name does not imply it: floor.created,
+   * pricing.created and translation.saved are all filed under `project`.
+   */
+  actions: { entityType: string; action: string }[];
+  actorTypes: string[];
+}
+
+export interface AuditFilter {
+  entityType?: string;
+  action?: string;
+  actorType?: string;
+  actor?: string;
+  from?: string;
+  to?: string;
+  take?: number;
+}
+
 async function upload<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
   const body = new FormData();
   body.append('file', file);
@@ -881,6 +922,18 @@ export const api = {
 
     return request<Prospect[]>(`/api/admin/prospects?${query}`);
   },
+
+  audit: (filter: AuditFilter) => {
+    const query = new URLSearchParams();
+
+    for (const [key, value] of Object.entries(filter)) {
+      if (value !== undefined && value !== '') query.set(key, String(value));
+    }
+
+    return request<AuditRow[]>(`/api/admin/audit?${query}`);
+  },
+
+  auditKinds: () => request<AuditKinds>('/api/admin/audit/kinds'),
 
   prospect: (prospectId: string) =>
     request<ProspectDetail>(`/api/admin/prospects/${prospectId}`),

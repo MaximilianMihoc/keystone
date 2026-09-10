@@ -272,37 +272,7 @@ public static class AdminApi
         api.MapAssets();
         api.MapPrivacy();
         api.MapProspects();
-
-        api.MapGet("/audit", async (
-            HubixDbContext db,
-            Guid? entityId,
-            int? take,
-            CancellationToken ct) =>
-        {
-            var query = db.AuditLogs.AsNoTracking();
-
-            if (entityId is { } id)
-            {
-                query = query.Where(a => a.EntityId == id);
-            }
-
-            var entries = await query
-                .OrderByDescending(a => a.CreatedAt)
-                .Take(Math.Clamp(take ?? 50, 1, 200))
-                .Select(a => new
-                {
-                    at = a.CreatedAt,
-                    actor = a.ActorLabel ?? a.ActorType,
-                    action = a.Action,
-                    entityType = a.EntityType,
-                    entityId = a.EntityId,
-                    before = a.Before,
-                    after = a.After
-                })
-                .ToListAsync(ct);
-
-            return Results.Ok(entries);
-        });
+        api.MapAudit();
     }
 
     internal static Guid ActorId(ClaimsPrincipal user) =>
