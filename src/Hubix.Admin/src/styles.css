@@ -249,6 +249,10 @@ main { padding: 22px 20px 60px; }
 
 .grid tbody tr:hover td { background: var(--surface-2); }
 
+/* Rows that open a drawer, so the pointer says so and the open one stays findable. */
+.grid tbody tr.pickable { cursor: pointer; }
+.grid tbody tr.pickable-on td { background: var(--surface-2); box-shadow: inset 2px 0 0 var(--amber); }
+
 .grid td > span,
 .grid td > select,
 .grid td > input[type='text'],

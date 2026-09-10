@@ -62,6 +62,20 @@ public class Prospect : Entity
         BlockReason = $"Hold lapsed without proceeding ({LapsedHoldCount}).";
     }
 
+    /// <summary>
+    /// Blocks by hand, with staff's own reason rather than the automatic one.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="LapsedHoldCount"/> is untouched: it counts holds that lapsed, and a staff
+    /// decision is not one of those. Somebody reading "blocked, 0 lapses" can tell at a glance
+    /// that a person did this rather than the rule.
+    /// </remarks>
+    public void Block(string reason)
+    {
+        CanHold = false;
+        BlockReason = reason;
+    }
+
     /// <summary>Lifts a block. Staff action, and audited.</summary>
     public void ClearBlock()
     {

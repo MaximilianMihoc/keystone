@@ -271,11 +271,12 @@ public static class AdminApi
         api.MapImport();
         api.MapAssets();
         api.MapPrivacy();
+        api.MapProspects();
 
         api.MapGet("/audit", async (
             HubixDbContext db,
             Guid? entityId,
-            int take,
+            int? take,
             CancellationToken ct) =>
         {
             var query = db.AuditLogs.AsNoTracking();
@@ -287,7 +288,7 @@ public static class AdminApi
 
             var entries = await query
                 .OrderByDescending(a => a.CreatedAt)
-                .Take(Math.Clamp(take == 0 ? 50 : take, 1, 200))
+                .Take(Math.Clamp(take ?? 50, 1, 200))
                 .Select(a => new
                 {
                     at = a.CreatedAt,
