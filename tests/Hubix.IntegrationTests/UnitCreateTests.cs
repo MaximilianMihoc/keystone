@@ -202,7 +202,7 @@ public class UnitCreateTests(DatabaseFixture fixture)
         // Hold cascades from the unit, so deleting it would take the record of the hold with it.
         await using (var setup = fixture.CreateContext())
         {
-            var prospect = new Prospect { Email = "buyer@example.invalid", FullName = "Buyer" };
+            var prospect = new Prospect { Email = "buyer@example.invalid", FirstName = "Buyer" };
             setup.Prospects.Add(prospect);
             setup.Holds.Add(new Hold
             {

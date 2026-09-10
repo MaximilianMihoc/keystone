@@ -604,6 +604,10 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ReservationNotice")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<string>("Summary")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -632,6 +636,14 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<bool>("CanHold")
                         .HasColumnType("bit");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -643,9 +655,15 @@ namespace Hubix.Infrastructure.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("nvarchar(320)");
 
+                    b.Property<string>("FirstName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("FullName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasMaxLength(201)
+                        .HasColumnType("nvarchar(201)")
+                        .HasComputedColumnSql("NULLIF(LTRIM(RTRIM(CONCAT([FirstName], ' ', [Surname]))), '')", true);
 
                     b.Property<DateTimeOffset?>("GdprConsentAt")
                         .HasColumnType("datetimeoffset");
@@ -673,6 +691,10 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<string>("Source")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Surname")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");

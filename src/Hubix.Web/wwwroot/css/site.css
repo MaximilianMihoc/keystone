@@ -831,6 +831,33 @@ td .code:hover { border-bottom-color: var(--amber); color: var(--amber-deep); }
 .alert:empty { display: none; }
 .alert ul { margin: 0; padding-left: 18px; }
 
+/* What this project needs a buyer to read before committing. Deliberately quieter than
+   .alert: it is standing information, not something that has just gone wrong. */
+.notice {
+    border-left: 3px solid var(--rule);
+    padding: 15px 18px;
+    max-width: 62ch;
+    margin-top: 24px;
+}
+
+.notice h2 {
+    font-family: var(--display);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 8px;
+}
+
+.notice p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0 0 8px;
+}
+
+.notice p:last-child { margin-bottom: 0; }
+
 /* ---------- countdown --------------------------------------------------- */
 
 .countdown {

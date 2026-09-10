@@ -47,6 +47,12 @@ public class ReserveModel(
 
     public bool ShowParking => MaxParkingSpaces > 0 && ParkingOnOffer.Count > 0;
 
+    /// <summary>
+    /// Whatever else this project needs a buyer to read before committing, in their language.
+    /// Blank on most projects.
+    /// </summary>
+    public string? Notice { get; private set; }
+
     /// <summary>Set when the attempt failed, so the page can explain rather than just fail.</summary>
     public string? FailureKey { get; private set; }
 
@@ -57,18 +63,34 @@ public class ReserveModel(
 
     public sealed class InputModel
     {
-        [Required(ErrorMessage = "Validation.NameRequired")]
-        [StringLength(200)]
-        public string? FullName { get; set; }
+        [Required(ErrorMessage = "Validation.FirstNameRequired")]
+        [StringLength(100)]
+        public string? FirstName { get; set; }
+
+        [Required(ErrorMessage = "Validation.SurnameRequired")]
+        [StringLength(100)]
+        public string? Surname { get; set; }
 
         [Required(ErrorMessage = "Validation.EmailRequired")]
         [EmailAddress(ErrorMessage = "Validation.EmailInvalid")]
         [StringLength(320)]
         public string? Email { get; set; }
 
+        [Required(ErrorMessage = "Validation.PhoneRequired")]
         [Phone(ErrorMessage = "Validation.PhoneInvalid")]
         [StringLength(50)]
         public string? Phone { get; set; }
+
+        [Required(ErrorMessage = "Validation.CityRequired")]
+        [StringLength(120)]
+        public string? City { get; set; }
+
+        /// <summary>
+        /// Left blank by almost everybody, and a blank means Romania — which is what the field
+        /// says on the form. Only a buyer from somewhere else has anything to type here.
+        /// </summary>
+        [StringLength(100)]
+        public string? Country { get; set; }
 
         [Range(typeof(bool), "true", "true", ErrorMessage = "Validation.ConsentRequired")]
         public bool Consent { get; set; }
@@ -124,8 +146,11 @@ public class ReserveModel(
             UnitId,
             new ProspectDetails(
                 Email: Input.Email!,
-                FullName: Input.FullName,
+                FirstName: Input.FirstName,
+                Surname: Input.Surname,
                 Phone: Input.Phone,
+                City: Input.City,
+                Country: Blank(Input.Country),
                 Locale: CultureInfo.CurrentUICulture.Name,
                 ConsentGiven: Input.Consent,
                 ConsentSource: $"reserve-form/{slug}/{code}"),
@@ -196,7 +221,7 @@ public class ReserveModel(
                 created.ExpiresAt, HoldDurationHours, created.AccessToken, ct);
 
             await notifier.SalesNotifiedAsync(
-                ProjectName, UnitCode, Input.Email!, Input.FullName, Input.Phone,
+                ProjectName, UnitCode, Input.Email!, FullName, Input.Phone,
                 created.ExpiresAt, created.ParkingSpaces, ct);
         }
         catch (Exception ex)
@@ -223,7 +248,10 @@ public class ReserveModel(
                 ProjectSlug = u.Project.Slug,
                 u.Project.HoldDurationHours,
                 u.Project.ReservationFee,
-                u.Project.MaxParkingSpacesPerReservation
+                u.Project.MaxParkingSpacesPerReservation,
+                Notices = u.Project.Translations
+                    .Select(t => new { t.Culture, t.ReservationNotice })
+                    .ToList()
             })
             .FirstOrDefaultAsync(ct);
 
@@ -239,6 +267,12 @@ public class ReserveModel(
         HoldDurationHours = found.HoldDurationHours;
         ReservationFee = found.ReservationFee;
         MaxParkingSpaces = found.MaxParkingSpacesPerReservation;
+
+        // Falls back to Romanian rather than to nothing: an untranslated notice still says
+        // something a buyer needs before they commit.
+        Notice = found.Notices
+            .Select(t => new ProjectTranslation { Culture = t.Culture, ReservationNotice = t.ReservationNotice })
+            .ReservationNoticeFor(CultureInfo.CurrentUICulture.Name);
 
         if (MaxParkingSpaces > 0)
         {
@@ -291,6 +325,13 @@ public class ReserveModel(
                select new ParkingOffer(price.Kind, price.PriceNet, price.DepositNet, available.Count)
         ];
     }
+
+    /// <summary>The two name boxes as one line, which is what the emails and sales want.</summary>
+    private string FullName => $"{Input.FirstName} {Input.Surname}".Trim();
+
+    /// <summary>A country box left empty means Romania, so nothing is stored for it.</summary>
+    private static string? Blank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     public bool CanSubmit => FailureKey is null;
 

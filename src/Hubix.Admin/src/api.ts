@@ -131,6 +131,8 @@ export interface ProjectTranslationRow {
   body: string | null;
   penaltyClause: string | null;
   parking: string | null;
+  /** Shown at the top of this project's reservation form. Blank on most projects. */
+  reservationNotice: string | null;
 }
 
 export interface ProjectSetup {
@@ -563,8 +565,14 @@ export interface ImportOutcome {
 export interface Prospect {
   id: string;
   email: string;
+  firstName: string | null;
+  surname: string | null;
+  /** The two above joined. Computed by the database — edit the parts, never this. */
   fullName: string | null;
   phone: string | null;
+  city: string | null;
+  /** Null means Romania, which is what the public forms tell buyers. */
+  country: string | null;
   source: string | null;
   firstSeen: string;
   /** False means they are barred from taking a hold, and blockReason says why. */
@@ -574,6 +582,16 @@ export interface Prospect {
   lapsedHoldCount: number;
   activeHolds: number;
   openReservations: number;
+}
+
+/** What staff may correct about a prospect: exactly what the public forms ask for. */
+export interface ProspectEdit {
+  email: string;
+  firstName: string | null;
+  surname: string | null;
+  phone: string | null;
+  city: string | null;
+  country: string | null;
 }
 
 export interface ProspectHold {
@@ -938,6 +956,13 @@ export const api = {
   prospect: (prospectId: string) =>
     request<ProspectDetail>(`/api/admin/prospects/${prospectId}`),
 
+  /** Corrects what the buyer typed. The joined name follows from the two parts. */
+  editProspect: (prospectId: string, edit: ProspectEdit) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/prospects/${prospectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(edit),
+    }),
+
   setProspectBlocked: (prospectId: string, blocked: boolean, reason?: string) =>
     request<{ changed: Record<string, unknown> }>(
       `/api/admin/prospects/${prospectId}/blocked`,
@@ -1022,7 +1047,7 @@ export const api = {
 
   startReservation: (
     unitId: string,
-    buyer?: { email: string; fullName?: string; phone?: string },
+    buyer?: { email: string; firstName?: string; surname?: string; phone?: string },
   ) =>
     request<{ id: string; state: string }>(`/api/admin/units/${unitId}/reservation`, {
       method: 'POST',

@@ -32,7 +32,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         new(name, "București", slug, null);
 
     private static TranslationEdit Prose(string summary) =>
-        new(null, summary, null, null, null);
+        new(null, summary, null, null, null, null);
 
     private async Task<Guid> NewProjectAsync(string name = "Roka Park View")
     {
@@ -288,6 +288,50 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         var audit = await verify.AuditLogs.FirstAsync(a => a.Action == "translation.saved");
         audit.EntityId.ShouldBe(id);
         audit.After.ShouldContain(Cultures.Romanian);
+    }
+
+    /// <summary>
+    /// The reservation notice falls back to Romanian rather than to a blank, and the English
+    /// row existing does not count as an answer.
+    /// </summary>
+    /// <remarks>
+    /// The English row is written here deliberately. Saving any English prose at all creates
+    /// one, and a plain <c>ForCulture</c> would then match it, find the notice empty, and show
+    /// an English reader nothing at all while the Romanian notice sat right beside it.
+    /// </remarks>
+    [Fact]
+    public async Task A_reservation_notice_written_only_in_Romanian_still_reaches_an_English_reader()
+    {
+        await fixture.ResetUnitAsync();
+        var id = await NewProjectAsync();
+
+        await using (var db = fixture.CreateContext())
+        {
+            await Service(db).SaveTranslationAsync(
+                id,
+                Cultures.Romanian,
+                new TranslationEdit(null, null, null, null, null, "Adu buletinul la semnare."),
+                Actor,
+                "dev",
+                CancellationToken.None);
+
+            await Service(db).SaveTranslationAsync(
+                id,
+                Cultures.English,
+                new TranslationEdit(null, "An English summary, and no notice.", null, null, null, null),
+                Actor,
+                "dev",
+                CancellationToken.None);
+        }
+
+        await using var verify = fixture.CreateContext();
+        var rows = await verify.ProjectTranslations.Where(t => t.ProjectId == id).ToListAsync();
+
+        rows.ReservationNoticeFor(Cultures.English).ShouldBe("Adu buletinul la semnare.");
+        rows.ReservationNoticeFor(Cultures.Romanian).ShouldBe("Adu buletinul la semnare.");
+
+        // Nothing written anywhere stays nothing, rather than becoming a blank paragraph.
+        rows.Where(t => t.Culture == "none").ReservationNoticeFor(Cultures.English).ShouldBeNull();
     }
 
     [Fact]

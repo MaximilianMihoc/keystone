@@ -30,11 +30,24 @@ public class ProspectAdminTests(DatabaseFixture fixture)
 
     private static ProspectDetails Buyer => new(
         Email: "buyer@example.ro",
-        FullName: "Buyer",
+        FirstName: "Buyer",
+        Surname: null,
         Phone: null,
+        City: null,
+        Country: null,
         Locale: Cultures.Romanian,
         ConsentGiven: true,
         ConsentSource: "test");
+
+    /// <summary>Takes a hold, which is how a prospect comes to exist at all.</summary>
+    private async Task<Guid> HoldingProspectAsync()
+    {
+        await using var db = fixture.CreateContext();
+
+        await Holds(db).TryHoldAsync(fixture.UnitId, Buyer, null, CancellationToken.None);
+
+        return await db.Prospects.Where(p => p.Email == Buyer.Email).Select(p => p.Id).SingleAsync();
+    }
 
     /// <summary>Takes a hold and cancels it, which is what blocks somebody in practice.</summary>
     private async Task<Guid> BlockByLapseAsync()
@@ -179,6 +192,98 @@ public class ProspectAdminTests(DatabaseFixture fixture)
 
         await using var verify = fixture.CreateContext();
         (await verify.AuditLogs.AnyAsync(a => a.EntityId == prospectId)).ShouldBeFalse();
+    }
+
+    /// <summary>
+    /// The detail every reservation now collects, and the one field nobody writes directly.
+    /// </summary>
+    /// <remarks>
+    /// <c>FullName</c> is a persisted computed column, so this is also the test that catches a
+    /// migration that quietly turned it back into an ordinary one: an edit to the two parts
+    /// would then leave the joined name stale rather than following it.
+    /// </remarks>
+    [Fact]
+    public async Task Correcting_the_name_moves_the_joined_name_with_it()
+    {
+        await fixture.ResetUnitAsync();
+
+        var prospectId = await HoldingProspectAsync();
+
+        await using (var db = fixture.CreateContext())
+        {
+            var result = await Service(db).UpdateDetailsAsync(
+                prospectId,
+                new ProspectEdit(
+                    "ion.popescu@example.ro", "Ion", "Popescu", "+40 700 111 222", "Cluj", "Spain"),
+                Actor,
+                "admin@hubix.invalid",
+                CancellationToken.None);
+
+            result.ShouldBeOfType<AdminWriteResult.Updated>()
+                .Changes.Keys.ShouldContain("Surname");
+        }
+
+        await using var verify = fixture.CreateContext();
+        var person = await verify.Prospects.SingleAsync(p => p.Id == prospectId);
+
+        person.FullName.ShouldBe("Ion Popescu");
+        person.Email.ShouldBe("ion.popescu@example.ro");
+        person.City.ShouldBe("Cluj");
+        person.Country.ShouldBe("Spain");
+
+        (await verify.AuditLogs.AnyAsync(
+            a => a.EntityId == prospectId && a.Action == "prospect.details.edited")).ShouldBeTrue();
+    }
+
+    /// <summary>A blank country means Romania, so it is stored as nothing rather than as "".</summary>
+    [Fact]
+    public async Task Clearing_the_country_stores_a_null_rather_than_a_blank()
+    {
+        await fixture.ResetUnitAsync();
+
+        var prospectId = await HoldingProspectAsync();
+
+        await using (var db = fixture.CreateContext())
+        {
+            await Service(db).UpdateDetailsAsync(
+                prospectId,
+                new ProspectEdit(Buyer.Email, "Buyer", null, null, "Brașov", "   "),
+                Actor,
+                "admin@hubix.invalid",
+                CancellationToken.None);
+        }
+
+        await using var verify = fixture.CreateContext();
+        var person = await verify.Prospects.SingleAsync(p => p.Id == prospectId);
+
+        person.Country.ShouldBeNull();
+        person.City.ShouldBe("Brașov");
+
+        // One part only, and the joined name is that part rather than "Buyer ".
+        person.FullName.ShouldBe("Buyer");
+    }
+
+    [Fact]
+    public async Task An_email_somebody_else_holds_is_refused()
+    {
+        await fixture.ResetUnitAsync();
+
+        var prospectId = await HoldingProspectAsync();
+
+        await using var db = fixture.CreateContext();
+
+        db.Prospects.Add(new Prospect { Email = "taken@example.ro", FirstName = "Someone" });
+        await db.SaveChangesAsync();
+
+        var result = await Service(db).UpdateDetailsAsync(
+            prospectId,
+            new ProspectEdit("taken@example.ro", "Buyer", null, null, null, null),
+            Actor,
+            "admin@hubix.invalid",
+            CancellationToken.None);
+
+        result.ShouldBeOfType<AdminWriteResult.Rejected>()
+            .Reason.ShouldContain("taken@example.ro");
     }
 
     [Fact]

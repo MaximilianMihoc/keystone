@@ -23,8 +23,11 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
 
     private static ProspectDetails Prospect(int n) => new(
         Email: $"buyer{n}@example.ro",
-        FullName: $"Buyer {n}",
+        FirstName: "Buyer",
+        Surname: n.ToString(),
         Phone: null,
+        City: "Bucuresti",
+        Country: null,
         Locale: Cultures.Romanian,
         ConsentGiven: true,
         ConsentSource: "test");

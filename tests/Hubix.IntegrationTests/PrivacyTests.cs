@@ -32,7 +32,7 @@ public class PrivacyTests(DatabaseFixture fixture)
         new(db, TimeProvider.System, NullLogger<WaitlistService>.Instance);
 
     private static ProspectDetails Details() =>
-        new(Email, "Test Subject", "+40 700 000 000", Cultures.Romanian, true, "test");
+        new(Email, "Test", "Subject", "+40 700 000 000", "Brasov", null, Cultures.Romanian, true, "test");
 
     /// <summary>Gives the subject a hold, a waiting list place and an enquiry.</summary>
     private async Task<HoldOutcome.Created> WithHistoryAsync()

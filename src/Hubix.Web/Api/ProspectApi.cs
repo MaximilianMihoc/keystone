@@ -66,8 +66,12 @@ public static class ProspectApi
                 {
                     id = p.Id,
                     email = p.Email,
+                    firstName = p.FirstName,
+                    surname = p.Surname,
                     fullName = p.FullName,
                     phone = p.Phone,
+                    city = p.City,
+                    country = p.Country,
                     source = p.Source,
                     firstSeen = p.CreatedAt,
                     canHold = p.CanHold,
@@ -100,8 +104,12 @@ public static class ProspectApi
                 {
                     id = p.Id,
                     email = p.Email,
+                    firstName = p.FirstName,
+                    surname = p.Surname,
                     fullName = p.FullName,
                     phone = p.Phone,
+                    city = p.City,
+                    country = p.Country,
                     locale = p.Locale,
                     source = p.Source,
                     firstSeen = p.CreatedAt,
@@ -163,6 +171,44 @@ public static class ProspectApi
             return prospect is null ? Results.NotFound() : Results.Ok(prospect);
         });
 
+        // What the buyer typed into the reservation form, corrected. People mistype their own
+        // email, give a mobile they no longer use, or leave a Romanian name split wrongly by
+        // the importer; sales find out on the phone and had nowhere to put it.
+        admin.MapPatch("/{prospectId:guid}", async (
+            Guid prospectId,
+            DetailsRequest request,
+            ProspectAdminService prospects,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            // The same lengths the columns are declared with. Without this a pasted paragraph
+            // reaches SQL Server and comes back as a truncation error nobody can act on.
+            var problem = ProjectApi.Length(request.Email, "email address", 320)
+                ?? ProjectApi.Length(request.FirstName, "first name", 100)
+                ?? ProjectApi.Length(request.Surname, "surname", 100)
+                ?? ProjectApi.Length(request.Phone, "phone number", 50)
+                ?? ProjectApi.Length(request.City, "city", 120)
+                ?? ProjectApi.Length(request.Country, "country", 100);
+
+            if (problem is not null)
+            {
+                return Results.BadRequest(new { error = problem });
+            }
+
+            return ProjectApi.Respond(await prospects.UpdateDetailsAsync(
+                prospectId,
+                new ProspectEdit(
+                    request.Email,
+                    request.FirstName,
+                    request.Surname,
+                    request.Phone,
+                    request.City,
+                    request.Country),
+                AdminApi.ActorId(user),
+                AdminApi.ActorLabel(user),
+                ct));
+        });
+
         admin.MapPost("/{prospectId:guid}/blocked", async (
             Guid prospectId,
             BlockRequest request,
@@ -179,4 +225,12 @@ public static class ProspectApi
     }
 
     public sealed record BlockRequest(bool Blocked, string? Reason);
+
+    public sealed record DetailsRequest(
+        string? Email,
+        string? FirstName,
+        string? Surname,
+        string? Phone,
+        string? City,
+        string? Country);
 }

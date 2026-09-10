@@ -25,7 +25,7 @@ public class ReservationTests(DatabaseFixture fixture)
         new(db, TimeProvider.System, NullLogger<HoldService>.Instance);
 
     private static ProspectDetails Buyer(string email = "buyer@example.ro") =>
-        new(email, "Ion Popescu", null, Cultures.Romanian, true, "test");
+        new(email, "Ion", "Popescu", null, null, null, Cultures.Romanian, true, "test");
 
     /// <summary>Puts the fixture's unit on hold and returns the resulting hold.</summary>
     private async Task<HoldOutcome.Created> HoldItAsync()

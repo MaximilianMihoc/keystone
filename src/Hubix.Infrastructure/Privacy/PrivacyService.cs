@@ -11,6 +11,8 @@ public sealed record PersonalData(
     string Email,
     string? FullName,
     string? Phone,
+    string? City,
+    string? Country,
     string Locale,
     string? Source,
     DateTimeOffset FirstSeen,
@@ -135,6 +137,8 @@ public sealed class PrivacyService(
             prospect.Email,
             prospect.FullName,
             prospect.Phone,
+            prospect.City,
+            prospect.Country,
             prospect.Locale,
             prospect.Source,
             prospect.CreatedAt,
@@ -236,8 +240,11 @@ public sealed class PrivacyService(
             {
                 // Stable, unique, and no way back to a person.
                 person.Email = $"erased-{person.Id:N}@removed.invalid";
-                person.FullName = null;
+                person.FirstName = null;
+                person.Surname = null;
                 person.Phone = null;
+                person.City = null;
+                person.Country = null;
                 person.Source = "erased";
                 person.GdprConsentAt = null;
                 person.GdprConsentPurpose = [];

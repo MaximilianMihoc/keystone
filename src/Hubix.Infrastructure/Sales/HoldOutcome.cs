@@ -63,11 +63,37 @@ public sealed record ParkingRequest(ParkingSpaceKind Kind, int Quantity);
 /// <summary>What a prospect tells us when they reserve.</summary>
 public sealed record ProspectDetails(
     string Email,
-    string? FullName,
+    string? FirstName,
+    string? Surname,
     string? Phone,
+    string? City,
+    string? Country,
     string Locale,
     bool ConsentGiven,
     string ConsentSource);
+
+/// <summary>Applying what a prospect just told us to the record we already keep of them.</summary>
+public static class ProspectDetailsExtensions
+{
+    /// <summary>
+    /// Copies the details across, without wiping anything with a blank: somebody who leaves
+    /// the phone box empty on their second reservation has not withdrawn their number.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ProspectDetails.Locale"/> is deliberately not copied. A reservation typed in
+    /// by staff carries the staff form's language, not the buyer's, and overwriting it here
+    /// would send that buyer their next email in the wrong one. Callers that know the language
+    /// came from the visitor's own browser set it themselves.
+    /// </remarks>
+    public static void ApplyTo(this ProspectDetails details, Prospect prospect)
+    {
+        prospect.FirstName = details.FirstName ?? prospect.FirstName;
+        prospect.Surname = details.Surname ?? prospect.Surname;
+        prospect.Phone = details.Phone ?? prospect.Phone;
+        prospect.City = details.City ?? prospect.City;
+        prospect.Country = details.Country ?? prospect.Country;
+    }
+}
 
 /// <summary>One expired hold, and what the job did about it.</summary>
 public sealed record ExpiredHold(

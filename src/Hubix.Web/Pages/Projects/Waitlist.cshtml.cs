@@ -51,18 +51,31 @@ public class WaitlistModel(
         [BindProperty(SupportsGet = true)]
         public string? Type { get; set; }
 
-        [Required(ErrorMessage = "Validation.NameRequired")]
-        [StringLength(200)]
-        public string? FullName { get; set; }
+        [Required(ErrorMessage = "Validation.FirstNameRequired")]
+        [StringLength(100)]
+        public string? FirstName { get; set; }
+
+        [Required(ErrorMessage = "Validation.SurnameRequired")]
+        [StringLength(100)]
+        public string? Surname { get; set; }
 
         [Required(ErrorMessage = "Validation.EmailRequired")]
         [EmailAddress(ErrorMessage = "Validation.EmailInvalid")]
         [StringLength(320)]
         public string? Email { get; set; }
 
+        [Required(ErrorMessage = "Validation.PhoneRequired")]
         [Phone(ErrorMessage = "Validation.PhoneInvalid")]
         [StringLength(50)]
         public string? Phone { get; set; }
+
+        [Required(ErrorMessage = "Validation.CityRequired")]
+        [StringLength(120)]
+        public string? City { get; set; }
+
+        /// <summary>Blank means Romania. See the same field on the reservation form.</summary>
+        [StringLength(100)]
+        public string? Country { get; set; }
 
         [Range(typeof(bool), "true", "true", ErrorMessage = "Validation.ConsentRequired")]
         public bool Consent { get; set; }
@@ -100,8 +113,11 @@ public class WaitlistModel(
             chosen?.Id,
             new ProspectDetails(
                 Email: Input.Email!,
-                FullName: Input.FullName,
+                FirstName: Input.FirstName,
+                Surname: Input.Surname,
                 Phone: Input.Phone,
+                City: Input.City,
+                Country: string.IsNullOrWhiteSpace(Input.Country) ? null : Input.Country.Trim(),
                 Locale: CultureInfo.CurrentUICulture.Name,
                 ConsentGiven: Input.Consent,
                 ConsentSource: $"waitlist-form/{slug}"),

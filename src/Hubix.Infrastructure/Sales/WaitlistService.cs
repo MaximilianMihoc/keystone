@@ -277,18 +277,16 @@ public sealed class WaitlistService(
             prospect = new Prospect
             {
                 Email = email,
-                FullName = details.FullName,
-                Phone = details.Phone,
                 Locale = details.Locale,
                 Source = "waitlist"
             };
 
+            details.ApplyTo(prospect);
             db.Prospects.Add(prospect);
         }
         else
         {
-            prospect.FullName = details.FullName ?? prospect.FullName;
-            prospect.Phone = details.Phone ?? prospect.Phone;
+            details.ApplyTo(prospect);
             prospect.Locale = details.Locale;
         }
 

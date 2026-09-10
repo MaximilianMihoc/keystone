@@ -11,6 +11,7 @@ using Hubix.Infrastructure.Email;
 using Hubix.Infrastructure.Assets;
 using Hubix.Infrastructure.Import;
 using Hubix.Infrastructure.Sales;
+using Hubix.Web;
 using Hubix.Web.Api;
 using Hubix.Infrastructure.Privacy;
 using Hubix.Web.Health;
@@ -31,7 +32,12 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services
     .AddRazorPages()
     .AddViewLocalization()
-    .AddDataAnnotationsLocalization();
+    // Every ErrorMessage on a page model is a key into SharedResource. Without this, the
+    // default provider looks for a resx named after the model type — Reserve+InputModel —
+    // finds none, and renders the key itself, so a buyer who leaves a box empty is told
+    // "Validation.SurnameRequired".
+    .AddDataAnnotationsLocalization(options =>
+        options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource)));
 
 builder.Services.AddHubixInfrastructure(builder.Configuration);
 
