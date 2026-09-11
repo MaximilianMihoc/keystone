@@ -52,7 +52,16 @@ public class Prospect : Entity
     /// <summary>Which form and which version of the wording they accepted.</summary>
     public string? GdprConsentSource { get; set; }
 
-    public DateTimeOffset? DeletionRequestedAt { get; set; }
+    /// <summary>
+    /// When this record was stripped of everything identifying, because they asked to be
+    /// forgotten and a reservation with money against it had to be kept.
+    /// </summary>
+    /// <remarks>
+    /// This is when it was done, not when they asked — the two were the same field until
+    /// <see cref="PrivacyRequest"/> existed to hold the asking, and the old name said the
+    /// wrong one of them. Only ever set on records that survived erasure; the rest are gone.
+    /// </remarks>
+    public DateTimeOffset? AnonymisedAt { get; set; }
 
     // --- Serial-canceller rule --------------------------------------------------
     // Hubix's documents state that a prospect who abandons a hold may not take another,

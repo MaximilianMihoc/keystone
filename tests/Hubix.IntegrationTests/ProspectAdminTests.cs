@@ -2,6 +2,7 @@ using Hubix.Domain;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
 using Hubix.Infrastructure.Admin;
+using Hubix.Infrastructure.Privacy;
 using Hubix.Infrastructure.Sales;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -261,6 +262,57 @@ public class ProspectAdminTests(DatabaseFixture fixture)
 
         // One part only, and the joined name is that part rather than "Buyer ".
         person.FullName.ShouldBe("Buyer");
+    }
+
+    /// <summary>
+    /// Correcting a typo'd address must take whatever they asked for with it.
+    /// </summary>
+    /// <remarks>
+    /// A privacy request has no foreign key — it has to outlive an erasure that deletes the
+    /// prospect — so the address is the only thread between them. Left behind, an open request
+    /// would vanish from their drawer and sit on the deadline queue answerable by nobody.
+    /// </remarks>
+    [Fact]
+    public async Task Correcting_an_address_takes_their_open_privacy_requests_with_it()
+    {
+        await fixture.ResetUnitAsync();
+
+        var prospectId = await HoldingProspectAsync();
+
+        Guid openId;
+        Guid answeredId;
+
+        await using (var db = fixture.CreateContext())
+        {
+            var privacy = new PrivacyService(db, TimeProvider.System,
+                NullLogger<PrivacyService>.Instance);
+
+            openId = (await privacy.LogRequestAsync(
+                Buyer.Email, PrivacyRequestKind.Erasure, null, null, Actor, "dev",
+                CancellationToken.None)).Id;
+
+            answeredId = (await privacy.LogRequestAsync(
+                Buyer.Email, PrivacyRequestKind.Access, null, null, Actor, "dev",
+                CancellationToken.None)).Id;
+
+            await privacy.MarkAnsweredAsync(answeredId, Actor, "dev", CancellationToken.None);
+
+            await Service(db).UpdateDetailsAsync(
+                prospectId,
+                new ProspectEdit("corrected@example.ro", "Buyer", null, null, null, null),
+                Actor,
+                "admin@hubix.invalid",
+                CancellationToken.None);
+        }
+
+        await using var verify = fixture.CreateContext();
+
+        (await verify.PrivacyRequests.SingleAsync(r => r.Id == openId))
+            .Email.ShouldBe("corrected@example.ro");
+
+        // A closed one records what was true when it was closed, and does not move.
+        (await verify.PrivacyRequests.SingleAsync(r => r.Id == answeredId))
+            .Email.ShouldBe(Buyer.Email);
     }
 
     [Fact]

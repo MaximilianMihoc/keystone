@@ -76,6 +76,130 @@ public sealed class PrivacyService(
     TimeProvider clock,
     ILogger<PrivacyService> logger)
 {
+    /// <summary>
+    /// Records that somebody asked, so the clock can be shown to have been met.
+    /// </summary>
+    /// <param name="requestedAt">
+    /// When the email or call arrived, which staff may be entering days later. Defaults to now,
+    /// and is clamped to now, because a request from the future is a typo rather than a
+    /// deadline — and a mistyped year would otherwise read as comfortably in hand forever.
+    /// </param>
+    public async Task<PrivacyRequest> LogRequestAsync(
+        string email,
+        PrivacyRequestKind kind,
+        DateTimeOffset? requestedAt,
+        string? note,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+
+        var request = new PrivacyRequest
+        {
+            Email = email.Trim(),
+            Kind = kind,
+            RequestedAt = requestedAt is { } asked && asked < now ? asked : now,
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim()
+        };
+
+        db.PrivacyRequests.Add(request);
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "privacy-request",
+            EntityId = request.Id,
+            Action = "privacy.request.logged",
+            After = JsonSerializer.Serialize(new
+            {
+                Kind = kind.ToString(),
+                request.RequestedAt,
+                request.DueAt
+            })
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "{Actor} logged a {Kind} request, due {Due:u}", actorLabel, kind, request.DueAt);
+
+        return request;
+    }
+
+    /// <summary>Everything asked by one address, newest first.</summary>
+    public Task<List<PrivacyRequest>> RequestsForAsync(string email, CancellationToken ct)
+    {
+        var trimmed = email.Trim();
+
+        return db.PrivacyRequests
+            .AsNoTracking()
+            .Where(r => r.Email == trimmed)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Everything still open, oldest first, so whatever is closest to its deadline is on top.
+    /// </summary>
+    public Task<List<PrivacyRequest>> OpenRequestsAsync(CancellationToken ct) =>
+        db.PrivacyRequests
+            .AsNoTracking()
+            .Where(r => r.CompletedAt == null)
+            .OrderBy(r => r.RequestedAt)
+            .ToListAsync(ct);
+
+    /// <summary>
+    /// Closes one request by hand.
+    /// </summary>
+    /// <remarks>
+    /// Answering an access request means sending somebody a file, which this system cannot
+    /// witness — the export is a download, and a GET that changed data would be wrong in a
+    /// way browsers and proxies punish. So staff say when it was sent. Erasure is different:
+    /// <see cref="ForgetAsync"/> closes its own requests, because it is already a write and
+    /// because it destroys the address the request would otherwise be found by.
+    /// </remarks>
+    public async Task<bool> MarkAnsweredAsync(
+        Guid requestId,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var request = await db.PrivacyRequests
+            .FirstOrDefaultAsync(r => r.Id == requestId && r.CompletedAt == null, ct);
+
+        if (request is null)
+        {
+            // Already answered, or never there. Both are "nothing left to do".
+            return false;
+        }
+
+        var now = clock.GetUtcNow();
+        request.Complete("answered", now);
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "privacy-request",
+            EntityId = request.Id,
+            Action = "privacy.request.answered",
+            After = JsonSerializer.Serialize(new
+            {
+                Kind = request.Kind.ToString(),
+                request.RequestedAt,
+                AnsweredAt = now,
+                WithinDeadline = now <= request.DueAt
+            })
+        });
+
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<PersonalData?> ExportAsync(string email, CancellationToken ct)
     {
         var trimmed = email.Trim();
@@ -250,7 +374,7 @@ public sealed class PrivacyService(
                 person.GdprConsentPurpose = [];
                 person.GdprConsentSource = null;
                 person.BlockReason = null;
-                person.DeletionRequestedAt = now;
+                person.AnonymisedAt = now;
 
                 await db.WaitlistEntries.Where(w => w.ProspectId == person.Id).ExecuteDeleteAsync(ct);
                 await db.Enquiries.Where(e => e.ProspectId == person.Id).ExecuteDeleteAsync(ct);
@@ -282,6 +406,17 @@ public sealed class PrivacyService(
 
                 outcome = new ForgetOutcome.Deleted();
             }
+
+            // Close whatever they asked for and take their address off it, in this transaction
+            // rather than after it. The row is the proof the request was met in time; the
+            // address on it would be a copy of the person who asked not to be kept.
+            await db.PrivacyRequests
+                .Where(r => r.Email == trimmed)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.CompletedAt, r => r.CompletedAt ?? now)
+                    .SetProperty(r => r.Outcome, r => r.Outcome ?? (mustKeep ? "anonymised" : "deleted"))
+                    .SetProperty(r => r.Email, (string?)null)
+                    .SetProperty(r => r.UpdatedAt, now), ct);
 
             db.AuditLogs.Add(new AuditLog
             {

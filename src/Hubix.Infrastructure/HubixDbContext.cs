@@ -46,6 +46,8 @@ public class HubixDbContext(DbContextOptions<HubixDbContext> options) : DbContex
 
     public DbSet<Enquiry> Enquiries => Set<Enquiry>();
 
+    public DbSet<PrivacyRequest> PrivacyRequests => Set<PrivacyRequest>();
+
     public DbSet<ImportProfile> ImportProfiles => Set<ImportProfile>();
 
     protected override void OnModelCreating(ModelBuilder builder)

@@ -578,10 +578,52 @@ export interface Prospect {
   /** False means they are barred from taking a hold, and blockReason says why. */
   canHold: boolean;
   blockReason: string | null;
+  /** Set only where an erasure had to keep the record. Null for everybody else. */
+  anonymisedAt: string | null;
   /** Holds they let lapse. Counted by the rule, never by a member of staff. */
   lapsedHoldCount: number;
   activeHolds: number;
   openReservations: number;
+}
+
+/**
+ * Which prospects to list. Leaving a flag out means "either".
+ *
+ * `blocked: false` hides the people barred from holding; `erased: false` hides the records an
+ * erasure had to keep. Both read backwards at a glance, so the panel names them by what it is
+ * showing rather than passing these around.
+ *
+ * Note that the panel's default view is not the absent one: it sends `erased: false`, because
+ * a record with no name, no phone and an unreachable address is not somebody to sell to.
+ */
+export interface ProspectFilter {
+  search: string;
+  blocked?: boolean;
+  erased?: boolean;
+}
+
+export const PRIVACY_KINDS = ['Access', 'Erasure'] as const;
+
+export type PrivacyRequestKind = (typeof PRIVACY_KINDS)[number];
+
+/**
+ * Somebody exercising a right over their own data, and whether they have been answered yet.
+ *
+ * Kept apart from the audit trail on purpose: that says what was done, this says how long it
+ * took. Only the second one answers a regulator, and it cannot be reconstructed afterwards.
+ */
+export interface PrivacyRequest {
+  id: string;
+  /** Null once an erasure has been carried out — the dates are the evidence, not the address. */
+  email: string | null;
+  kind: PrivacyRequestKind;
+  requestedAt: string;
+  /** One month after it arrived, per GDPR Article 12(3). */
+  dueAt: string;
+  completedAt: string | null;
+  outcome: string | null;
+  note: string | null;
+  overdue: boolean;
 }
 
 /** What staff may correct about a prospect: exactly what the public forms ask for. */
@@ -629,7 +671,6 @@ export interface ProspectDetail extends Prospect {
   gdprConsentAt: string | null;
   gdprConsentPurpose: string[];
   gdprConsentSource: string | null;
-  deletionRequestedAt: string | null;
   holds: ProspectHold[];
   reservations: ProspectReservation[];
   waitlist: ProspectWaitlist[];
@@ -933,10 +974,15 @@ export const api = {
    * one table that grows with visitors rather than with the inventory, so the response is
    * bounded and the browser is not asked to hold all of it.
    */
-  prospects: (search: string, blockedOnly: boolean) => {
+  prospects: (filter: ProspectFilter) => {
     const query = new URLSearchParams();
-    if (search.trim()) query.set('search', search.trim());
-    if (blockedOnly) query.set('blocked', 'true');
+
+    if (filter.search.trim()) query.set('search', filter.search.trim());
+
+    // Both are tri-state on the server and omitted means "either". Sending false is what
+    // hides a group, so `if (x)` would quietly drop exactly the case this exists for.
+    if (filter.blocked !== undefined) query.set('blocked', String(filter.blocked));
+    if (filter.erased !== undefined) query.set('erased', String(filter.erased));
 
     return request<Prospect[]>(`/api/admin/prospects?${query}`);
   },
@@ -955,6 +1001,42 @@ export const api = {
 
   prospect: (prospectId: string) =>
     request<ProspectDetail>(`/api/admin/prospects/${prospectId}`),
+
+  /**
+   * A plain link, not a fetch: the session cookie rides along and the browser saves the file
+   * itself, which is what a subject access request needs forwarding to the person who asked.
+   */
+  privacyExportUrl: (email: string) =>
+    `/api/admin/privacy/export?email=${encodeURIComponent(email)}`,
+
+  /** One person's requests, or everything still open when no address is given. */
+  privacyRequests: (email?: string) =>
+    request<PrivacyRequest[]>(
+      `/api/admin/privacy/requests${email ? `?email=${encodeURIComponent(email)}` : ''}`,
+    ),
+
+  logPrivacyRequest: (body: {
+    email: string;
+    kind: PrivacyRequestKind;
+    requestedAt: string | null;
+    note: string | null;
+  }) =>
+    request<{ id: string; dueAt: string }>('/api/admin/privacy/requests', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  markPrivacyRequestAnswered: (requestId: string) =>
+    request<{ answered: boolean }>(`/api/admin/privacy/requests/${requestId}/answered`, {
+      method: 'POST',
+    }),
+
+  /** Irreversible. The caller is expected to have made the user type the address first. */
+  forgetProspect: (email: string) =>
+    request<{ outcome: string; message: string }>('/api/admin/privacy/forget', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
 
   /** Corrects what the buyer typed. The joined name follows from the two parts. */
   editProspect: (prospectId: string, edit: ProspectEdit) =>

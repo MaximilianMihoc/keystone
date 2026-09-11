@@ -8,6 +8,7 @@ import { ImportPanel } from './ImportPanel';
 import { AssetsPanel } from './AssetsPanel';
 import { OrganisationPanel } from './OrganisationPanel';
 import { ProspectsPanel } from './ProspectsPanel';
+import { PrivacyPanel } from './PrivacyPanel';
 import { AuditPanel } from './AuditPanel';
 import { SetupPanel } from './SetupPanel';
 import { ThemeSwitch } from './ThemeSwitch';
@@ -22,10 +23,21 @@ type View =
   | 'setup'
   | 'organisation'
   | 'prospects'
+  | 'privacy'
   | 'audit';
 
 /** The picker's last entry, which opens the create form rather than choosing a project. */
 const NEW_PROJECT = '__new';
+
+/**
+ * Views that belong to no project.
+ *
+ * Organisation is where the first project is created, and the other three are about people
+ * rather than inventory — a prospect reaches a project only through a hold, a reservation or a
+ * queue, and a request for their data reaches none at all. Telling somebody to "choose a
+ * project to see its apartments" on any of these is answering a question they did not ask.
+ */
+const UNGATED: View[] = ['organisation', 'prospects', 'privacy', 'audit'];
 
 type Load<T> =
   | { status: 'loading' }
@@ -172,7 +184,7 @@ export function App() {
 
         {projects.status === 'failed' && <p className="banner error">{projects.message}</p>}
 
-        {!selected && projects.status === 'ready' && view !== 'organisation' && (
+        {!selected && projects.status === 'ready' && !UNGATED.includes(view) && (
           <p className="empty">
             {projects.data.length === 0
               ? 'No projects yet. Create one under Organisation.'
@@ -260,6 +272,18 @@ export function App() {
               </button>
             )}
 
+            {/* Next to Prospects, because it is the same people seen by their deadline
+                rather than by their history. Ungated and admin-only for the same reasons. */}
+            {me.status === 'ready' && me.data.role === 'Admin' && (
+              <button
+                className={`view${view === 'privacy' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('privacy')}
+              >
+                Data requests
+              </button>
+            )}
+
             {/* Also ungated and also admin-only: the log spans every project and names
                 colleagues, so reading all of it is a supervisory view. */}
             {me.status === 'ready' && me.data.role === 'Admin' && (
@@ -276,6 +300,10 @@ export function App() {
 
         {view === 'prospects' && me.status === 'ready' && me.data.role === 'Admin' && (
           <ProspectsPanel onSessionExpired={() => setExpired(true)} />
+        )}
+
+        {view === 'privacy' && me.status === 'ready' && me.data.role === 'Admin' && (
+          <PrivacyPanel onSessionExpired={() => setExpired(true)} />
         )}
 
         {view === 'audit' && me.status === 'ready' && me.data.role === 'Admin' && (

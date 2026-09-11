@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Hubix.Domain.Entities;
 using Hubix.Infrastructure.Privacy;
 using Hubix.Web.Pages.Admin;
 
@@ -45,6 +46,76 @@ public static class PrivacyApi
                 $"hubix-data-{DateTime.UtcNow:yyyy-MM-dd}.json");
         });
 
+        // The record that somebody asked, kept apart from the record of what was done about
+        // it. The audit trail says what happened; only this says how long it took, and it
+        // cannot be worked out afterwards.
+        admin.MapGet("/requests", async (
+            string? email,
+            PrivacyService privacy,
+            TimeProvider clock,
+            CancellationToken ct) =>
+        {
+            var rows = string.IsNullOrWhiteSpace(email)
+                ? await privacy.OpenRequestsAsync(ct)
+                : await privacy.RequestsForAsync(email, ct);
+
+            var now = clock.GetUtcNow();
+
+            return Results.Ok(rows.Select(r => new
+            {
+                id = r.Id,
+                email = r.Email,
+                kind = r.Kind.ToString(),
+                requestedAt = r.RequestedAt,
+                dueAt = r.DueAt,
+                completedAt = r.CompletedAt,
+                outcome = r.Outcome,
+                note = r.Note,
+                overdue = r.IsOverdue(now)
+            }));
+        });
+
+        admin.MapPost("/requests", async (
+            LogRequest body,
+            PrivacyService privacy,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(body.Email))
+            {
+                return Results.BadRequest(new { error = "Which address?" });
+            }
+
+            if (!Enum.TryParse<PrivacyRequestKind>(body.Kind, ignoreCase: true, out var kind))
+            {
+                return Results.BadRequest(new { error = $"\"{body.Kind}\" is not a kind of request." });
+            }
+
+            var problem = ProjectApi.Length(body.Email, "email address", 320)
+                ?? ProjectApi.Length(body.Note, "note", 500);
+
+            if (problem is not null)
+            {
+                return Results.BadRequest(new { error = problem });
+            }
+
+            var logged = await privacy.LogRequestAsync(
+                body.Email, kind, body.RequestedAt, body.Note,
+                AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
+
+            return Results.Ok(new { id = logged.Id, dueAt = logged.DueAt });
+        });
+
+        admin.MapPost("/requests/{requestId:guid}/answered", async (
+            Guid requestId,
+            PrivacyService privacy,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+            await privacy.MarkAnsweredAsync(
+                requestId, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)
+                ? Results.Ok(new { answered = true })
+                : Results.NotFound(new { error = "That request is already answered, or is not there." }));
+
         admin.MapPost("/forget", async (
             ForgetRequest body,
             PrivacyService privacy,
@@ -84,4 +155,10 @@ public static class PrivacyApi
     }
 
     public sealed record ForgetRequest(string Email);
+
+    public sealed record LogRequest(
+        string Email,
+        string Kind,
+        DateTimeOffset? RequestedAt,
+        string? Note);
 }
