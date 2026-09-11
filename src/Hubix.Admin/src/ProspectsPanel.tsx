@@ -40,7 +40,9 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
   const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [holds, setHolds] = useState<HoldsFilter>('anyone');
-  const [hideErased, setHideErased] = useState(false);
+  // Off by default, so erased records stay out of the way until somebody wants them. They are
+  // kept for accounting rather than because there is still anybody there to sell to.
+  const [showErased, setShowErased] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fail = useCallback(
@@ -59,13 +61,15 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
           // Undefined is "either", which is not the same as false. Blocked prospects are
           // hidden only when somebody chooses to hide them.
           blocked: holds === 'anyone' ? undefined : holds === 'blocked',
-          erased: hideErased ? false : undefined,
+          // Ticking the box widens the list to everybody rather than narrowing it to the
+          // erased, so this is false or absent — never true.
+          erased: showErased ? undefined : false,
         }),
       );
     } catch (e) {
       fail(e);
     }
-  }, [search, holds, hideErased, fail]);
+  }, [search, holds, showErased, fail]);
 
   // Searching happens in SQL, so a keystroke is a request. Waiting for a pause in the typing
   // is the difference between one query and one per letter.
@@ -119,10 +123,12 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
         <label className="row">
           <input
             type="checkbox"
-            checked={hideErased}
-            onChange={(e) => setHideErased(e.target.checked)}
+            checked={showErased}
+            onChange={(e) => setShowErased(e.target.checked)}
           />
-          <span title="Records an erasure had to keep for accounting">Hide erased</span>
+          <span title="Records an erasure had to keep for accounting. Hidden unless asked for.">
+            Show erased
+          </span>
         </label>
 
         <span className="count">
@@ -138,9 +144,14 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
 
       {rows !== null && rows.length === 0 && (
         <p className="empty">
-          {search || holds !== 'anyone' || hideErased
+          {/* Showing erased widens the list rather than narrowing it, so it is not one of the
+              filters that can explain an empty result — but it can hide the whole of one, and
+              claiming nobody has ever reserved while erased rows sit behind a tick box would
+              be a lie the reader has no way to catch. */}
+          {search || holds !== 'anyone'
             ? 'Nobody here matches that.'
             : 'Nobody has held, reserved or queued for a unit yet.'}
+          {!showErased && ' Erased records are hidden.'}
         </p>
       )}
 

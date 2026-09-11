@@ -62,9 +62,10 @@ public static class ProspectApi
 
             // Erasure that had to keep the record leaves it here, stripped of everything
             // identifying: no name, no phone, and an address nobody can reach. It is retained
-            // for accounting rather than because they are still somebody to sell to, so it is
-            // noise on a list of people — but only once somebody has said so, since the row is
-            // also the answer to "what did we keep about them".
+            // for accounting rather than because they are still somebody to sell to, so the
+            // admin list asks for erased=false and leaves them out unless somebody ticks the
+            // box. Absent still means either, and the row is still the answer to "what did we
+            // keep about them" for anybody who asks for it.
             if (erased is { } wantErased)
             {
                 query = query.Where(p => (p.AnonymisedAt != null) == wantErased);

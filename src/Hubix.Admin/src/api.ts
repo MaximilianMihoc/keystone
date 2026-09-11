@@ -587,11 +587,14 @@ export interface Prospect {
 }
 
 /**
- * Which prospects to list. Leaving a flag out means "either", which is the default view.
+ * Which prospects to list. Leaving a flag out means "either".
  *
  * `blocked: false` hides the people barred from holding; `erased: false` hides the records an
  * erasure had to keep. Both read backwards at a glance, so the panel names them by what it is
  * showing rather than passing these around.
+ *
+ * Note that the panel's default view is not the absent one: it sends `erased: false`, because
+ * a record with no name, no phone and an unreachable address is not somebody to sell to.
  */
 export interface ProspectFilter {
   search: string;
