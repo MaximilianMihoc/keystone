@@ -275,4 +275,44 @@ See your place, or take yourself off the list, here:
   <data name="Waitlist.JustLeft"><value>You are off the list. We will not write to you about this project again.</value></data>
   <data name="Waitlist.NoLongerOn"><value>You are not on this waiting list.</value></data>
   <data name="Waitlist.AlreadyTold"><value>We have already written to you about an apartment that came free. Your place has been used, so you are no longer in the queue.</value></data>
+
+  <!-- Contact form, and the two data rights that arrive through it -->
+  <data name="Contact.Heading"><value>Write to us</value></data>
+  <data name="Contact.Lede"><value>A question about an apartment, or about the details we hold on you. Both arrive here.</value></data>
+  <data name="Contact.Kind"><value>What is this about?</value></data>
+  <data name="Contact.KindGeneral"><value>A question about an apartment or a project</value></data>
+  <data name="Contact.KindAccess"><value>A copy of the data you hold about me</value></data>
+  <data name="Contact.KindErasure"><value>Deleting the data you hold about me</value></data>
+  <data name="Contact.KindHint"><value>The last two are your rights under GDPR. Choosing one starts the one month we have to answer in.</value></data>
+  <data name="Contact.Project"><value>Which project? (optional)</value></data>
+  <data name="Contact.NoProject"><value>Not about a particular project</value></data>
+  <data name="Contact.EmailHint"><value>This is where we will reply.</value></data>
+  <data name="Contact.Message"><value>Your message</value></data>
+  <data name="Contact.Send"><value>Send</value></data>
+  <data name="Contact.Sent"><value>Thank you. Your message has reached us, and a confirmation is on its way to you.</value></data>
+  <data name="Contact.SentPrivacy"><value>We have one month to answer, and we will write to you before then. We may ask you to confirm who you are first, because otherwise anyone could ask for your data.</value></data>
+  <data name="Contact.CouldNotSend"><value>We could not send that. Please try again.</value></data>
+  <data name="Contact.PrivacyNote"><value>What you write here is used to answer you and kept with whatever else we hold about you. You can ask for a copy of it, or ask us to delete it, on this same form.</value></data>
+  <data name="Validation.MessageRequired"><value>Tell us what you would like to say.</value></data>
+
+  <data name="Email.EnquirySubject"><value>We have your message</value></data>
+  <data name="Email.EnquiryBody"><value>Thank you for writing to us. Your message has reached Hubix and somebody will reply to it.
+
+This note is only a confirmation that it arrived. There is nothing you need to do.</value></data>
+  <data name="Email.PrivacyRequestSubject"><value>Your request about your data</value></data>
+  <data name="Email.PrivacyRequestBody"><value>You asked us for: {0}
+
+We have until {1} to answer, and we will write to you before then.
+
+We may ask you to confirm who you are first. Anyone can type an email address into a form, and we are not going to hand over somebody's details, or delete them, on that alone.</value></data>
+
+  <data name="Busy.Heading"><value>That was a few too many</value></data>
+  <data name="Busy.Body"><value>You have sent this more than a few times in the last few minutes, so we have paused it briefly. Wait a couple of minutes and try again. Anything you sent before this is safely with us.</value></data>
+
+  <!-- Dead ends -->
+  <data name="Error.MissingHeading"><value>That page is not here</value></data>
+  <data name="Error.MissingBody"><value>The address does not match anything on the site. It may have been mistyped, or it may be an apartment that has since been sold.</value></data>
+  <data name="Error.Heading"><value>Something went wrong</value></data>
+  <data name="Error.Body"><value>That did not work, and it is our end rather than yours. Try it again in a moment. If it keeps happening, tell us and quote the reference below.</value></data>
+  <data name="Error.Reference"><value>Reference:</value></data>
 </root>

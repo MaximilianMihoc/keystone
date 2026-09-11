@@ -45,7 +45,9 @@ builder.Services.Configure<HubixOptions>(builder.Configuration.GetSection(HubixO
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<HoldService>();
 builder.Services.AddScoped<WaitlistService>();
+builder.Services.AddScoped<EnquiryService>();
 builder.Services.AddScoped<HoldNotifier>();
+builder.Services.AddScoped<EnquiryNotifier>();
 builder.Services.AddScoped<HoldExpiryJob>();
 builder.Services.AddScoped<StaffAuthService>();
 builder.Services.AddScoped<StaffNotifier>();
@@ -187,28 +189,47 @@ builder.Services.AddHangfireServer(options => options.WorkerCount = 2);
 // --- Rate limiting ----------------------------------------------------------------
 // Taking a hold removes a unit from sale for two days, so the endpoint that does it is
 // worth protecting from a script.
+//
+// Submissions only. A Razor Page is a single endpoint for every handler it has, so a policy
+// attached to the page counts its GETs as well — which spent the whole allowance on people
+// reading the form, and answered the fifth page view with a 429 before anybody had submitted
+// anything. Reading a form is not the act worth limiting; sending it is.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
+    // A bare 429 has no body, so a blocked visitor gets a blank page and reads it as the site
+    // being broken rather than as "you were too quick". 303 rather than 302: the request that
+    // was refused is usually a form post, and the browser has to follow it with a GET.
+    options.OnRejected = (context, _) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status303SeeOther;
+        context.HttpContext.Response.Headers.Location = "/busy";
+        return ValueTask.CompletedTask;
+    };
+
     options.AddPolicy("reserve", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(10)
-            }));
+        !HttpMethods.IsPost(context.Request.Method)
+            ? RateLimitPartition.GetNoLimiter<string>("read")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(10)
+                }));
 
     // Sign-in links are emailed, so a script hammering this endpoint fills an inbox.
     options.AddPolicy("login", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(15)
-            }));
+        !HttpMethods.IsPost(context.Request.Method)
+            ? RateLimitPartition.GetNoLimiter<string>("read")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(15)
+                }));
 });
 
 // English is the default. A browser sending Accept-Language: ro gets Romanian without
@@ -239,6 +260,17 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
+// A 404 otherwise arrives with an empty body, and the browser fills it with its own "cannot
+// be reached" page — which reads as the site being down rather than as one wrong address.
+// Re-executed rather than redirected, so the caller still receives the real status code: a
+// search engine told 200 for a missing page keeps the dead link.
+//
+// Not for /api. The admin client reads JSON, and several endpoints answer with a bare
+// Results.NotFound(); handing those an HTML page would break the parse instead of the page.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api"),
+    branch => branch.UseStatusCodePagesWithReExecute("/Error"));
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
