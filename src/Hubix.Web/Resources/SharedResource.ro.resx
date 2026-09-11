@@ -256,4 +256,44 @@ Vezi-ți locul sau ieși de pe listă aici:
   <data name="Waitlist.JustLeft"><value>Ai ieșit de pe listă. Nu îți vom mai scrie despre acest proiect.</value></data>
   <data name="Waitlist.NoLongerOn"><value>Nu ești pe această listă de așteptare.</value></data>
   <data name="Waitlist.AlreadyTold"><value>Ți-am scris deja despre un apartament care s-a eliberat. Locul tău a fost folosit, deci nu mai ești în așteptare.</value></data>
+
+  <!-- Contact form, and the two data rights that arrive through it -->
+  <data name="Contact.Heading"><value>Scrie-ne</value></data>
+  <data name="Contact.Lede"><value>O întrebare despre un apartament sau despre datele pe care le avem despre tine. Amândouă ajung aici.</value></data>
+  <data name="Contact.Kind"><value>Despre ce este mesajul?</value></data>
+  <data name="Contact.KindGeneral"><value>O întrebare despre un apartament sau un proiect</value></data>
+  <data name="Contact.KindAccess"><value>O copie a datelor pe care le aveți despre mine</value></data>
+  <data name="Contact.KindErasure"><value>Ștergerea datelor pe care le aveți despre mine</value></data>
+  <data name="Contact.KindHint"><value>Ultimele două sunt drepturile tale GDPR. Dacă alegi una dintre ele, începe luna în care suntem obligați să îți răspundem.</value></data>
+  <data name="Contact.Project"><value>Despre ce proiect? (opțional)</value></data>
+  <data name="Contact.NoProject"><value>Nu este despre un anume proiect</value></data>
+  <data name="Contact.EmailHint"><value>Aici îți răspundem.</value></data>
+  <data name="Contact.Message"><value>Mesajul tău</value></data>
+  <data name="Contact.Send"><value>Trimite</value></data>
+  <data name="Contact.Sent"><value>Mulțumim. Mesajul a ajuns la noi și îți trimitem o confirmare pe email.</value></data>
+  <data name="Contact.SentPrivacy"><value>Avem la dispoziție o lună ca să îți răspundem și îți scriem înainte de termen. S-ar putea să îți cerem mai întâi să confirmi cine ești, pentru că altfel oricine ar putea cere datele tale.</value></data>
+  <data name="Contact.CouldNotSend"><value>Nu am putut trimite mesajul. Mai încearcă o dată.</value></data>
+  <data name="Contact.PrivacyNote"><value>Folosim ce scrii aici ca să îți răspundem și păstrăm mesajul împreună cu restul datelor pe care le avem despre tine. Poți cere o copie a lor sau ștergerea lor, tot din acest formular.</value></data>
+  <data name="Validation.MessageRequired"><value>Scrie-ne ce vrei să ne spui.</value></data>
+
+  <data name="Email.EnquirySubject"><value>Am primit mesajul tău</value></data>
+  <data name="Email.EnquiryBody"><value>Îți mulțumim că ne-ai scris. Mesajul tău a ajuns la Hubix și cineva îți va răspunde.
+
+Acest email este doar confirmarea că a ajuns. Nu trebuie să faci nimic.</value></data>
+  <data name="Email.PrivacyRequestSubject"><value>Cererea ta privind datele tale</value></data>
+  <data name="Email.PrivacyRequestBody"><value>Ne-ai cerut: {0}
+
+Avem termen până la {1} să îți răspundem și îți scriem înainte de atunci.
+
+S-ar putea să îți cerem mai întâi să confirmi cine ești. Oricine poate scrie o adresă de email într-un formular, iar noi nu dăm datele nimănui și nu le ștergem doar pe baza unei adrese.</value></data>
+
+  <data name="Busy.Heading"><value>Cam multe încercări</value></data>
+  <data name="Busy.Body"><value>Ai trimis asta de prea multe ori în ultimele minute, așa că am oprit-o pentru scurt timp. Așteaptă câteva minute și încearcă din nou. Ce ai trimis înainte a ajuns la noi.</value></data>
+
+  <!-- Dead ends -->
+  <data name="Error.MissingHeading"><value>Pagina nu este aici</value></data>
+  <data name="Error.MissingBody"><value>Adresa nu corespunde cu nimic de pe site. Poate a fost scrisă greșit sau este un apartament care între timp s-a vândut.</value></data>
+  <data name="Error.Heading"><value>Ceva nu a mers</value></data>
+  <data name="Error.Body"><value>Nu a funcționat, și este din partea noastră, nu a ta. Mai încearcă o dată peste un moment. Dacă se repetă, scrie-ne și dă-ne referința de mai jos.</value></data>
+  <data name="Error.Reference"><value>Referință:</value></data>
 </root>

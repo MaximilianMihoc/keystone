@@ -1,0 +1,14 @@
+@page "/busy"
+@model Hubix.Web.Pages.BusyModel
+@{
+    ViewData["Title"] = T["Busy.Heading"].Value;
+}
+
+<div class="shell">
+    <div class="page-head">
+        <h1>@L["Busy.Heading"]</h1>
+        <p class="lede">@L["Busy.Body"]</p>
+    </div>
+
+    <p><a class="btn" asp-page="/Index">@L["Nav.Projects"]</a></p>
+</div>
