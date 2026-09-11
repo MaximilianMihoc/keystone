@@ -273,6 +273,7 @@ public static class AdminApi
         api.MapPrivacy();
         api.MapProspects();
         api.MapAudit();
+        api.MapSettings();
     }
 
     internal static Guid ActorId(ClaimsPrincipal user) =>

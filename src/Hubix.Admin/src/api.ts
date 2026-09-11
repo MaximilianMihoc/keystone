@@ -113,6 +113,8 @@ export interface ProjectEdit {
   currency: string;
   holdDurationHours: number;
   mapsUrl: string | null;
+  /** Blank falls back to the portal inbox on the Email settings screen. */
+  salesInbox: string | null;
 }
 
 export interface ProjectDetails extends ProjectEdit {
@@ -122,6 +124,24 @@ export interface ProjectDetails extends ProjectEdit {
   units: number;
 }
 
+
+/** The email settings a screen may change, as they are sent back. */
+export interface EmailSettingsEdit {
+  salesInbox: string | null;
+  publicBaseUrl: string | null;
+  liveSendingEnabled: boolean;
+  redirectAllTo: string | null;
+  allowedRecipients: string[];
+  blockedRecipients: string[];
+}
+
+export interface EmailSettings extends EmailSettingsEdit {
+  /** False until somebody saves: until then the file is the whole answer. */
+  saved: boolean;
+  savedAt: string | null;
+  /** No mail provider is registered, so nothing leaves the machine whatever these say. */
+  sendingPossible: boolean;
+}
 export interface ProjectTranslationRow {
   culture: string;
   /** Romanian is what the public pages fall back to, so it is labelled as the source. */
@@ -1146,5 +1166,20 @@ export const api = {
     request<{ changed: Record<string, unknown> }>(`/api/admin/reservations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(edit),
+    }),
+
+  /**
+   * What the system is really using: the file, with whatever has been saved laid over it.
+   */
+  emailSettings: () => request<EmailSettings>('/api/admin/settings/email'),
+
+  /**
+   * Refused for any combination a production instance would refuse to start on, so a rejection
+   * here is the same rule that would otherwise have stopped the next deploy.
+   */
+  saveEmailSettings: (body: EmailSettingsEdit) =>
+    request<{ savedAt: string }>('/api/admin/settings/email', {
+      method: 'PUT',
+      body: JSON.stringify(body),
     }),
 };

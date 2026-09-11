@@ -142,6 +142,37 @@ afternoon.
 
 ---
 
+## Email settings
+
+Admin only, on the **Email** screen, and as an API:
+
+| | |
+|---|---|
+| `GET /api/admin/settings/email` | What is actually in use: the file with the saved row over it. |
+| `PUT /api/admin/settings/email` | `{ "salesInbox", "publicBaseUrl", "liveSendingEnabled", "redirectAllTo", "allowedRecipients": [], "blockedRecipients": [] }` |
+
+**The saved row wins, and applies to the next message, not the next restart.** Configuration is
+what a fresh install starts from; once anything is saved, that row is the answer for every field
+on it. So `appsettings` is no longer where you look to find out where mail is going — the screen
+and the `GET` above are.
+
+**A save is refused for anything a production instance would refuse to start on** — live sending
+with no allow list and no redirect, or live sending with an empty blocked list. Same rule, same
+code (`ProductionReadiness.EmailProblems`), enforced in both places, so a setting cannot be saved
+happily today and stop the deploy booting tomorrow.
+
+**Every save writes an audit row** carrying the values it replaced, and turning live sending on
+also logs a warning. "Who turned this on, when, and what was it before" is answerable.
+
+Sales notifications go to the development's own inbox when its Setup screen names one, and to the
+portal default otherwise. That is the whole fallback: project, saved default, file.
+
+**Nothing leaves the machine yet regardless.** No mail provider is registered (`live: null` in
+`Program.cs`), so with live sending on, messages still land in `./outbox` and the log says why.
+Turning the switch on is not the same as wiring up a sender.
+
+---
+
 ## GDPR
 
 All of these are Admin-only, deliberately separate from ordinary editing.

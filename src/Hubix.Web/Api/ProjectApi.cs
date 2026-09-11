@@ -70,6 +70,7 @@ public static class ProjectApi
                         currency = p.Currency,
                         holdDurationHours = p.HoldDurationHours,
                         mapsUrl = p.MapsUrl,
+                        salesInbox = p.SalesInbox,
                         publishedAt = p.PublishedAt,
                         units = p.Units.Count
                     })
@@ -697,7 +698,8 @@ public static class ProjectApi
         problem = Text(request.Name, "name", 200)
             ?? Text(request.City, "city", 120)
             ?? Text(request.Slug, "web address", 120)
-            ?? Length(request.MapsUrl, "map link", 1000);
+            ?? Length(request.MapsUrl, "map link", 1000)
+            ?? Length(request.SalesInbox, "sales inbox", 320);
 
         if (problem is not null)
         {
@@ -754,7 +756,8 @@ public static class ProjectApi
             request.ReservationFee,
             request.Currency.ToUpperInvariant(),
             request.HoldDurationHours,
-            Blank(request.MapsUrl));
+            Blank(request.MapsUrl),
+            Blank(request.SalesInbox));
 
         return true;
     }
@@ -800,7 +803,8 @@ public static class ProjectApi
         decimal? ReservationFee,
         string Currency,
         int HoldDurationHours,
-        string? MapsUrl);
+        string? MapsUrl,
+        string? SalesInbox);
 
     public sealed record TranslationRequest(
         string? City,

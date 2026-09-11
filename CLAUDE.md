@@ -140,6 +140,22 @@ written to `./outbox` instead of sent. `BlockedRecipients` contains `*@hubix.ro`
 before the allow list. Seeded accounts use `.invalid` addresses. Do not relax any of this, and do
 not register a live sender, without being told to explicitly.
 
+**These settings are now editable by an admin**, on the Email screen, at the owner's explicit
+instruction — including the live-sending switch and the blocked list. A saved `PortalSettings`
+row wins over configuration and applies to the next message rather than the next deploy, because
+`SafeEmailSender` and the notifiers read `IOptionsSnapshot`, which is rebuilt per scope, over a
+scoped `IPostConfigureOptions` that overlays the row. What that means for anyone changing this:
+
+- **Configuration is no longer the whole answer.** Reading `appsettings` tells you what a fresh
+  install starts from, not what is in use. `GET /api/admin/settings/email` answers that.
+- **The screen refuses what production refuses.** `ProductionReadiness.EmailProblems` is the one
+  rule, called both at startup and on save, so a setting cannot be saved happily and then stop
+  the next deploy booting.
+- **Every save is audited** with the values it replaced, and turning live sending on logs a
+  warning. Do not remove either — "who turned this on" is the whole point.
+- Sales notifications go to `Project.SalesInbox` when it is set, and to the portal default
+  otherwise. `SalesInboxResolver` owns that fallback; nothing else should reimplement it.
+
 ## Localisation
 
 Default culture is `en-GB`; a browser sending `Accept-Language: ro` gets Romanian automatically.

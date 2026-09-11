@@ -25,6 +25,8 @@ public class ReserveModel(
 
     public string ProjectName { get; private set; } = "";
 
+    public Guid ProjectId { get; private set; }
+
     public string UnitCode { get; private set; } = "";
 
     public Guid UnitId { get; private set; }
@@ -217,11 +219,11 @@ public class ReserveModel(
         try
         {
             await notifier.HoldConfirmedAsync(
-                Input.Email!, CultureInfo.CurrentUICulture.Name, ProjectName, UnitCode,
+                Input.Email!, CultureInfo.CurrentUICulture.Name, ProjectId, ProjectName, UnitCode,
                 created.ExpiresAt, HoldDurationHours, created.AccessToken, ct);
 
             await notifier.SalesNotifiedAsync(
-                ProjectName, UnitCode, Input.Email!, FullName, Input.Phone,
+                ProjectId, ProjectName, UnitCode, Input.Email!, FullName, Input.Phone,
                 created.ExpiresAt, created.ParkingSpaces, ct);
         }
         catch (Exception ex)
@@ -262,6 +264,7 @@ public class ReserveModel(
 
         Slug = found.ProjectSlug;
         ProjectName = found.ProjectName;
+        ProjectId = found.ProjectId;
         UnitCode = found.Code;
         UnitId = found.Id;
         HoldDurationHours = found.HoldDurationHours;

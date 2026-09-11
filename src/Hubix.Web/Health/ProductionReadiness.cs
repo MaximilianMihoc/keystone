@@ -35,22 +35,7 @@ public static class ProductionReadiness
             problems.Add("No database connection string is configured.");
         }
 
-        // Hubix have not been approached about this system. The day a real mail provider is
-        // wired up must not also be the day they find out about it from an automated email.
-        if (email.LiveSendingEnabled)
-        {
-            if (email.AllowedRecipients.Count == 0 && string.IsNullOrWhiteSpace(email.RedirectAllTo))
-            {
-                problems.Add(
-                    "Live email is on with no allow list and no redirect. Mail would go to real buyers.");
-            }
-
-            if (email.BlockedRecipients.Count == 0)
-            {
-                problems.Add(
-                    "Live email is on with an empty blocked list. Hubix's own addresses must stay on it.");
-            }
-        }
+        problems.AddRange(EmailProblems(email));
 
         if (hubix.PublicBaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
         {
@@ -72,6 +57,41 @@ public static class ProductionReadiness
             problems.Add(
                 "Assets:SigningKey is empty and there is no blob storage. File links would break " +
                 "on every restart and would not work across instances.");
+        }
+
+        return problems;
+    }
+
+    /// <summary>
+    /// Why this combination of sending guards is not fit for production.
+    /// </summary>
+    /// <remarks>
+    /// Its own method because these are now editable from the admin screen, and that screen
+    /// refuses to save what this would refuse to start. A setting that can be saved happily
+    /// and then bricks the next deploy is a worse trap than one that cannot be saved.
+    ///
+    /// Hubix have not been approached about this system. The day a real mail provider is
+    /// wired up must not also be the day they find out about it from an automated email.
+    /// </remarks>
+    public static IReadOnlyList<string> EmailProblems(EmailOptions email)
+    {
+        var problems = new List<string>();
+
+        if (!email.LiveSendingEnabled)
+        {
+            return problems;
+        }
+
+        if (email.AllowedRecipients.Count == 0 && string.IsNullOrWhiteSpace(email.RedirectAllTo))
+        {
+            problems.Add(
+                "Live email is on with no allow list and no redirect. Mail would go to real buyers.");
+        }
+
+        if (email.BlockedRecipients.Count == 0)
+        {
+            problems.Add(
+                "Live email is on with an empty blocked list. Hubix's own addresses must stay on it.");
         }
 
         return problems;

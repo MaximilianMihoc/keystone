@@ -109,7 +109,7 @@ public class ContactModel(
                 kind,
                 ct);
 
-            await NotifyAsync(receipt, project?.Name, ct);
+            await NotifyAsync(receipt, project?.Id, project?.Name, ct);
 
             return RedirectToPage(new { sent = kind?.ToString() ?? "General" });
         }
@@ -125,13 +125,15 @@ public class ContactModel(
     /// The message is already saved by this point. A confirmation that fails to send must not
     /// lose it, and must not show an error for something that worked.
     /// </summary>
-    private async Task NotifyAsync(EnquiryReceipt receipt, string? projectName, CancellationToken ct)
+    private async Task NotifyAsync(
+        EnquiryReceipt receipt, Guid? projectId, string? projectName, CancellationToken ct)
     {
         try
         {
-            await notifier.AcknowledgeAsync(Input.Email!, receipt.Request, ct);
+            await notifier.AcknowledgeAsync(Input.Email!, projectId, receipt.Request, ct);
 
             await notifier.SalesNotifiedAsync(
+                projectId,
                 Input.Email!,
                 string.Join(' ', new[] { Input.FirstName, Input.Surname }
                     .Where(part => !string.IsNullOrWhiteSpace(part))),
