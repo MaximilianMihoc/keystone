@@ -36,6 +36,7 @@ public static class ProspectApi
         admin.MapGet("", async (
             string? search,
             bool? blocked,
+            bool? erased,
             int? take,
             HubixDbContext db,
             CancellationToken ct) =>
@@ -59,6 +60,16 @@ public static class ProspectApi
                 query = query.Where(p => p.CanHold != wanted);
             }
 
+            // Erasure that had to keep the record leaves it here, stripped of everything
+            // identifying: no name, no phone, and an address nobody can reach. It is retained
+            // for accounting rather than because they are still somebody to sell to, so it is
+            // noise on a list of people — but only once somebody has said so, since the row is
+            // also the answer to "what did we keep about them".
+            if (erased is { } wantErased)
+            {
+                query = query.Where(p => (p.AnonymisedAt != null) == wantErased);
+            }
+
             var rows = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(Math.Clamp(take ?? DefaultTake, 1, MaxTake))
@@ -77,6 +88,10 @@ public static class ProspectApi
                     canHold = p.CanHold,
                     blockReason = p.BlockReason,
                     lapsedHoldCount = p.LapsedHoldCount,
+
+                    // Set only where an erasure had to keep the record. The list marks those
+                    // rows, so an unreachable erased- address is explained rather than odd.
+                    anonymisedAt = p.AnonymisedAt,
 
                     // Whether the block is currently biting, and whether lifting it matters.
                     activeHolds = p.Holds.Count(h => h.ReleasedAt == null),

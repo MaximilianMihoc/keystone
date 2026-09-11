@@ -13,6 +13,15 @@ interface Props {
   onSessionExpired: () => void;
 }
 
+/**
+ * Which people the list is showing, by whether they may still take a hold.
+ *
+ * Named for what is shown rather than what is hidden. "Can hold" is the hide somebody wants
+ * when a blocked prospect is clutter; "Blocked" is the one they want when the block itself is
+ * the thing being reviewed.
+ */
+type HoldsFilter = 'anyone' | 'can-hold' | 'blocked';
+
 const day = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const when = (value: string | null) => (value ? day.format(new Date(value)) : '—');
@@ -30,7 +39,8 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [blockedOnly, setBlockedOnly] = useState(false);
+  const [holds, setHolds] = useState<HoldsFilter>('anyone');
+  const [hideErased, setHideErased] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fail = useCallback(
@@ -43,11 +53,19 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
 
   const reload = useCallback(async () => {
     try {
-      setRows(await api.prospects(search, blockedOnly));
+      setRows(
+        await api.prospects({
+          search,
+          // Undefined is "either", which is not the same as false. Blocked prospects are
+          // hidden only when somebody chooses to hide them.
+          blocked: holds === 'anyone' ? undefined : holds === 'blocked',
+          erased: hideErased ? false : undefined,
+        }),
+      );
     } catch (e) {
       fail(e);
     }
-  }, [search, blockedOnly, fail]);
+  }, [search, holds, hideErased, fail]);
 
   // Searching happens in SQL, so a keystroke is a request. Waiting for a pause in the typing
   // is the difference between one query and one per letter.
@@ -88,27 +106,39 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
           onChange={(e) => setSearch(e.target.value)}
         />
 
+        <select
+          className="project-picker"
+          value={holds}
+          onChange={(e) => setHolds(e.target.value as HoldsFilter)}
+        >
+          <option value="anyone">Anyone</option>
+          <option value="can-hold">Can hold</option>
+          <option value="blocked">Blocked only</option>
+        </select>
+
         <label className="row">
           <input
             type="checkbox"
-            checked={blockedOnly}
-            onChange={(e) => setBlockedOnly(e.target.checked)}
+            checked={hideErased}
+            onChange={(e) => setHideErased(e.target.checked)}
           />
-          <span>Blocked only</span>
+          <span title="Records an erasure had to keep for accounting">Hide erased</span>
         </label>
 
         <span className="count">
           {rows === null
             ? 'Loading…'
             : `${rows.length} ${rows.length === 1 ? 'person' : 'people'}${
-                blocked > 0 && !blockedOnly ? `, ${blocked} blocked` : ''
+                // Only worth saying while they are in front of you. Filtered to blocked it
+                // restates the filter, and filtered away from them it counts nothing shown.
+                blocked > 0 && holds === 'anyone' ? `, ${blocked} blocked` : ''
               }`}
         </span>
       </div>
 
       {rows !== null && rows.length === 0 && (
         <p className="empty">
-          {search || blockedOnly
+          {search || holds !== 'anyone' || hideErased
             ? 'Nobody here matches that.'
             : 'Nobody has held, reserved or queued for a unit yet.'}
         </p>
@@ -137,7 +167,19 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
                   onClick={() => setSelectedId(p.id)}
                 >
                   <td>{p.email}</td>
-                  <td>{p.fullName ?? '—'}</td>
+                  <td>
+                    {/* An erased record has no name, no phone and an address nobody can
+                        reach. Three dashes and a nonsense email is a puzzle; saying so is
+                        the answer, and it is also the only place the list admits why the
+                        row is there at all. */}
+                    {p.anonymisedAt ? (
+                      <span className="muted" title={`Erased on ${when(p.anonymisedAt)}`}>
+                        Erased
+                      </span>
+                    ) : (
+                      (p.fullName ?? '—')
+                    )}
+                  </td>
                   <td>{p.phone ?? '—'}</td>
                   <td>{when(p.firstSeen)}</td>
                   <td>{p.activeHolds || '—'}</td>

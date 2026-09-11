@@ -578,10 +578,25 @@ export interface Prospect {
   /** False means they are barred from taking a hold, and blockReason says why. */
   canHold: boolean;
   blockReason: string | null;
+  /** Set only where an erasure had to keep the record. Null for everybody else. */
+  anonymisedAt: string | null;
   /** Holds they let lapse. Counted by the rule, never by a member of staff. */
   lapsedHoldCount: number;
   activeHolds: number;
   openReservations: number;
+}
+
+/**
+ * Which prospects to list. Leaving a flag out means "either", which is the default view.
+ *
+ * `blocked: false` hides the people barred from holding; `erased: false` hides the records an
+ * erasure had to keep. Both read backwards at a glance, so the panel names them by what it is
+ * showing rather than passing these around.
+ */
+export interface ProspectFilter {
+  search: string;
+  blocked?: boolean;
+  erased?: boolean;
 }
 
 export const PRIVACY_KINDS = ['Access', 'Erasure'] as const;
@@ -653,8 +668,6 @@ export interface ProspectDetail extends Prospect {
   gdprConsentAt: string | null;
   gdprConsentPurpose: string[];
   gdprConsentSource: string | null;
-  /** When their record was stripped of identity, not when they asked. */
-  anonymisedAt: string | null;
   holds: ProspectHold[];
   reservations: ProspectReservation[];
   waitlist: ProspectWaitlist[];
@@ -958,10 +971,15 @@ export const api = {
    * one table that grows with visitors rather than with the inventory, so the response is
    * bounded and the browser is not asked to hold all of it.
    */
-  prospects: (search: string, blockedOnly: boolean) => {
+  prospects: (filter: ProspectFilter) => {
     const query = new URLSearchParams();
-    if (search.trim()) query.set('search', search.trim());
-    if (blockedOnly) query.set('blocked', 'true');
+
+    if (filter.search.trim()) query.set('search', filter.search.trim());
+
+    // Both are tri-state on the server and omitted means "either". Sending false is what
+    // hides a group, so `if (x)` would quietly drop exactly the case this exists for.
+    if (filter.blocked !== undefined) query.set('blocked', String(filter.blocked));
+    if (filter.erased !== undefined) query.set('erased', String(filter.erased));
 
     return request<Prospect[]>(`/api/admin/prospects?${query}`);
   },
