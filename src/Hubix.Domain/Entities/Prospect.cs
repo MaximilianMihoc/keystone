@@ -13,9 +13,26 @@ public class Prospect : Entity
     /// </summary>
     public required string Email { get; set; }
 
-    public string? FullName { get; set; }
+    public string? FirstName { get; set; }
+
+    public string? Surname { get; set; }
+
+    /// <summary>
+    /// First name and surname joined. A persisted computed column, so it can never disagree
+    /// with the two parts it is made of — write to those, never to this.
+    /// </summary>
+    public string? FullName { get; private set; }
 
     public string? Phone { get; set; }
+
+    /// <summary>Where they live. Hubix's buyers are overwhelmingly Romanian.</summary>
+    public string? City { get; set; }
+
+    /// <summary>
+    /// Null means Romania. The forms only ask for a country when the buyer says they live
+    /// somewhere else, so a blank here is an answer rather than a gap.
+    /// </summary>
+    public string? Country { get; set; }
 
     public string Locale { get; set; } = "ro";
 

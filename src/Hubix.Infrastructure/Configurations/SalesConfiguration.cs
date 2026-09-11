@@ -14,8 +14,19 @@ public class ProspectConfiguration : IEntityTypeConfiguration<Prospect>
     public void Configure(EntityTypeBuilder<Prospect> builder)
     {
         builder.Property(p => p.Email).HasMaxLength(320).IsRequired();
-        builder.Property(p => p.FullName).HasMaxLength(200);
+        builder.Property(p => p.FirstName).HasMaxLength(100);
+        builder.Property(p => p.Surname).HasMaxLength(100);
         builder.Property(p => p.Phone).HasMaxLength(50);
+        builder.Property(p => p.City).HasMaxLength(120);
+        builder.Property(p => p.Country).HasMaxLength(100);
+
+        // Persisted, like Unit.AreaTotal, so the joined name can never drift from its parts.
+        // CONCAT reads a null as an empty string, and NULLIF turns "nobody gave a name" back
+        // into a null rather than a blank that reads as a name nobody typed.
+        builder.Property(p => p.FullName)
+            .HasMaxLength(201)
+            .HasComputedColumnSql(
+                "NULLIF(LTRIM(RTRIM(CONCAT([FirstName], ' ', [Surname]))), '')", stored: true);
         builder.Property(p => p.Locale).HasMaxLength(10).IsRequired();
         builder.Property(p => p.Source).HasMaxLength(50);
         builder.Property(p => p.GdprConsentSource).HasMaxLength(200);

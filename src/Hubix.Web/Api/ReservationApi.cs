@@ -166,8 +166,11 @@ public static class ReservationApi
                     ? null
                     : new ProspectDetails(
                         request.Email,
-                        request.FullName,
+                        request.FirstName,
+                        request.Surname,
                         request.Phone,
+                        request.City,
+                        request.Country,
                         Cultures.Romanian,
                         ConsentGiven: false,
                         ConsentSource: "staff");
@@ -374,8 +377,11 @@ public static class ReservationApi
     /// <summary>Starting a reservation. Everything is optional when a hold already names the buyer.</summary>
     public sealed record StartRequest(
         string? Email,
-        string? FullName,
+        string? FirstName,
+        string? Surname,
         string? Phone,
+        string? City,
+        string? Country,
         BuyerType? BuyerType);
 
     public sealed record MoveRequest(string State, string? Reason);

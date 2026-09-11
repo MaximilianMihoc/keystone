@@ -106,7 +106,8 @@ public static class ProjectApi
                         summary = row?.Summary,
                         body = row?.Body,
                         penaltyClause = row?.PenaltyClause,
-                        parking = row?.Parking
+                        parking = row?.Parking,
+                        reservationNotice = row?.ReservationNotice
                     };
                 });
 
@@ -429,7 +430,8 @@ public static class ProjectApi
                 var problem = Length(request.City, "city", 120)
                     ?? Length(request.Summary, "summary", 2000)
                     ?? Length(request.PenaltyClause, "penalty clause", 2000)
-                    ?? Length(request.Parking, "parking note", 400);
+                    ?? Length(request.Parking, "parking note", 400)
+                    ?? Length(request.ReservationNotice, "reservation notice", 2000);
 
                 if (problem is not null)
                 {
@@ -444,7 +446,8 @@ public static class ProjectApi
                         Blank(request.Summary),
                         Blank(request.Body),
                         Blank(request.PenaltyClause),
-                        Blank(request.Parking)),
+                        Blank(request.Parking),
+                        Blank(request.ReservationNotice)),
                     AdminApi.ActorId(user),
                     AdminApi.ActorLabel(user),
                     ct);
@@ -764,7 +767,7 @@ public static class ProjectApi
         : value.Trim().Length > max ? $"That {what} is too long."
         : null;
 
-    private static string? Length(string? value, string what, int max) =>
+    internal static string? Length(string? value, string what, int max) =>
         value is not null && value.Length > max ? $"That {what} is too long." : null;
 
     /// <summary>An empty box means no value, not an empty string.</summary>
@@ -804,7 +807,8 @@ public static class ProjectApi
         string? Summary,
         string? Body,
         string? PenaltyClause,
-        string? Parking);
+        string? Parking,
+        string? ReservationNotice);
 
     public sealed record PublishRequest(bool Published);
 

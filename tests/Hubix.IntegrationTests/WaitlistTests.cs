@@ -18,7 +18,7 @@ public class WaitlistTests(DatabaseFixture fixture)
         new(db, TimeProvider.System, NullLogger<WaitlistService>.Instance);
 
     private static ProspectDetails Person(string email) =>
-        new(email, "Waiting Person", null, Cultures.Romanian, true, "waitlist-form/test");
+        new(email, "Waiting", "Person", null, null, null, Cultures.Romanian, true, "waitlist-form/test");
 
     private async Task<Guid> TypeIdAsync()
     {

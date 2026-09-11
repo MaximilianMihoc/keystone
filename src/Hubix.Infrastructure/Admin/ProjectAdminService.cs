@@ -69,7 +69,8 @@ public sealed record TranslationEdit(
     string? Summary,
     string? Body,
     string? PenaltyClause,
-    string? Parking);
+    string? Parking,
+    string? ReservationNotice);
 
 /// <summary>
 /// What may be changed about an apartment type.
@@ -514,6 +515,8 @@ public sealed class ProjectAdminService(
         diff.Set("Body", translation.Body, edit.Body, v => translation.Body = v);
         diff.Set("PenaltyClause", translation.PenaltyClause, edit.PenaltyClause, v => translation.PenaltyClause = v);
         diff.Set("Parking", translation.Parking, edit.Parking, v => translation.Parking = v);
+        diff.Set("ReservationNotice", translation.ReservationNotice, edit.ReservationNotice,
+            v => translation.ReservationNotice = v);
 
         if (diff.IsEmpty && db.Entry(translation).State != EntityState.Added)
         {

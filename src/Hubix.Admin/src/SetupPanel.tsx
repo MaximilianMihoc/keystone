@@ -410,6 +410,18 @@ function Prose({
         <span>Parking</span>
         <textarea value={draft.parking ?? ''} rows={2} onChange={(e) => set('parking', e.target.value)} />
       </label>
+      <label className="field">
+        <span>Reservation notice</span>
+        <textarea
+          value={draft.reservationNotice ?? ''}
+          rows={4}
+          onChange={(e) => set('reservationNotice', e.target.value)}
+        />
+        <span className="hint">
+          Shown at the top of this project's reservation form, before the buyer fills anything
+          in. Blank on most projects. One paragraph per line.
+        </span>
+      </label>
 
       <button
         className="btn"
@@ -422,6 +434,7 @@ function Prose({
             body: draft.body,
             penaltyClause: draft.penaltyClause,
             parking: draft.parking,
+            reservationNotice: draft.reservationNotice,
           })
         }
       >

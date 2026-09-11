@@ -165,6 +165,7 @@
   <data name="Reserve.Confirm"><value>Blochează-l pentru mine</value></data>
   <data name="Reserve.SeeWhatIsLeft"><value>Vezi ce mai este disponibil</value></data>
   <data name="Reserve.FeeNote"><value>Dacă mergi mai departe, prețul rezervării este {0}.</value></data>
+  <data name="Reserve.NoticeHeading"><value>Înainte să rezervi</value></data>
   <data name="Reserve.NoPaymentNow"><value>Nu se încasează nimic acum. Vei fi sunat de cineva din echipa Hubix.</value></data>
   <data name="Reserve.LostTheRace"><value>Cineva a rezervat acest apartament cu câteva momente înaintea ta. Nu ți s-a debitat nimic și nu este nimic blocat pe numele tău.</value></data>
   <data name="Reserve.Blocked"><value>O rezervare anterioară pe numele tău a expirat fără să continue, așa că nu putem bloca automat un alt apartament. Scrie-ne la contact@hubix.ro și rezolvăm.</value></data>
@@ -172,16 +173,23 @@
   <data name="Reserve.NotEnoughParking"><value>Au mai rămas doar {0} locuri {1} și ai cerut {2}. Nu s-a rezervat nimic, nici apartamentul, așa că poți alege din nou.</value></data>
   <data name="Reserve.TooManyParking"><value>La acest proiect se pot lua {0} locuri de parcare la un apartament, iar tu ai cerut {1}. Nu s-a rezervat nimic.</value></data>
 
-  <data name="Form.FullName"><value>Numele tău</value></data>
+  <data name="Form.FirstName"><value>Prenume</value></data>
+  <data name="Form.Surname"><value>Nume</value></data>
   <data name="Form.Email"><value>Email</value></data>
   <data name="Form.EmailHint"><value>Aici primești linkul rezervării. Verifică să fie corect.</value></data>
-  <data name="Form.Phone"><value>Telefon (opțional)</value></data>
+  <data name="Form.Phone"><value>Telefon</value></data>
+  <data name="Form.City"><value>Oraș</value></data>
+  <data name="Form.Country"><value>Țara (opțional)</value></data>
+  <data name="Form.CountryHint"><value>Lasă gol dacă locuiești în România.</value></data>
   <data name="Form.Consent"><value>Sunt de acord ca Hubix să mă contacteze despre această rezervare și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
   <data name="Waitlist.Consent"><value>Sunt de acord ca Hubix să îmi scrie când se eliberează un apartament și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
 
-  <data name="Validation.NameRequired"><value>Spune-ne numele tău, ca să știm pe cine sunăm.</value></data>
+  <data name="Validation.FirstNameRequired"><value>Spune-ne prenumele tău, ca să știm cu cine vorbim.</value></data>
+  <data name="Validation.SurnameRequired"><value>Avem nevoie de numele tău de familie pentru actele rezervării.</value></data>
+  <data name="Validation.CityRequired"><value>Spune-ne în ce oraș locuiești.</value></data>
   <data name="Validation.EmailRequired"><value>Avem nevoie de un email ca să îți trimitem linkul rezervării.</value></data>
   <data name="Validation.EmailInvalid"><value>Nu pare o adresă de email validă.</value></data>
+  <data name="Validation.PhoneRequired"><value>Avem nevoie de un număr de telefon, pentru că cineva din echipa Hubix te va suna.</value></data>
   <data name="Validation.PhoneInvalid"><value>Nu pare un număr de telefon valid.</value></data>
   <data name="Validation.ConsentRequired"><value>Avem nevoie de acordul tău ca să putem bloca un apartament.</value></data>
   <data name="Validation.ParkingQuantity"><value>Alege între 0 și 10 locuri de parcare.</value></data>

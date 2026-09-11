@@ -181,6 +181,7 @@
   <data name="Reserve.Confirm"><value>Hold it for me</value></data>
   <data name="Reserve.SeeWhatIsLeft"><value>See what is still available</value></data>
   <data name="Reserve.FeeNote"><value>If you go ahead, the reservation fee is {0}.</value></data>
+  <data name="Reserve.NoticeHeading"><value>Before you reserve</value></data>
   <data name="Reserve.NoPaymentNow"><value>Nothing is charged now. Someone from Hubix will call you to take it from here.</value></data>
   <data name="Reserve.LostTheRace"><value>Somebody reserved this apartment a moment before you. Nothing has been charged, and nothing is being held in your name.</value></data>
   <data name="Reserve.Blocked"><value>An earlier hold in your name ran out without going ahead, so we cannot hold another apartment for you automatically. Email contact@hubix.ro and we will sort it out.</value></data>
@@ -188,16 +189,23 @@
   <data name="Reserve.NotEnoughParking"><value>Only {0} {1} space(s) are left and you asked for {2}. Nothing has been held, the apartment included, so you can choose again.</value></data>
   <data name="Reserve.TooManyParking"><value>This development allows {0} parking space(s) with one apartment and you asked for {1}. Nothing has been held.</value></data>
 
-  <data name="Form.FullName"><value>Your name</value></data>
+  <data name="Form.FirstName"><value>First name</value></data>
+  <data name="Form.Surname"><value>Surname</value></data>
   <data name="Form.Email"><value>Email</value></data>
   <data name="Form.EmailHint"><value>Your hold link goes here. Check it is right.</value></data>
-  <data name="Form.Phone"><value>Phone (optional)</value></data>
+  <data name="Form.Phone"><value>Phone</value></data>
+  <data name="Form.City"><value>City</value></data>
+  <data name="Form.Country"><value>Country (optional)</value></data>
+  <data name="Form.CountryHint"><value>Leave this empty if you live in Romania.</value></data>
   <data name="Form.Consent"><value>Hubix may contact me about this reservation and store my details for it. Used for nothing else.</value></data>
   <data name="Waitlist.Consent"><value>Hubix may email me when an apartment comes free and store my details for that. Used for nothing else.</value></data>
 
-  <data name="Validation.NameRequired"><value>Tell us your name so we know who to call.</value></data>
+  <data name="Validation.FirstNameRequired"><value>Tell us your first name so we know who to ask for.</value></data>
+  <data name="Validation.SurnameRequired"><value>We need your surname for the reservation paperwork.</value></data>
+  <data name="Validation.CityRequired"><value>Tell us which city you live in.</value></data>
   <data name="Validation.EmailRequired"><value>We need an email to send your hold link to.</value></data>
   <data name="Validation.EmailInvalid"><value>That does not look like an email address.</value></data>
+  <data name="Validation.PhoneRequired"><value>We need a phone number, because someone from Hubix will call you about this.</value></data>
   <data name="Validation.PhoneInvalid"><value>That does not look like a phone number.</value></data>
   <data name="Validation.ConsentRequired"><value>We need your agreement before we can hold an apartment for you.</value></data>
   <data name="Validation.ParkingQuantity"><value>Choose between 0 and 10 parking spaces.</value></data>

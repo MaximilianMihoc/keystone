@@ -79,6 +79,13 @@ public class ProjectTranslation : Entity
     /// sold with the apartment at all. The kind of space, where there is one, is on the unit.
     /// </summary>
     public string? Parking { get; set; }
+
+    /// <summary>
+    /// Whatever else a buyer should read before they commit — the notary's terms, what the
+    /// reservation fee covers, which documents to bring. Shown on the reservation form of this
+    /// project only, and blank on most of them.
+    /// </summary>
+    public string? ReservationNotice { get; set; }
 }
 
 /// <summary>
@@ -134,6 +141,24 @@ public static class TranslationExtensions
             ? Match(all, Cultures.Source) ?? all[0]
             : null;
     }
+
+    /// <summary>
+    /// The reservation notice for a culture, skipping rows that have none.
+    /// </summary>
+    /// <remarks>
+    /// Per field rather than per row, unlike the prose on the project page. A project has a row
+    /// for each offered language as soon as anything at all is written in it, so an admin who
+    /// types this notice in Romanian and leaves the English box empty would otherwise show an
+    /// English reader nothing — and this is the one piece of prose that exists because a buyer
+    /// has to read it before committing.
+    /// </remarks>
+    public static string? ReservationNoticeFor(
+        this IEnumerable<ProjectTranslation> translations,
+        string culture) =>
+        translations
+            .Where(t => !string.IsNullOrWhiteSpace(t.ReservationNotice))
+            .ForCulture(culture)
+            ?.ReservationNotice;
 
     /// <summary>
     /// The city name for a culture, falling back to the project's canonical spelling rather

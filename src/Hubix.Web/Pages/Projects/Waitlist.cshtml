@@ -48,9 +48,15 @@
             </div>
 
             <div class="field">
-                <label asp-for="Input.FullName">@L["Form.FullName"]</label>
-                <input asp-for="Input.FullName" autocomplete="name" required />
-                <span asp-validation-for="Input.FullName" class="field-error"></span>
+                <label asp-for="Input.FirstName">@L["Form.FirstName"]</label>
+                <input asp-for="Input.FirstName" autocomplete="given-name" required />
+                <span asp-validation-for="Input.FirstName" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Surname">@L["Form.Surname"]</label>
+                <input asp-for="Input.Surname" autocomplete="family-name" required />
+                <span asp-validation-for="Input.Surname" class="field-error"></span>
             </div>
 
             <div class="field">
@@ -62,8 +68,21 @@
 
             <div class="field">
                 <label asp-for="Input.Phone">@L["Form.Phone"]</label>
-                <input asp-for="Input.Phone" type="tel" autocomplete="tel" />
+                <input asp-for="Input.Phone" type="tel" autocomplete="tel" required />
                 <span asp-validation-for="Input.Phone" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.City">@L["Form.City"]</label>
+                <input asp-for="Input.City" autocomplete="address-level2" required />
+                <span asp-validation-for="Input.City" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Country">@L["Form.Country"]</label>
+                <input asp-for="Input.Country" autocomplete="country-name" />
+                <span class="field-hint">@L["Form.CountryHint"]</span>
+                <span asp-validation-for="Input.Country" class="field-error"></span>
             </div>
 
             <div class="field checkbox">

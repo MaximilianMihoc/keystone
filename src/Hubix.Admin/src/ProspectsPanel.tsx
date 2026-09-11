@@ -4,6 +4,7 @@ import {
   SessionExpired,
   type Prospect,
   type ProspectDetail,
+  type ProspectEdit,
 } from './api';
 
 interface Props {
@@ -170,6 +171,7 @@ function Detail({
   const [busy, setBusy] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [reason, setReason] = useState('');
+  const [edit, setEdit] = useState<ProspectEdit | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -182,6 +184,25 @@ function Detail({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const save = useCallback(async () => {
+    if (!edit) return;
+
+    setBusy(true);
+
+    try {
+      // Not optimistic, for the same reason the block is not: the server refuses an email
+      // somebody else already has, and that sentence is the useful part of the answer.
+      await api.editProspect(prospectId, edit);
+      await load();
+      onChanged();
+      setEdit(null);
+    } catch (e) {
+      onFail(e);
+    } finally {
+      setBusy(false);
+    }
+  }, [prospectId, edit, load, onChanged, onFail]);
 
   const setBlocked = useCallback(
     async (blocked: boolean, why?: string) => {
@@ -249,6 +270,13 @@ function Detail({
         <dt>Phone</dt>
         <dd>{person.phone ?? '—'}</dd>
 
+        <dt>Lives in</dt>
+        <dd>
+          {person.city ?? '—'}
+          {/* A blank country means Romania. Saying so beats a dash staff have to interpret. */}
+          <span className="muted"> · {person.country ?? 'Romania'}</span>
+        </dd>
+
         <dt>First seen</dt>
         <dd>
           {when(person.firstSeen)}
@@ -281,6 +309,90 @@ function Detail({
           </>
         )}
       </dl>
+
+      {/* What the buyer typed, corrected. Sales hear the right spelling on the phone, and
+          the importer splits a three-word Romanian name wrongly as often as not. */}
+      {edit ? (
+        <div className="panel">
+          <label className="field">
+            <span>First name</span>
+            <input
+              value={edit.firstName ?? ''}
+              onChange={(e) => setEdit({ ...edit, firstName: e.target.value || null })}
+            />
+          </label>
+          <label className="field">
+            <span>Surname</span>
+            <input
+              value={edit.surname ?? ''}
+              onChange={(e) => setEdit({ ...edit, surname: e.target.value || null })}
+            />
+          </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={edit.email}
+              onChange={(e) => setEdit({ ...edit, email: e.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>Phone</span>
+            <input
+              type="tel"
+              value={edit.phone ?? ''}
+              onChange={(e) => setEdit({ ...edit, phone: e.target.value || null })}
+            />
+          </label>
+          <label className="field">
+            <span>City</span>
+            <input
+              value={edit.city ?? ''}
+              onChange={(e) => setEdit({ ...edit, city: e.target.value || null })}
+            />
+          </label>
+          <label className="field">
+            <span>Country</span>
+            <input
+              placeholder="Romania"
+              value={edit.country ?? ''}
+              onChange={(e) => setEdit({ ...edit, country: e.target.value || null })}
+            />
+          </label>
+
+          <button
+            className="btn btn-small"
+            type="button"
+            disabled={busy || !edit.email.trim()}
+            onClick={() => void save()}
+          >
+            Save details
+          </button>
+          <button className="link" type="button" onClick={() => setEdit(null)}>
+            Leave it
+          </button>
+        </div>
+      ) : (
+        <div className="panel">
+          <button
+            className="link"
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              setEdit({
+                email: person.email,
+                firstName: person.firstName,
+                surname: person.surname,
+                phone: person.phone,
+                city: person.city,
+                country: person.country,
+              })
+            }
+          >
+            Correct their details
+          </button>
+        </div>
+      )}
 
       <div className="panel">
         {person.canHold ? (

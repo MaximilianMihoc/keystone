@@ -18,6 +18,20 @@
         <p class="lede">@L["Reserve.HoldExplainer", Model.HoldDurationHours]</p>
     </div>
 
+    @* Whatever this project needs a buyer to read before committing. Shown above the failures
+       as well as above the form: it is as true for somebody who lost the race as for anybody
+       else, and they may well try the next apartment. *@
+    @if (Model.Notice is { Length: > 0 } notice)
+    {
+        <div class="notice" role="note">
+            <h2>@L["Reserve.NoticeHeading"]</h2>
+            @foreach (var line in notice.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                <p>@line.Trim()</p>
+            }
+        </div>
+    }
+
     @if (Model.FailureKey is { } failure)
     {
         <div class="alert" role="alert">
@@ -44,9 +58,15 @@
                 <div asp-validation-summary="ModelOnly" class="alert"></div>
 
                 <div class="field">
-                    <label asp-for="Input.FullName">@L["Form.FullName"]</label>
-                    <input asp-for="Input.FullName" autocomplete="name" required />
-                    <span asp-validation-for="Input.FullName" class="field-error"></span>
+                    <label asp-for="Input.FirstName">@L["Form.FirstName"]</label>
+                    <input asp-for="Input.FirstName" autocomplete="given-name" required />
+                    <span asp-validation-for="Input.FirstName" class="field-error"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="Input.Surname">@L["Form.Surname"]</label>
+                    <input asp-for="Input.Surname" autocomplete="family-name" required />
+                    <span asp-validation-for="Input.Surname" class="field-error"></span>
                 </div>
 
                 <div class="field">
@@ -58,8 +78,24 @@
 
                 <div class="field">
                     <label asp-for="Input.Phone">@L["Form.Phone"]</label>
-                    <input asp-for="Input.Phone" type="tel" autocomplete="tel" />
+                    <input asp-for="Input.Phone" type="tel" autocomplete="tel" required />
                     <span asp-validation-for="Input.Phone" class="field-error"></span>
+                </div>
+
+                <div class="field">
+                    <label asp-for="Input.City">@L["Form.City"]</label>
+                    <input asp-for="Input.City" autocomplete="address-level2" required />
+                    <span asp-validation-for="Input.City" class="field-error"></span>
+                </div>
+
+                @* Blank means Romania, which is nearly everybody. Asking the rest for a country
+                   is one box more; asking everybody to pick from a list of two hundred is a
+                   worse form for the sake of the rare case. *@
+                <div class="field">
+                    <label asp-for="Input.Country">@L["Form.Country"]</label>
+                    <input asp-for="Input.Country" autocomplete="country-name" />
+                    <span class="field-hint">@L["Form.CountryHint"]</span>
+                    <span asp-validation-for="Input.Country" class="field-error"></span>
                 </div>
 
                 @* Only where the project sells parking and something is actually free. The

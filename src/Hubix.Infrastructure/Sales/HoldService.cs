@@ -458,19 +458,18 @@ public sealed class HoldService(
             prospect = new Prospect
             {
                 Email = email,
-                FullName = details.FullName,
-                Phone = details.Phone,
                 Locale = details.Locale,
                 Source = "website"
             };
 
+            details.ApplyTo(prospect);
             db.Prospects.Add(prospect);
         }
         else
         {
-            // Keep the latest details they gave us, without wiping anything with a blank.
-            prospect.FullName = details.FullName ?? prospect.FullName;
-            prospect.Phone = details.Phone ?? prospect.Phone;
+            details.ApplyTo(prospect);
+
+            // The language came from this visitor's own browser, so it is theirs to change.
             prospect.Locale = details.Locale;
         }
 
