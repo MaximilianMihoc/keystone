@@ -488,6 +488,50 @@ namespace Hubix.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.PrivacyRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("CompletedAt", "RequestedAt");
+
+                    b.ToTable("PrivacyRequests");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -629,6 +673,9 @@ namespace Hubix.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("AnonymisedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("BlockReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -645,9 +692,6 @@ namespace Hubix.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("DeletionRequestedAt")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Email")

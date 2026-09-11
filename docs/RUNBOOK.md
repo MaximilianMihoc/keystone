@@ -144,12 +144,34 @@ afternoon.
 
 ## GDPR
 
-Both are Admin-only, deliberately separate from ordinary editing.
+All of these are Admin-only, deliberately separate from ordinary editing.
 
 | | |
 |---|---|
 | `GET /api/admin/privacy/export?email=…` | Everything held about them, as a JSON file to forward. |
 | `POST /api/admin/privacy/forget` | `{ "email": "…" }` |
+| `GET /api/admin/privacy/requests` | Everything still open, oldest first. Add `?email=…` for one person. |
+| `POST /api/admin/privacy/requests` | `{ "email", "kind": "Access" or "Erasure", "requestedAt", "note" }` |
+| `POST /api/admin/privacy/requests/{id}/answered` | Closes one by hand. |
+
+All of it is on the Prospects screen too: a download button, the person's requests, and
+erasure behind the address typed out by hand.
+
+**Log the request when it arrives, not when you act on it.** `requestedAt` is the date the
+email or call landed, and the one-month deadline in Article 12(3) runs from there — logging it
+a week late must not quietly buy back the week. Future dates are clamped to now, because a
+mistyped year would otherwise read as comfortably in hand forever.
+
+The record survives the person. Erasure closes their open requests and clears the address from
+them in the same transaction, on the same reasoning as the audit rows below: the dates are the
+evidence that the deadline was met, and keeping the address of somebody who asked to be
+forgotten, in order to prove they were forgotten, would defeat the request it documents. What
+is left says "an erasure request arrived on the 3rd and was carried out on the 11th", with
+nobody named.
+
+An access request is closed by hand, because answering one means sending somebody a file and
+the system cannot witness that — the export is a download, and a `GET` that changed data would
+be wrong in a way browsers and proxies punish.
 
 **Erasure is not always deletion**, and the response says which happened:
 

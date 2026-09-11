@@ -7,6 +7,25 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Hubix.Infrastructure.Configurations;
 
+public class PrivacyRequestConfiguration : IEntityTypeConfiguration<PrivacyRequest>
+{
+    public void Configure(EntityTypeBuilder<PrivacyRequest> builder)
+    {
+        builder.Property(r => r.Email).HasMaxLength(320);
+        builder.Property(r => r.Kind).HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(r => r.Outcome).HasMaxLength(32);
+        builder.Property(r => r.Note).HasMaxLength(500);
+
+        // No foreign key to Prospects on purpose. Erasure deletes that row, and a request
+        // that vanished with the person it documents would prove nothing. The email is the
+        // only link, and it is cleared once the erasure is done.
+        builder.HasIndex(r => r.Email);
+
+        // The regulator's question is "what is still open", so that is the index.
+        builder.HasIndex(r => new { r.CompletedAt, r.RequestedAt });
+    }
+}
+
 public class ProspectConfiguration : IEntityTypeConfiguration<Prospect>
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);

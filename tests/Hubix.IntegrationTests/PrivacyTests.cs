@@ -180,7 +180,7 @@ public class PrivacyTests(DatabaseFixture fixture)
         erased.Phone.ShouldBeNull();
         erased.GdprConsentAt.ShouldBeNull();
         erased.GdprConsentPurpose.ShouldBeEmpty();
-        erased.DeletionRequestedAt.ShouldNotBeNull();
+        erased.AnonymisedAt.ShouldNotBeNull();
 
         // Marketing data goes even when the contract stays.
         (await verify.WaitlistEntries.AnyAsync(w => w.ProspectId == erased.Id)).ShouldBeFalse();
@@ -232,6 +232,171 @@ public class PrivacyTests(DatabaseFixture fixture)
         (await verify.AuditLogs.AnyAsync(a => a.ActorLabel == Email)).ShouldBeFalse();
         (await verify.AuditLogs.AnyAsync(a => a.ActorLabel == "[erased]")).ShouldBeTrue();
         (await verify.AuditLogs.AnyAsync(a => a.Action == "prospect.deleted")).ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The point of the record: the asking and the answering are different dates, and the
+    /// deadline runs from the first.
+    /// </summary>
+    [Fact]
+    public async Task A_request_keeps_the_date_it_arrived_not_the_date_it_was_logged()
+    {
+        await fixture.ResetUnitAsync();
+
+        var arrived = DateTimeOffset.UtcNow.AddDays(-9);
+
+        await using var db = fixture.CreateContext();
+
+        var logged = await Service(db).LogRequestAsync(
+            Email, PrivacyRequestKind.Access, arrived, "Asked by email", Actor, "dev",
+            CancellationToken.None);
+
+        logged.RequestedAt.ShouldBe(arrived, TimeSpan.FromSeconds(1));
+        logged.DueAt.ShouldBe(arrived.AddMonths(1), TimeSpan.FromSeconds(1));
+        logged.IsOpen.ShouldBeTrue();
+        logged.IsOverdue(DateTimeOffset.UtcNow).ShouldBeFalse();
+
+        // Nine days in, with a month allowed. Twenty-three days later it is late.
+        logged.IsOverdue(arrived.AddMonths(1).AddDays(1)).ShouldBeTrue();
+    }
+
+    /// <summary>A date in the future is a typo, and would otherwise never fall due.</summary>
+    [Fact]
+    public async Task A_request_cannot_be_asked_for_tomorrow()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+
+        var logged = await Service(db).LogRequestAsync(
+            Email, PrivacyRequestKind.Access, DateTimeOffset.UtcNow.AddYears(1), null,
+            Actor, "dev", CancellationToken.None);
+
+        logged.RequestedAt.ShouldBeLessThanOrEqualTo(DateTimeOffset.UtcNow.AddSeconds(1));
+    }
+
+    [Fact]
+    public async Task Answering_a_request_closes_it_once_and_only_once()
+    {
+        await fixture.ResetUnitAsync();
+
+        Guid requestId;
+
+        await using (var db = fixture.CreateContext())
+        {
+            requestId = (await Service(db).LogRequestAsync(
+                Email, PrivacyRequestKind.Access, null, null, Actor, "dev",
+                CancellationToken.None)).Id;
+
+            (await Service(db).MarkAnsweredAsync(requestId, Actor, "dev", CancellationToken.None))
+                .ShouldBeTrue();
+
+            // Answering it again is not an error, but it must not move the date.
+            (await Service(db).MarkAnsweredAsync(requestId, Actor, "dev", CancellationToken.None))
+                .ShouldBeFalse();
+        }
+
+        await using var verify = fixture.CreateContext();
+        var request = await verify.PrivacyRequests.SingleAsync(r => r.Id == requestId);
+
+        request.IsOpen.ShouldBeFalse();
+        request.Outcome.ShouldBe("answered");
+
+        (await verify.AuditLogs.AnyAsync(
+            a => a.EntityId == requestId && a.Action == "privacy.request.answered")).ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// The record has to outlive the person, or it proves nothing — and it must not carry
+    /// their address afterwards, or it undoes the erasure it is evidence of.
+    /// </summary>
+    [Fact]
+    public async Task Erasure_closes_the_request_and_takes_the_address_off_it()
+    {
+        await fixture.ResetUnitAsync();
+        await WithHistoryAsync();
+
+        Guid requestId;
+
+        await using (var db = fixture.CreateContext())
+        {
+            requestId = (await Service(db).LogRequestAsync(
+                Email, PrivacyRequestKind.Erasure, DateTimeOffset.UtcNow.AddDays(-2), null,
+                Actor, "dev", CancellationToken.None)).Id;
+
+            (await Service(db).ForgetAsync(Email, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ForgetOutcome.Deleted>();
+        }
+
+        await using var verify = fixture.CreateContext();
+
+        // The person is gone.
+        (await verify.Prospects.AnyAsync(p => p.Email == Email)).ShouldBeFalse();
+
+        // The proof that they asked, and were answered inside the month, is not.
+        var request = await verify.PrivacyRequests.SingleAsync(r => r.Id == requestId);
+
+        request.Email.ShouldBeNull();
+        request.Outcome.ShouldBe("deleted");
+        request.CompletedAt.ShouldNotBeNull();
+        request.CompletedAt!.Value.ShouldBeLessThanOrEqualTo(request.DueAt);
+    }
+
+    /// <summary>The anonymise path keeps a person's row, and must close the request too.</summary>
+    [Fact]
+    public async Task Erasure_that_has_to_keep_the_record_still_closes_the_request()
+    {
+        await fixture.ResetUnitAsync();
+        await WithHistoryAsync();
+
+        await using (var db = fixture.CreateContext())
+        {
+            var created = (await Reservations(db).CreateAsync(
+                    fixture.UnitId, null, BuyerType.Individual, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ReservationOutcome.Created>();
+
+            await db.Reservations
+                .Where(r => r.Id == created.ReservationId)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.FeePaidAt, DateTimeOffset.UtcNow));
+
+            await Service(db).LogRequestAsync(
+                Email, PrivacyRequestKind.Erasure, null, null, Actor, "dev", CancellationToken.None);
+
+            (await Service(db).ForgetAsync(Email, Actor, "dev", CancellationToken.None))
+                .ShouldBeOfType<ForgetOutcome.Anonymised>();
+        }
+
+        await using var verify = fixture.CreateContext();
+        var request = await verify.PrivacyRequests.SingleAsync(r => r.Outcome == "anonymised");
+
+        request.Email.ShouldBeNull();
+        request.CompletedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Open_requests_come_back_oldest_first()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var service = Service(db);
+
+        var older = await service.LogRequestAsync(
+            "a@example.ro", PrivacyRequestKind.Access, DateTimeOffset.UtcNow.AddDays(-20), null,
+            Actor, "dev", CancellationToken.None);
+
+        var newer = await service.LogRequestAsync(
+            "b@example.ro", PrivacyRequestKind.Access, DateTimeOffset.UtcNow.AddDays(-1), null,
+            Actor, "dev", CancellationToken.None);
+
+        await service.MarkAnsweredAsync(newer.Id, Actor, "dev", CancellationToken.None);
+
+        var open = await service.OpenRequestsAsync(CancellationToken.None);
+
+        // Whatever is closest to its deadline is on top, and what is answered is not there.
+        open.ShouldContain(r => r.Id == older.Id);
+        open.ShouldNotContain(r => r.Id == newer.Id);
+        open[0].RequestedAt.ShouldBeLessThanOrEqualTo(open[^1].RequestedAt);
     }
 
     [Fact]

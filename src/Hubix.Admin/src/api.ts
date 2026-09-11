@@ -584,6 +584,30 @@ export interface Prospect {
   openReservations: number;
 }
 
+export const PRIVACY_KINDS = ['Access', 'Erasure'] as const;
+
+export type PrivacyRequestKind = (typeof PRIVACY_KINDS)[number];
+
+/**
+ * Somebody exercising a right over their own data, and whether they have been answered yet.
+ *
+ * Kept apart from the audit trail on purpose: that says what was done, this says how long it
+ * took. Only the second one answers a regulator, and it cannot be reconstructed afterwards.
+ */
+export interface PrivacyRequest {
+  id: string;
+  /** Null once an erasure has been carried out — the dates are the evidence, not the address. */
+  email: string | null;
+  kind: PrivacyRequestKind;
+  requestedAt: string;
+  /** One month after it arrived, per GDPR Article 12(3). */
+  dueAt: string;
+  completedAt: string | null;
+  outcome: string | null;
+  note: string | null;
+  overdue: boolean;
+}
+
 /** What staff may correct about a prospect: exactly what the public forms ask for. */
 export interface ProspectEdit {
   email: string;
@@ -629,7 +653,8 @@ export interface ProspectDetail extends Prospect {
   gdprConsentAt: string | null;
   gdprConsentPurpose: string[];
   gdprConsentSource: string | null;
-  deletionRequestedAt: string | null;
+  /** When their record was stripped of identity, not when they asked. */
+  anonymisedAt: string | null;
   holds: ProspectHold[];
   reservations: ProspectReservation[];
   waitlist: ProspectWaitlist[];
@@ -955,6 +980,42 @@ export const api = {
 
   prospect: (prospectId: string) =>
     request<ProspectDetail>(`/api/admin/prospects/${prospectId}`),
+
+  /**
+   * A plain link, not a fetch: the session cookie rides along and the browser saves the file
+   * itself, which is what a subject access request needs forwarding to the person who asked.
+   */
+  privacyExportUrl: (email: string) =>
+    `/api/admin/privacy/export?email=${encodeURIComponent(email)}`,
+
+  /** One person's requests, or everything still open when no address is given. */
+  privacyRequests: (email?: string) =>
+    request<PrivacyRequest[]>(
+      `/api/admin/privacy/requests${email ? `?email=${encodeURIComponent(email)}` : ''}`,
+    ),
+
+  logPrivacyRequest: (body: {
+    email: string;
+    kind: PrivacyRequestKind;
+    requestedAt: string | null;
+    note: string | null;
+  }) =>
+    request<{ id: string; dueAt: string }>('/api/admin/privacy/requests', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  markPrivacyRequestAnswered: (requestId: string) =>
+    request<{ answered: boolean }>(`/api/admin/privacy/requests/${requestId}/answered`, {
+      method: 'POST',
+    }),
+
+  /** Irreversible. The caller is expected to have made the user type the address first. */
+  forgetProspect: (email: string) =>
+    request<{ outcome: string; message: string }>('/api/admin/privacy/forget', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
 
   /** Corrects what the buyer typed. The joined name follows from the two parts. */
   editProspect: (prospectId: string, edit: ProspectEdit) =>

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   api,
   SessionExpired,
+  type PrivacyRequest,
+  type PrivacyRequestKind,
   type Prospect,
   type ProspectDetail,
   type ProspectEdit,
@@ -26,6 +28,7 @@ const when = (value: string | null) => (value ? day.format(new Date(value)) : '�
 export function ProspectsPanel({ onSessionExpired }: Props) {
   const [rows, setRows] = useState<Prospect[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [blockedOnly, setBlockedOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -61,6 +64,17 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
         <p className="banner error">
           {error}
           <button className="link" type="button" onClick={() => setError(null)}>
+            Dismiss
+          </button>
+        </p>
+      )}
+
+      {/* Which of the two erasures happened, in the words that can be sent to the person who
+          asked. It outlives the drawer, because the drawer closes as the erasure lands. */}
+      {done && (
+        <p className="banner done">
+          {done}
+          <button className="link" type="button" onClick={() => setDone(null)}>
             Dismiss
           </button>
         </p>
@@ -149,6 +163,14 @@ export function ProspectsPanel({ onSessionExpired }: Props) {
           prospectId={selectedId}
           onClose={() => setSelectedId(null)}
           onChanged={() => void reload()}
+          onErased={(message) => {
+            // The drawer is showing somebody who no longer exists, so it closes rather than
+            // reloading into a 404. What was done is worth saying: erasure is sometimes a
+            // delete and sometimes an anonymise, and staff have to tell the person which.
+            setSelectedId(null);
+            setDone(message);
+            void reload();
+          }}
           onFail={fail}
         />
       )}
@@ -160,11 +182,13 @@ function Detail({
   prospectId,
   onClose,
   onChanged,
+  onErased,
   onFail,
 }: {
   prospectId: string;
   onClose: () => void;
   onChanged: () => void;
+  onErased: (message: string) => void;
   onFail: (e: unknown) => void;
 }) {
   const [person, setPerson] = useState<ProspectDetail | null>(null);
@@ -302,10 +326,10 @@ function Detail({
           )}
         </dd>
 
-        {person.deletionRequestedAt && (
+        {person.anonymisedAt && (
           <>
             <dt>Erasure</dt>
-            <dd>Asked to be forgotten on {when(person.deletionRequestedAt)}</dd>
+            <dd>Anonymised on {when(person.anonymisedAt)}</dd>
           </>
         )}
       </dl>
@@ -438,6 +462,8 @@ function Detail({
         )}
       </div>
 
+      <Privacy email={person.email} onFail={onFail} />
+
       <h3>Holds</h3>
       {person.holds.length === 0 ? (
         <p className="muted">None.</p>
@@ -501,6 +527,278 @@ function Detail({
           ))}
         </ul>
       )}
+
+      <Erase email={person.email} onErased={onErased} onFail={onFail} />
     </aside>
+  );
+}
+
+/** Today as the date input wants it, which is also the latest a request can have arrived. */
+const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * What this person has asked for, and how long is left to answer it.
+ *
+ * The record of the asking is deliberately separate from the record of the answering. The
+ * audit trail already says what was done; a regulator asks how long it took, and that cannot
+ * be worked out after the fact — nothing else knows an email arrived nine days before anybody
+ * acted on it. So staff log the date it actually arrived, and the deadline runs from there.
+ */
+function Privacy({ email, onFail }: { email: string; onFail: (e: unknown) => void }) {
+  const [rows, setRows] = useState<PrivacyRequest[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [kind, setKind] = useState<PrivacyRequestKind>('Access');
+  const [arrived, setArrived] = useState(today());
+  const [note, setNote] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setRows(await api.privacyRequests(email));
+    } catch (e) {
+      onFail(e);
+    }
+  }, [email, onFail]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const log = useCallback(async () => {
+    setBusy(true);
+
+    try {
+      await api.logPrivacyRequest({
+        email,
+        kind,
+        // Midnight UTC on the day they chose. The deadline is counted in days, so the time
+        // of day was never known and pretending otherwise would be invented precision.
+        requestedAt: arrived ? new Date(arrived).toISOString() : null,
+        note: note.trim() || null,
+      });
+
+      await load();
+      setAdding(false);
+      setNote('');
+      setArrived(today());
+    } catch (e) {
+      onFail(e);
+    } finally {
+      setBusy(false);
+    }
+  }, [email, kind, arrived, note, load, onFail]);
+
+  const answer = useCallback(
+    async (requestId: string) => {
+      setBusy(true);
+
+      try {
+        await api.markPrivacyRequestAnswered(requestId);
+        await load();
+      } catch (e) {
+        onFail(e);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [load, onFail],
+  );
+
+  return (
+    <>
+      <h3>Data requests</h3>
+
+      <div className="panel">
+        <a className="btn btn-small" href={api.privacyExportUrl(email)}>
+          Download everything held about them
+        </a>
+        <p className="hint">
+          A JSON file to forward to them. Downloading it is not a record that they were
+          answered — mark the request answered below once you have sent it.
+        </p>
+      </div>
+
+      {rows === null ? (
+        <p className="muted">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="muted">Nothing asked for.</p>
+      ) : (
+        <ul className="queue-list">
+          {rows.map((r) => (
+            <li key={r.id} className={r.completedAt ? 'told' : undefined}>
+              <span className="queue-who">
+                <strong>{r.kind === 'Access' ? 'Copy of their data' : 'Erasure'}</strong>
+                <span className="queue-email">
+                  asked {when(r.requestedAt)}
+                  {r.note ? ` · ${r.note}` : ''}
+                </span>
+              </span>
+              <span className="queue-when">
+                {r.completedAt ? (
+                  `${r.outcome ?? 'answered'} ${when(r.completedAt)}`
+                ) : (
+                  <>
+                    {/* Overdue is the only state worth colouring: everything else is
+                        simply in hand, and a wall of red teaches people to ignore it. */}
+                    <span className={r.overdue ? 'danger' : undefined}>
+                      {r.overdue ? `overdue since ${when(r.dueAt)}` : `due ${when(r.dueAt)}`}
+                    </span>
+                    <button
+                      className="link"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void answer(r.id)}
+                    >
+                      Mark answered
+                    </button>
+                  </>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="panel">
+        {adding ? (
+          <div className="cancel-form">
+            <label className="field">
+              <span>What did they ask for?</span>
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value as PrivacyRequestKind)}
+              >
+                <option value="Access">A copy of their data</option>
+                <option value="Erasure">To be erased</option>
+              </select>
+            </label>
+
+            <label className="field">
+              <span>When did it arrive?</span>
+              {/* The date the email or call landed, not today — the month runs from then,
+                  and logging it late must not quietly buy back the days already spent. */}
+              <input
+                type="date"
+                value={arrived}
+                max={today()}
+                onChange={(e) => setArrived(e.target.value)}
+              />
+            </label>
+
+            <input
+              placeholder="How did it arrive? (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+
+            <button
+              className="btn btn-small"
+              type="button"
+              disabled={busy || !arrived}
+              onClick={() => void log()}
+            >
+              Log it
+            </button>
+            <button className="link" type="button" onClick={() => setAdding(false)}>
+              Leave it
+            </button>
+          </div>
+        ) : (
+          <button className="link" type="button" onClick={() => setAdding(true)}>
+            Log a request they made
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * Erasure, behind the address typed out by hand.
+ *
+ * Not a confirm dialog: this releases any live hold, returns the apartment to sale and cannot
+ * be undone, and it sits one row away from "Block them from holding". Making somebody copy the
+ * address out is the cheapest thing that reliably separates intent from a misclick.
+ */
+function Erase({
+  email,
+  onErased,
+  onFail,
+}: {
+  email: string;
+  onErased: (message: string) => void;
+  onFail: (e: unknown) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const matches = typed.trim().toLowerCase() === email.toLowerCase();
+
+  const erase = useCallback(async () => {
+    setBusy(true);
+
+    try {
+      const result = await api.forgetProspect(email);
+      onErased(result.message);
+    } catch (e) {
+      onFail(e);
+    } finally {
+      setBusy(false);
+    }
+  }, [email, onErased, onFail]);
+
+  return (
+    <>
+      <h3 className="danger">Erase them</h3>
+
+      <div className="panel">
+        {open ? (
+          <div className="cancel-form">
+            <p className="hint">
+              This cannot be undone. Any hold they have is released and the apartment goes
+              back on sale. If they have a reservation with money against it, the record is
+              kept for accounting and everything identifying them is stripped from it
+              instead; otherwise the whole lot is deleted.
+            </p>
+
+            <label className="field">
+              <span>
+                Type <strong>{email}</strong> to confirm
+              </span>
+              <input
+                value={typed}
+                autoComplete="off"
+                placeholder={email}
+                onChange={(e) => setTyped(e.target.value)}
+              />
+            </label>
+
+            <button
+              className="btn btn-small danger"
+              type="button"
+              disabled={busy || !matches}
+              onClick={() => void erase()}
+            >
+              Erase them permanently
+            </button>
+            <button
+              className="link"
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setTyped('');
+              }}
+            >
+              Leave it
+            </button>
+          </div>
+        ) : (
+          <button className="link danger" type="button" onClick={() => setOpen(true)}>
+            Erase them at their request
+          </button>
+        )}
+      </div>
+    </>
   );
 }

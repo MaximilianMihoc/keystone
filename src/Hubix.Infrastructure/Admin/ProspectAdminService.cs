@@ -91,6 +91,8 @@ public sealed class ProspectAdminService(
             apply(value);
         }
 
+        var wasEmail = prospect.Email;
+
         Set("Email", prospect.Email, email, v => prospect.Email = v!);
         Set("FirstName", prospect.FirstName, edit.FirstName, v => prospect.FirstName = v);
         Set("Surname", prospect.Surname, edit.Surname, v => prospect.Surname = v);
@@ -101,6 +103,18 @@ public sealed class ProspectAdminService(
         if (changes.Count == 0)
         {
             return new AdminWriteResult.NoChange();
+        }
+
+        // A privacy request is found by the address that asked, and has no foreign key to bind
+        // it — deliberately, because erasure deletes the prospect and the record has to outlive
+        // them. Correcting a typo'd address would otherwise strand whatever they had asked for:
+        // gone from their drawer, still sitting open on the deadline queue, answerable by
+        // nobody. Only open ones move. A completed one records what was true at the time.
+        if (changes.ContainsKey("Email"))
+        {
+            await db.PrivacyRequests
+                .Where(r => r.Email == wasEmail && r.CompletedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.Email, email), ct);
         }
 
         db.AuditLogs.Add(new AuditLog

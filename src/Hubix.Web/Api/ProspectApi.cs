@@ -123,7 +123,7 @@ public static class ProspectApi
                     gdprConsentAt = p.GdprConsentAt,
                     gdprConsentPurpose = p.GdprConsentPurpose,
                     gdprConsentSource = p.GdprConsentSource,
-                    deletionRequestedAt = p.DeletionRequestedAt,
+                    anonymisedAt = p.AnonymisedAt,
 
                     holds = p.Holds
                         .OrderByDescending(h => h.CreatedAt)
