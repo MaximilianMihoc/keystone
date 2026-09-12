@@ -31,6 +31,10 @@ export function SettingsPanel({ onSessionExpired }: Props) {
   const [blocked, setBlocked] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+
+  // Saved, but refused by a production instance. Outside Production the save goes through and
+  // this is the only thing that says so.
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [testTo, setTestTo] = useState('');
   const [tested, setTested] = useState<TestSendResult | null>(null);
@@ -70,6 +74,7 @@ export function SettingsPanel({ onSessionExpired }: Props) {
     setBusy(true);
     setError(null);
     setSaved(null);
+    setWarnings([]);
 
     try {
       const result = await api.saveEmailSettings({
@@ -82,6 +87,7 @@ export function SettingsPanel({ onSessionExpired }: Props) {
       });
 
       setSaved(result.savedAt);
+      setWarnings(result.warnings);
       await load();
     } catch (e) {
       fail(e);
@@ -197,6 +203,11 @@ export function SettingsPanel({ onSessionExpired }: Props) {
 
       {error && <p className="banner error">{error}</p>}
       {saved && <p className="muted">Saved.</p>}
+      {warnings.length > 0 && (
+        <p className="banner error">
+          Saved, but a production instance would refuse to start on this: {warnings.join(' ')}
+        </p>
+      )}
 
       <div className="row">
         <button className="btn" type="button" disabled={busy} onClick={() => void save()}>

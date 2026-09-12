@@ -18,6 +18,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AdminClientDir>$(MSBuildProjectDirectory)\..\Hubix.Admin</AdminClientDir>
+    <UserSecretsId>bf3b32c7-9f9e-48c2-a7e4-774734737873</UserSecretsId>
   </PropertyGroup>
 
   <!--

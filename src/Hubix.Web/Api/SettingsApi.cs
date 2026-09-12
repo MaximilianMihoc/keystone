@@ -60,6 +60,7 @@ public static class SettingsApi
             EmailSettingsRequest body,
             SettingsService settings,
             IOptionsSnapshot<EmailOptions> current,
+            IHostEnvironment env,
             ClaimsPrincipal user,
             CancellationToken ct) =>
         {
@@ -86,10 +87,14 @@ public static class SettingsApi
             };
 
             // The same rules that stop a production instance starting. Refused here rather
-            // than discovered at the next deploy.
+            // than discovered at the next deploy — but only where they apply, exactly as
+            // EnsureReady only applies them in Production. Development is meant to run on the
+            // provider's sandbox sender, and refusing that leaves live sending impossible to
+            // try at all. Outside Production they come back as warnings instead, so the screen
+            // still says what a deploy would refuse.
             var refusals = ProductionReadiness.EmailProblems(proposed);
 
-            if (refusals.Count > 0)
+            if (refusals.Count > 0 && env.IsProduction())
             {
                 return Results.BadRequest(new { error = string.Join(" ", refusals) });
             }
@@ -106,7 +111,7 @@ public static class SettingsApi
                 AdminApi.ActorLabel(user),
                 ct);
 
-            return Results.Ok(new { savedAt = saved.UpdatedAt });
+            return Results.Ok(new { savedAt = saved.UpdatedAt, warnings = refusals });
         });
 
         // Proves the whole path, which is the only thing worth proving: the same guards, the
