@@ -1200,7 +1200,7 @@ export const api = {
     }),
 
   saveEmailSettings: (body: EmailSettingsEdit) =>
-    request<{ savedAt: string }>('/api/admin/settings/email', {
+    request<{ savedAt: string; warnings: string[] }>('/api/admin/settings/email', {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
