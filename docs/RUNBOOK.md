@@ -135,6 +135,9 @@ harmful live, and every one fails silently if unchecked:
 | No connection string | Nothing works. |
 | Live email, no allow list and no redirect | Mail would reach real buyers. |
 | Live email, empty blocked list | Hubix's own addresses must stay on it. |
+| Live email, no `Email:From` | Nothing can be sent without a sender address. |
+| Live email, `Email:From` on `resend.dev` | The sandbox sender reaches nobody but test addresses. |
+| Live email, empty `Resend:ApiKey` | Every message would go quietly to the outbox. |
 | `PublicBaseUrl` still `localhost` | Every link in every email would be dead. |
 | `SalesInbox` still `.invalid` | Internal notifications go nowhere. |
 | No `Assets:SigningKey` and no blob storage | File links break on restart and across instances. |
@@ -201,6 +204,12 @@ In production it comes from the host's own secret store, as an environment varia
 verified with Resend, whose SPF, DKIM and DMARC records are published. An address changed
 without the DNS to match does not fail — it quietly starts landing in spam, and for a two-day
 hold countdown that is a lost apartment.
+
+**For testing before a domain is verified**, `onboarding@resend.dev` works as a `From` with no
+DNS at all. It is the provider's sandbox sender: it delivers only to their test addresses
+(`delivered@resend.dev`, `bounced@resend.dev`, `complained@resend.dev`) and to the address that
+owns the Resend account. A production instance refuses to start while `Email:From` is on
+`resend.dev`, because an instance wearing it looks configured and reaches nobody.
 
 ### Changing provider
 

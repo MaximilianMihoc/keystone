@@ -168,4 +168,27 @@ public class ProductionReadinessTests
     {
         Check(provider: new ResendOptions { ApiKey = "re_test_key" }).ShouldBeEmpty();
     }
+
+    /// <summary>
+    /// The sandbox sender is the easiest thing in this list to leave behind: it needs no domain
+    /// verification, so it works in testing and then reaches nobody in production.
+    /// </summary>
+    [Fact]
+    public void Live_email_from_the_providers_sandbox_sender_is_refused()
+    {
+        var email = SafeEmail();
+        email.From = "onboarding@resend.dev";
+
+        Check(email: email).ShouldContain(p => p.Contains("sandbox sender"));
+    }
+
+    [Fact]
+    public void A_sandbox_sender_is_fine_while_nothing_is_being_sent()
+    {
+        var email = SafeEmail();
+        email.From = "onboarding@resend.dev";
+        email.LiveSendingEnabled = false;
+
+        Check(email: email).ShouldBeEmpty();
+    }
 }

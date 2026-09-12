@@ -99,6 +99,17 @@ public static class ProductionReadiness
                 "Live email is on with no Email:From address. Nothing can be sent without one.");
         }
 
+        // The provider's sandbox sender needs no domain verification, which is exactly what
+        // makes it easy to leave behind. It can only send to test addresses and to whoever
+        // owns the provider account, so a production instance wearing it would look configured
+        // and reach nobody.
+        if (email.From.EndsWith("@resend.dev", StringComparison.OrdinalIgnoreCase))
+        {
+            problems.Add(
+                "Live email is on with Email:From on resend.dev, which is the provider's " +
+                "sandbox sender. Production needs an address on a domain verified with them.");
+        }
+
         if (email.AllowedRecipients.Count == 0 && string.IsNullOrWhiteSpace(email.RedirectAllTo))
         {
             problems.Add(
