@@ -87,10 +87,9 @@ public sealed class SettingsService(HubixDbContext db, ILogger<SettingsService> 
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <remarks>
-    /// Deduplicated, because the same pattern twice is the same rule twice. Options binding
-    /// appends configuration to the property default rather than replacing it, so the list
-    /// arriving from a screen that displays the effective settings can already hold
-    /// <c>*@hubix.ro</c> twice, and saving it would make that permanent.
+    /// Deduplicated, because the same pattern twice is the same rule twice — whether it got
+    /// that way from somebody typing it twice or from a configured list being appended to the
+    /// property default rather than replacing it. Saving a duplicate would make it permanent.
     /// </remarks>
     private static List<string> Patterns(IReadOnlyList<string> values) =>
         [.. values

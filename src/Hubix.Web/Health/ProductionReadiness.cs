@@ -1,6 +1,7 @@
 using Hubix.Infrastructure.Assets;
 using Hubix.Infrastructure.Email;
 using Hubix.Web.Notifications;
+using Microsoft.Extensions.Options;
 
 namespace Hubix.Web.Health;
 
@@ -26,7 +27,8 @@ public static class ProductionReadiness
         EmailOptions email,
         AssetOptions assets,
         HubixOptions hubix,
-        string? connectionString)
+        string? connectionString,
+        ResendOptions? provider = null)
     {
         var problems = new List<string>();
 
@@ -36,6 +38,15 @@ public static class ProductionReadiness
         }
 
         problems.AddRange(EmailProblems(email));
+
+        // Live sending with no provider behind it is the quietest failure of the lot: every
+        // message falls back to the outbox and the only sign is a warning in the log.
+        if (email.LiveSendingEnabled && provider is { IsConfigured: false })
+        {
+            problems.Add(
+                "Live email is on but Resend:ApiKey is empty, so nothing can be sent and " +
+                "every message would go quietly to the outbox.");
+        }
 
         if (hubix.PublicBaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
         {
@@ -82,6 +93,12 @@ public static class ProductionReadiness
             return problems;
         }
 
+        if (string.IsNullOrWhiteSpace(email.From))
+        {
+            problems.Add(
+                "Live email is on with no Email:From address. Nothing can be sent without one.");
+        }
+
         if (email.AllowedRecipients.Count == 0 && string.IsNullOrWhiteSpace(email.RedirectAllTo))
         {
             problems.Add(
@@ -105,12 +122,24 @@ public static class ProductionReadiness
             return;
         }
 
+        // In a scope, and through the snapshot, because EmailOptions and HubixOptions are both
+        // laid over from the database by a scoped post-configure. Resolving IOptions for either
+        // from the root provider throws — and it would throw only in Production, where this is
+        // the one thing standing between a bad configuration and real buyers.
+        //
+        // It also means the check sees the saved settings rather than only the file, which is
+        // the behaviour worth having: an unsafe combination saved from the admin screen should
+        // stop the next deploy exactly as an unsafe appsettings would.
+        using var scope = app.Services.CreateScope();
+        var services = scope.ServiceProvider;
+
         var problems = Problems(
-            app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value,
-            app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<AssetOptions>>().Value,
-            app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HubixOptions>>().Value,
+            services.GetRequiredService<IOptionsSnapshot<EmailOptions>>().Value,
+            services.GetRequiredService<IOptions<AssetOptions>>().Value,
+            services.GetRequiredService<IOptionsSnapshot<HubixOptions>>().Value,
             app.Configuration.GetConnectionString(
-                Hubix.Infrastructure.DependencyInjection.ConnectionStringName));
+                Hubix.Infrastructure.DependencyInjection.ConnectionStringName),
+            services.GetRequiredService<IOptions<ResendOptions>>().Value);
 
         if (problems.Count == 0)
         {

@@ -29,6 +29,7 @@ public static class SettingsApi
             SettingsService settings,
             IOptionsSnapshot<EmailOptions> email,
             IOptionsSnapshot<HubixOptions> hubix,
+            IOptions<ResendOptions> provider,
             CancellationToken ct) =>
         {
             var saved = await settings.CurrentAsync(ct);
@@ -41,20 +42,24 @@ public static class SettingsApi
                 publicBaseUrl = hubix.Value.PublicBaseUrl,
                 liveSendingEnabled = email.Value.LiveSendingEnabled,
                 redirectAllTo = email.Value.RedirectAllTo,
-                // Distinct because options binding appends configuration to the property
-                // default rather than replacing it, so *@hubix.ro arrives here twice.
+                // Distinct because options binding appends a configured list to the property
+                // default rather than replacing it. The shipped files no longer set either
+                // list for that reason, but a deployment is free to, and a screen showing
+                // *@hubix.ro twice invites somebody to delete one of them.
                 allowedRecipients = email.Value.AllowedRecipients.Distinct(StringComparer.OrdinalIgnoreCase),
                 blockedRecipients = email.Value.BlockedRecipients.Distinct(StringComparer.OrdinalIgnoreCase),
 
-                // There is no provider registered, so nothing leaves the machine whatever this
-                // says. An operator turning the switch on deserves to know that up front.
-                sendingPossible = false
+                // Whether the switch below can do anything at all. An operator turning live
+                // sending on deserves to know up front that nothing is wired up behind it —
+                // and, once something is, not to be told otherwise.
+                sendingPossible = EmailRegistration.CanSend(provider.Value, email.Value)
             });
         });
 
         admin.MapPut("/email", async (
             EmailSettingsRequest body,
             SettingsService settings,
+            IOptionsSnapshot<EmailOptions> current,
             ClaimsPrincipal user,
             CancellationToken ct) =>
         {
@@ -69,6 +74,11 @@ public static class SettingsApi
 
             var proposed = new EmailOptions
             {
+                // Carried from configuration rather than the screen, which has no field for
+                // it: the check below refuses live sending without a From, and validating a
+                // blank one would make the switch impossible to turn on at all.
+                From = current.Value.From,
+
                 LiveSendingEnabled = body.LiveSendingEnabled,
                 RedirectAllTo = body.RedirectAllTo,
                 AllowedRecipients = [.. body.AllowedRecipients],
@@ -98,7 +108,73 @@ public static class SettingsApi
 
             return Results.Ok(new { savedAt = saved.UpdatedAt });
         });
+
+        // Proves the whole path, which is the only thing worth proving: the same guards, the
+        // same composition, the same provider a reservation confirmation would take. A test
+        // that took a shortcut past any of it would be a test of the shortcut.
+        admin.MapPost("/email/test", async (
+            TestSendRequest? body,
+            SafeEmailSender sender,
+            ClaimsPrincipal user,
+            ILoggerFactory loggers,
+            CancellationToken ct) =>
+        {
+            // Their own address unless they say otherwise: the common case is "does this work
+            // at all", and nobody should have to type their own address to find out.
+            var to = string.IsNullOrWhiteSpace(body?.To) ? AdminApi.ActorLabel(user) : body.To.Trim();
+
+            var problem = ProjectApi.Length(to, "address", 320);
+
+            if (problem is not null || !to.Contains('@'))
+            {
+                return Results.BadRequest(new { error = problem ?? $"\"{to}\" is not an email address." });
+            }
+
+            var message = new EmailMessage(
+                to,
+                "Hubix portal test message",
+                $"""
+                 This is a test message from the Hubix portal, sent by {AdminApi.ActorLabel(user)}.
+
+                 It went the same way every other message goes. If you are reading it in an
+                 inbox, sending works. If it is in the outbox instead, the screen said so.
+                 """,
+                ReplyTo: null,
+
+                // Both parts, so a provider or a client that prefers one over the other is
+                // exercised here rather than discovered on a buyer's reservation.
+                HtmlBody:
+                $"""
+                 <p>This is a test message from the Hubix portal, sent by
+                 {AdminApi.ActorLabel(user)}.</p>
+                 <p>It went the same way every other message goes.</p>
+                 """);
+
+            try
+            {
+                var delivery = await sender.DeliverAsync(message, ct);
+
+                return Results.Ok(new
+                {
+                    ok = true,
+                    transmitted = delivery.Transmitted,
+                    to = delivery.To,
+                    reason = delivery.DivertedBecause
+                });
+            }
+            catch (Exception ex)
+            {
+                // The provider refusing is the answer the button exists to give, so it is
+                // reported rather than thrown: a 500 here would tell an operator nothing.
+                loggers.CreateLogger(nameof(SettingsApi))
+                    .LogError(ex, "A test message to {To} could not be sent", to);
+
+                return Results.Ok(new { ok = false, to, error = ex.Message });
+            }
+        });
     }
+
+    public sealed record TestSendRequest(string? To);
 
     public sealed record EmailSettingsRequest(
         string? SalesInbox,

@@ -222,4 +222,76 @@ public class SafeEmailSenderTests
     {
         SafeEmailSender.Matches(address, pattern).ShouldBe(expected);
     }
+
+    // --- What became of it -----------------------------------------------------------
+    // The settings screen reports these words back to an operator, so they are part of the
+    // behaviour rather than an implementation detail.
+
+    [Fact]
+    public async Task A_kept_message_says_why_it_was_kept()
+    {
+        var (sender, _, _) = Build();
+
+        var delivery = await sender.DeliverAsync(To("buyer@example.ro"), CancellationToken.None);
+
+        delivery.Transmitted.ShouldBeFalse();
+        delivery.DivertedBecause.ShouldBe("live sending is disabled");
+        delivery.To.ShouldBe("buyer@example.ro");
+    }
+
+    [Fact]
+    public async Task A_blocked_message_says_it_was_the_block_list()
+    {
+        var (sender, _, _) = Build(o =>
+        {
+            o.LiveSendingEnabled = true;
+            o.BlockedRecipients = ["*@hubix.ro"];
+        });
+
+        var delivery = await sender.DeliverAsync(To("anyone@hubix.ro"), CancellationToken.None);
+
+        delivery.Transmitted.ShouldBeFalse();
+        delivery.DivertedBecause.ShouldBe("recipient is on the blocked list");
+    }
+
+    [Fact]
+    public async Task A_transmitted_message_says_so_and_names_where_it_really_went()
+    {
+        var (sender, _, _) = Build(o =>
+        {
+            o.LiveSendingEnabled = true;
+            o.RedirectAllTo = "tester@example.ro";
+        });
+
+        var delivery = await sender.DeliverAsync(To("buyer@example.ro"), CancellationToken.None);
+
+        delivery.Transmitted.ShouldBeTrue();
+        delivery.DivertedBecause.ShouldBeNull();
+
+        // The redirect address, not the one it was addressed to: that is what an operator
+        // needs to know to go and look for it.
+        delivery.To.ShouldBe("tester@example.ro");
+    }
+
+    /// <summary>
+    /// The two defaults that are now the only copy: neither is set in appsettings any more,
+    /// because a configured list appends to this rather than replacing it. If somebody removes
+    /// these initialisers, an unconfigured instance starts sending, and to Hubix.
+    /// </summary>
+    [Fact]
+    public async Task An_unconfigured_instance_sends_nothing_and_blocks_Hubix()
+    {
+        var bare = new EmailOptions();
+
+        bare.LiveSendingEnabled.ShouldBeFalse();
+        bare.BlockedRecipients.ShouldBe(["*@hubix.ro"]);
+
+        // And the guard agrees, which is the part that matters.
+        var (sender, outbox, live) = Build();
+
+        await sender.SendAsync(To("anyone@hubix.ro"), CancellationToken.None);
+
+        live.Sent.ShouldBeEmpty();
+        outbox.Sent.Count.ShouldBe(1);
+    }
 }

@@ -2,11 +2,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Hubix.Infrastructure.Email;
 
+/// <summary>
+/// One message, in the words of this application rather than any provider's.
+/// </summary>
+/// <param name="Body">
+/// The plain-text body. Always present: every template here is plain text, and a message with
+/// no text part is the kind spam filters dislike.
+/// </param>
+/// <param name="HtmlBody">
+/// The same message as HTML, where a template has one. Sent alongside the text rather than
+/// instead of it, so a reader gets whichever their client prefers.
+/// </param>
 public sealed record EmailMessage(
     string To,
     string Subject,
     string Body,
-    string? ReplyTo = null);
+    string? ReplyTo = null,
+    string? HtmlBody = null);
 
 public interface IEmailSender
 {

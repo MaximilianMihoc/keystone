@@ -156,27 +156,13 @@ builder.Services.AddAuthorizationBuilder()
 // Hubix has not been approached about this system. Their addresses are on the blocked
 // list by default, so wiring up a provider cannot introduce the project to them by
 // emailing them a reservation notice.
-builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
+builder.Services.AddHubixEmail(
+    builder.Configuration,
+    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox"));
 
-// Saved settings win over the file, for both of these. See SettingsFromDatabase.
-builder.Services.AddScoped<IPostConfigureOptions<EmailOptions>, EmailSettingsFromDatabase>();
+// The addresses half of the saved settings. Its options type lives in this project, so its
+// overlay does too; the guards half is registered inside AddHubixEmail.
 builder.Services.AddScoped<IPostConfigureOptions<HubixOptions>, HubixSettingsFromDatabase>();
-
-builder.Services.AddSingleton<LoggingEmailSender>(sp => new LoggingEmailSender(
-    sp.GetRequiredService<ILogger<LoggingEmailSender>>(),
-    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox")));
-
-builder.Services.AddScoped<IEmailSender>(sp => new SafeEmailSender(
-    outbox: sp.GetRequiredService<LoggingEmailSender>(),
-
-    // The snapshot, not IOptions: it is rebuilt per scope, so the guards a settings screen
-    // changed are the guards the next message is checked against.
-    options: sp.GetRequiredService<IOptionsSnapshot<EmailOptions>>(),
-    logger: sp.GetRequiredService<ILogger<SafeEmailSender>>(),
-
-    // No real provider yet. Register one here when there is, and it still cannot reach
-    // anyone the options above do not permit.
-    live: null));
 
 // --- Background jobs --------------------------------------------------------------
 // Hangfire persists in the same database, so the schedule survives restarts, retries on

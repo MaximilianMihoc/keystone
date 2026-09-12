@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, SessionExpired, type EmailSettings } from './api';
+import { api, SessionExpired, type EmailSettings, type TestSendResult } from './api';
 
 interface Props {
   onSessionExpired: () => void;
@@ -32,6 +32,9 @@ export function SettingsPanel({ onSessionExpired }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [testTo, setTestTo] = useState('');
+  const [tested, setTested] = useState<TestSendResult | null>(null);
+  const [testing, setTesting] = useState(false);
 
   const fail = useCallback(
     (e: unknown) => {
@@ -82,8 +85,27 @@ export function SettingsPanel({ onSessionExpired }: Props) {
       await load();
     } catch (e) {
       fail(e);
+
+      // Put the screen back to what was actually saved. A refused save used to leave the
+      // box ticked, so the page said live sending was on while the database said it was
+      // off — and the test button, telling the truth, looked like the thing that was wrong.
+      await load();
     } finally {
       setBusy(false);
+    }
+  };
+
+  const test = async () => {
+    setTesting(true);
+    setTested(null);
+    setError(null);
+
+    try {
+      setTested(await api.sendTestEmail(testTo.trim() === '' ? null : testTo.trim()));
+    } catch (e) {
+      fail(e);
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -99,8 +121,9 @@ export function SettingsPanel({ onSessionExpired }: Props) {
 
       {!form.sendingPossible && (
         <p className="muted">
-          No mail provider is registered, so nothing leaves this machine whatever is set below.
-          Messages are written to the outbox instead.
+          No mail provider is configured, so nothing leaves this machine whatever is set below.
+          Messages are written to the outbox instead. Both an API key and a sender address are
+          needed, and neither is set here — they come from configuration.
         </p>
       )}
 
@@ -133,7 +156,7 @@ export function SettingsPanel({ onSessionExpired }: Props) {
           checked={form.liveSendingEnabled}
           onChange={(e) => set('liveSendingEnabled', e.target.checked)}
         />
-        <span>Send mail for real</span>
+        <span>Live sending</span>
       </label>
 
       {form.liveSendingEnabled && (
@@ -178,6 +201,39 @@ export function SettingsPanel({ onSessionExpired }: Props) {
       <div className="row">
         <button className="btn" type="button" disabled={busy} onClick={() => void save()}>
           {busy ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+
+      <h3>Test</h3>
+
+      <p className="muted">
+        Sends one message the same way every other message goes — the same guards, the same
+        provider — and says what became of it. Leave the address empty to send it to yourself.
+      </p>
+
+      <label className="field">
+        <span>Send a test to</span>
+        <input
+          type="email"
+          placeholder="Your own address"
+          value={testTo}
+          onChange={(e) => setTestTo(e.target.value)}
+        />
+      </label>
+
+      {tested && (
+        <p className={tested.ok ? 'banner done' : 'banner error'}>
+          {!tested.ok
+            ? `The provider refused it: ${tested.error}`
+            : tested.transmitted
+              ? `Sent to ${tested.to}. If it does not arrive, the problem is delivery, not this.`
+              : `Kept in the outbox for ${tested.to} — ${tested.reason}.`}
+        </p>
+      )}
+
+      <div className="row">
+        <button className="btn" type="button" disabled={testing} onClick={() => void test()}>
+          {testing ? 'Sending…' : 'Send test message'}
         </button>
       </div>
     </section>

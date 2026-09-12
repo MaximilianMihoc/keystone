@@ -135,10 +135,27 @@ label is only what the spreadsheet export prints.
 
 ## Email cannot escape
 
-Every message goes through `SafeEmailSender`. `Email:LiveSendingEnabled` is `false`, so mail is
-written to `./outbox` instead of sent. `BlockedRecipients` contains `*@hubix.ro` and is checked
-before the allow list. Seeded accounts use `.invalid` addresses. Do not relax any of this, and do
-not register a live sender, without being told to explicitly.
+Every message goes through `SafeEmailSender`. Live sending defaults to off, so mail is written
+to `./outbox` instead of sent. `BlockedRecipients` defaults to `*@hubix.ro` and is checked before
+the allow list. Both defaults live in `EmailOptions` itself and deliberately **not** in
+`appsettings`: they are set on the admin Email screen, and a configured list would append to the
+default rather than replace it. Seeded accounts use `.invalid` addresses. Do not relax any of
+this, and do not register a live sender, without being told to explicitly.
+
+**A real sender is registered.** `ResendEmailSender` (the official `Resend` SDK) goes out over
+Resend's API, but only when `Resend:ApiKey` and `Email:From` are both configured — otherwise
+there is no live sender at all and everything still lands in `./outbox`. It is wrapped by
+`SafeEmailSender` and is never registered as `IEmailSender` itself, which is what keeps "every
+path out goes through the guards" a fact about the code rather than a hope.
+
+`ResendEmailSender` is the **only** file that names a provider, and
+`EmailRegistration.AddHubixEmail` the only place one is chosen. Nothing above `IEmailSender` —
+no page, notifier or job — knows which provider exists, so swapping Resend for Postmark is a new
+sender class and one line of registration. Keep it that way: no provider type belongs outside
+`Hubix.Infrastructure.Email`.
+
+`Email:From` stays in configuration rather than on the screen: it has to match the domain
+verified with the provider, whose SPF, DKIM and DMARC are published, and a screen cannot move DNS.
 
 **These settings are now editable by an admin**, on the Email screen, at the owner's explicit
 instruction — including the live-sending switch and the blocked list. A saved `PortalSettings`

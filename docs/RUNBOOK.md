@@ -73,9 +73,11 @@ wrong, the previous value is in the audit row and can be put back through the gr
 
 ### Mail is not arriving
 
-Check `Email:LiveSendingEnabled` first — while it is `false` **nothing leaves the machine**,
-which is the intended state until Hubix have agreed to this. Messages are written to
-`./outbox` instead, exactly as they would have been sent.
+Check live sending first, on the admin Email screen — while it is off **nothing leaves the
+machine**, which is the intended state until Hubix have agreed to this. Messages are written to
+`./outbox` instead, exactly as they would have been sent. The screen is the only place it is
+set; it is not in `appsettings`, and the "Send test message" button on the same screen answers
+this question directly.
 
 If live sending is on and mail is still missing, `SafeEmailSender` logs every decision: it
 refuses blocked recipients, anyone outside the allow list, and redirects everything when
@@ -173,6 +175,67 @@ Turning the switch on is not the same as wiring up a sender.
 
 ---
 
+## Sending for real
+
+Mail goes out through Resend's API, via `ResendEmailSender` and the official `Resend` SDK. It is
+registered as the live sender **only** when `Resend:ApiKey` and `Email:From` are both set;
+otherwise there is no live sender at all and everything keeps going to `./outbox`, whatever the
+switch on the Email screen says. An unconfigured environment fails toward silence rather than
+toward an exception on every message.
+
+```jsonc
+"Resend": { "ApiKey": "" },           // never here — see below
+"Email":  { "From": "portal@yourdomain.example", "FromName": "Hubix Portal" }
+```
+
+The key never goes in a file that anybody reads:
+
+```powershell
+dotnet user-secrets set "Resend:ApiKey" "re_..." --project src/Hubix.Web
+```
+
+In production it comes from the host's own secret store, as an environment variable
+`Resend__ApiKey` or whatever the platform provides.
+
+**`Email:From` is configuration, not a setting on the screen.** It has to match the domain
+verified with Resend, whose SPF, DKIM and DMARC records are published. An address changed
+without the DNS to match does not fail — it quietly starts landing in spam, and for a two-day
+hold countdown that is a lost apartment.
+
+### Changing provider
+
+`ResendEmailSender` is the only file in the solution that names a provider, and
+`EmailRegistration.AddHubixEmail` is the only place it is chosen. Moving to Postmark is a
+`PostmarkEmailSender` beside it, its options bound in the same method, and the one line that
+picks the live sender. No page, notifier or job mentions a provider, so none of them change.
+
+### Turning it on, in the order that does not burn the domain
+
+Every step below is a change on the Email screen. No deploy, and no restart.
+
+1. **Live sending on, `RedirectAllTo` set to your own address.** Genuinely sending, but every
+   message is re-addressed to you with the real recipient in the subject. Walk all nine message
+   types. This is the step where DKIM problems show up.
+2. **Clear the redirect; put two known addresses on `AllowedRecipients`.** Real addressing now,
+   and still nobody who did not agree to receive it.
+3. **Clear the allow list.** Open to everyone. **Keep `*@hubix.ro` blocked** until Hubix have
+   actually agreed to the project — that list is the only thing standing between an automated
+   reservation notice and their inbox.
+
+A production instance refuses to start on live sending with no From, no provider key, an empty
+blocked list, or neither an allow list nor a redirect. The Email screen refuses to save the two
+of those it can see, so the same rule applies whichever way the setting is reached.
+
+### What is still inline
+
+Sends happen inside the request that caused them, wrapped in try/catch and logged on failure —
+the hold, the queue place or the enquiry is already committed by then, and a message that did not
+go is a better outcome than a reservation that failed because a mail server blinked. It does mean
+a provider outage loses the message rather than retrying it. Moving sends onto Hangfire is the
+fix, and is worth doing before step 3 above.
+
+---
+
 ## GDPR
 
 All of these are Admin-only, deliberately separate from ordinary editing.
@@ -234,7 +297,9 @@ These are not built, and most cannot be by me.
   is used instead, it needs its own three records and the sender address changed to match.
 - **The real `SalesInbox`.** It is a `.invalid` placeholder on purpose: RFC 2606 reserves that
   suffix so a misconfigured environment bounces instead of emailing a real company.
-- **Turning `Email:LiveSendingEnabled` on**, and taking `*@hubix.ro` off the blocked list.
+- **Turning live sending on**, and taking `*@hubix.ro` off the blocked list. Both are now
+  changes on the Email screen rather than a deploy — see "Sending for real" above — which makes
+  the decision easier to take than it used to be, not safer.
 
 ### Needs a host
 

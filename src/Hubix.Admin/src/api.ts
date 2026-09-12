@@ -135,6 +135,18 @@ export interface EmailSettingsEdit {
   blockedRecipients: string[];
 }
 
+/** What became of a test message. */
+export interface TestSendResult {
+  ok: boolean;
+  to: string;
+  /** True only when a provider actually accepted it. */
+  transmitted?: boolean;
+  /** Why it went to the outbox instead. */
+  reason?: string | null;
+  /** Present when the provider refused it outright. */
+  error?: string;
+}
+
 export interface EmailSettings extends EmailSettingsEdit {
   /** False until somebody saves: until then the file is the whole answer. */
   saved: boolean;
@@ -1177,6 +1189,16 @@ export const api = {
    * Refused for any combination a production instance would refuse to start on, so a rejection
    * here is the same rule that would otherwise have stopped the next deploy.
    */
+  /**
+   * Sends one message down the real path: the same guards, the same provider. The reply says
+   * whether it was transmitted or kept, and why, rather than only whether the call succeeded.
+   */
+  sendTestEmail: (to: string | null) =>
+    request<TestSendResult>('/api/admin/settings/email/test', {
+      method: 'POST',
+      body: JSON.stringify({ to }),
+    }),
+
   saveEmailSettings: (body: EmailSettingsEdit) =>
     request<{ savedAt: string }>('/api/admin/settings/email', {
       method: 'PUT',
