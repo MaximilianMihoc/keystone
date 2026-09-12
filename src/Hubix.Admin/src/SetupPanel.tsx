@@ -280,6 +280,18 @@ export function SetupPanel({
               />
             </label>
 
+            {/* Blank is the ordinary case: most developments are sold by whoever the portal
+                default reaches. This is here for the one that is not. */}
+            <label className="field">
+              <span>Sales inbox for this development</span>
+              <input
+                type="email"
+                placeholder="Falls back to the portal inbox"
+                value={form.salesInbox ?? ''}
+                onChange={(e) => set('salesInbox', e.target.value === '' ? null : e.target.value)}
+              />
+            </label>
+
             <div className="row">
               <button
                 className="btn"
@@ -461,6 +473,7 @@ function toForm(setup: ProjectSetup): ProjectEdit {
     currency: p.currency,
     holdDurationHours: p.holdDurationHours,
     mapsUrl: p.mapsUrl,
+    salesInbox: p.salesInbox,
   };
 }
 

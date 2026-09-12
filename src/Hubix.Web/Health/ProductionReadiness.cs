@@ -1,6 +1,7 @@
 using Hubix.Infrastructure.Assets;
 using Hubix.Infrastructure.Email;
 using Hubix.Web.Notifications;
+using Microsoft.Extensions.Options;
 
 namespace Hubix.Web.Health;
 
@@ -26,7 +27,8 @@ public static class ProductionReadiness
         EmailOptions email,
         AssetOptions assets,
         HubixOptions hubix,
-        string? connectionString)
+        string? connectionString,
+        ResendOptions? provider = null)
     {
         var problems = new List<string>();
 
@@ -35,21 +37,15 @@ public static class ProductionReadiness
             problems.Add("No database connection string is configured.");
         }
 
-        // Hubix have not been approached about this system. The day a real mail provider is
-        // wired up must not also be the day they find out about it from an automated email.
-        if (email.LiveSendingEnabled)
-        {
-            if (email.AllowedRecipients.Count == 0 && string.IsNullOrWhiteSpace(email.RedirectAllTo))
-            {
-                problems.Add(
-                    "Live email is on with no allow list and no redirect. Mail would go to real buyers.");
-            }
+        problems.AddRange(EmailProblems(email));
 
-            if (email.BlockedRecipients.Count == 0)
-            {
-                problems.Add(
-                    "Live email is on with an empty blocked list. Hubix's own addresses must stay on it.");
-            }
+        // Live sending with no provider behind it is the quietest failure of the lot: every
+        // message falls back to the outbox and the only sign is a warning in the log.
+        if (email.LiveSendingEnabled && provider is { IsConfigured: false })
+        {
+            problems.Add(
+                "Live email is on but Resend:ApiKey is empty, so nothing can be sent and " +
+                "every message would go quietly to the outbox.");
         }
 
         if (hubix.PublicBaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
@@ -77,6 +73,58 @@ public static class ProductionReadiness
         return problems;
     }
 
+    /// <summary>
+    /// Why this combination of sending guards is not fit for production.
+    /// </summary>
+    /// <remarks>
+    /// Its own method because these are now editable from the admin screen, and that screen
+    /// refuses to save what this would refuse to start. A setting that can be saved happily
+    /// and then bricks the next deploy is a worse trap than one that cannot be saved.
+    ///
+    /// Hubix have not been approached about this system. The day a real mail provider is
+    /// wired up must not also be the day they find out about it from an automated email.
+    /// </remarks>
+    public static IReadOnlyList<string> EmailProblems(EmailOptions email)
+    {
+        var problems = new List<string>();
+
+        if (!email.LiveSendingEnabled)
+        {
+            return problems;
+        }
+
+        if (string.IsNullOrWhiteSpace(email.From))
+        {
+            problems.Add(
+                "Live email is on with no Email:From address. Nothing can be sent without one.");
+        }
+
+        // The provider's sandbox sender needs no domain verification, which is exactly what
+        // makes it easy to leave behind. It can only send to test addresses and to whoever
+        // owns the provider account, so a production instance wearing it would look configured
+        // and reach nobody.
+        if (email.From.EndsWith("@resend.dev", StringComparison.OrdinalIgnoreCase))
+        {
+            problems.Add(
+                "Live email is on with Email:From on resend.dev, which is the provider's " +
+                "sandbox sender. Production needs an address on a domain verified with them.");
+        }
+
+        if (email.AllowedRecipients.Count == 0 && string.IsNullOrWhiteSpace(email.RedirectAllTo))
+        {
+            problems.Add(
+                "Live email is on with no allow list and no redirect. Mail would go to real buyers.");
+        }
+
+        if (email.BlockedRecipients.Count == 0)
+        {
+            problems.Add(
+                "Live email is on with an empty blocked list. Hubix's own addresses must stay on it.");
+        }
+
+        return problems;
+    }
+
     /// <summary>Refuses to start a production instance that is not fit to serve anybody.</summary>
     public static void EnsureReady(WebApplication app)
     {
@@ -85,12 +133,24 @@ public static class ProductionReadiness
             return;
         }
 
+        // In a scope, and through the snapshot, because EmailOptions and HubixOptions are both
+        // laid over from the database by a scoped post-configure. Resolving IOptions for either
+        // from the root provider throws — and it would throw only in Production, where this is
+        // the one thing standing between a bad configuration and real buyers.
+        //
+        // It also means the check sees the saved settings rather than only the file, which is
+        // the behaviour worth having: an unsafe combination saved from the admin screen should
+        // stop the next deploy exactly as an unsafe appsettings would.
+        using var scope = app.Services.CreateScope();
+        var services = scope.ServiceProvider;
+
         var problems = Problems(
-            app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<EmailOptions>>().Value,
-            app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<AssetOptions>>().Value,
-            app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<HubixOptions>>().Value,
+            services.GetRequiredService<IOptionsSnapshot<EmailOptions>>().Value,
+            services.GetRequiredService<IOptions<AssetOptions>>().Value,
+            services.GetRequiredService<IOptionsSnapshot<HubixOptions>>().Value,
             app.Configuration.GetConnectionString(
-                Hubix.Infrastructure.DependencyInjection.ConnectionStringName));
+                Hubix.Infrastructure.DependencyInjection.ConnectionStringName),
+            services.GetRequiredService<IOptions<ResendOptions>>().Value);
 
         if (problems.Count == 0)
         {

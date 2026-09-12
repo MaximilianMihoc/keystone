@@ -9,6 +9,7 @@ import { AssetsPanel } from './AssetsPanel';
 import { OrganisationPanel } from './OrganisationPanel';
 import { ProspectsPanel } from './ProspectsPanel';
 import { PrivacyPanel } from './PrivacyPanel';
+import { SettingsPanel } from './SettingsPanel';
 import { AuditPanel } from './AuditPanel';
 import { SetupPanel } from './SetupPanel';
 import { ThemeSwitch } from './ThemeSwitch';
@@ -24,7 +25,8 @@ type View =
   | 'organisation'
   | 'prospects'
   | 'privacy'
-  | 'audit';
+  | 'audit'
+  | 'settings';
 
 /** The picker's last entry, which opens the create form rather than choosing a project. */
 const NEW_PROJECT = '__new';
@@ -295,6 +297,18 @@ export function App() {
                 Audit
               </button>
             )}
+
+            {/* Last, and admin-only like the rest of this row: these settings decide whether
+                the system speaks to real people at all. */}
+            {me.status === 'ready' && me.data.role === 'Admin' && (
+              <button
+                className={`view${view === 'settings' ? ' view-on' : ''}`}
+                type="button"
+                onClick={() => setView('settings')}
+              >
+                Email
+              </button>
+            )}
           </nav>
         )}
 
@@ -308,6 +322,10 @@ export function App() {
 
         {view === 'audit' && me.status === 'ready' && me.data.role === 'Admin' && (
           <AuditPanel onSessionExpired={() => setExpired(true)} />
+        )}
+
+        {view === 'settings' && me.status === 'ready' && me.data.role === 'Admin' && (
+          <SettingsPanel onSessionExpired={() => setExpired(true)} />
         )}
 
         {view === 'organisation' && me.status === 'ready' && projects.status === 'ready' && (

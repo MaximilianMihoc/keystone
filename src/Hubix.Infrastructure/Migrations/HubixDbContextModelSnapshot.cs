@@ -444,6 +444,46 @@ namespace Hubix.Infrastructure.Migrations
                     b.ToTable("ParkingSpaces");
                 });
 
+            modelBuilder.Entity("Hubix.Domain.Entities.PortalSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AllowedRecipients")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BlockedRecipients")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("LiveSendingEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PublicBaseUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RedirectAllTo")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("SalesInbox")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PortalSettings");
+                });
+
             modelBuilder.Entity("Hubix.Domain.Entities.PricingRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -584,6 +624,10 @@ namespace Hubix.Infrastructure.Migrations
 
                     b.Property<decimal?>("ReservationFee")
                         .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("SalesInbox")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
 
                     b.Property<string>("Slug")
                         .IsRequired()

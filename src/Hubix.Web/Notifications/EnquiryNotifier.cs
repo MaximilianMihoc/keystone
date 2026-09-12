@@ -2,7 +2,6 @@ using System.Globalization;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure.Email;
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Options;
 
 namespace Hubix.Web.Notifications;
 
@@ -16,15 +15,14 @@ namespace Hubix.Web.Notifications;
 public sealed class EnquiryNotifier(
     IEmailSender email,
     IStringLocalizer<SharedResource> localizer,
-    IOptions<HubixOptions> options)
+    SalesInboxResolver inboxes)
 {
-    private readonly HubixOptions _options = options.Value;
-
     /// <summary>
     /// Tells them we have it. For a data right it also tells them the date it is due, which is
     /// the only thing that makes the deadline theirs to hold us to.
     /// </summary>
-    public Task AcknowledgeAsync(string toEmail, PrivacyRequest? request, CancellationToken ct)
+    public async Task AcknowledgeAsync(
+        string toEmail, Guid? projectId, PrivacyRequest? request, CancellationToken ct)
     {
         var (subject, body) = request is null
             ? (localizer["Email.EnquirySubject"].Value,
@@ -36,11 +34,13 @@ public sealed class EnquiryNotifier(
                    localizer["Contact.Kind" + request.Kind].Value,
                    request.DueAt.ToLocalTime().ToString("dd MMMM yyyy", CultureInfo.CurrentCulture)));
 
-        return email.SendAsync(new EmailMessage(toEmail, subject, body, _options.SalesInbox), ct);
+        await email.SendAsync(
+            new EmailMessage(toEmail, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
     }
 
     /// <summary>Tells sales. Always English — it is an internal message.</summary>
-    public Task SalesNotifiedAsync(
+    public async Task SalesNotifiedAsync(
+        Guid? projectId,
         string fromEmail,
         string? name,
         string? phone,
@@ -73,7 +73,7 @@ public sealed class EnquiryNotifier(
             ? $"Enquiry: {name ?? fromEmail}"
             : $"GDPR {request.Kind} request: {fromEmail}";
 
-        return email.SendAsync(
-            new EmailMessage(_options.SalesInbox, subject, body, fromEmail), ct);
+        await email.SendAsync(
+            new EmailMessage(await inboxes.ForAsync(projectId, ct), subject, body, fromEmail), ct);
     }
 }

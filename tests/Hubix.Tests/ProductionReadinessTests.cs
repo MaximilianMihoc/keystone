@@ -18,6 +18,7 @@ public class ProductionReadinessTests
     private static EmailOptions SafeEmail() => new()
     {
         LiveSendingEnabled = true,
+        From = "portal@example.ro",
         AllowedRecipients = ["*@example.ro"],
         BlockedRecipients = ["*@hubix.ro"]
     };
@@ -34,9 +35,10 @@ public class ProductionReadinessTests
         EmailOptions? email = null,
         AssetOptions? assets = null,
         HubixOptions? hubix = null,
-        string? connection = "Server=real;Database=real") =>
+        string? connection = "Server=real;Database=real",
+        ResendOptions? provider = null) =>
         ProductionReadiness.Problems(
-            email ?? SafeEmail(), assets ?? SafeAssets(), hubix ?? SafeHubix(), connection);
+            email ?? SafeEmail(), assets ?? SafeAssets(), hubix ?? SafeHubix(), connection, provider);
 
     [Fact]
     public void A_properly_configured_instance_has_nothing_to_say()
@@ -136,5 +138,57 @@ public class ProductionReadinessTests
 
         // Fixing these one restart at a time would be a miserable afternoon.
         problems.Count.ShouldBeGreaterThanOrEqualTo(5);
+    }
+
+    /// <summary>
+    /// Live sending with no From address, which cannot send anything at all.
+    /// </summary>
+    [Fact]
+    public void Live_email_with_no_sender_address_is_refused()
+    {
+        var email = SafeEmail();
+        email.From = "";
+
+        Check(email: email).ShouldContain(p => p.Contains("Email:From"));
+    }
+
+    /// <summary>
+    /// The quietest failure of the lot: live sending on, no provider behind it, and every
+    /// message going to the outbox with only a warning in the log to say so.
+    /// </summary>
+    [Fact]
+    public void Live_email_with_no_provider_key_is_refused()
+    {
+        Check(provider: new ResendOptions { ApiKey = "" })
+            .ShouldContain(p => p.Contains("Resend:ApiKey"));
+    }
+
+    [Fact]
+    public void A_configured_provider_satisfies_it()
+    {
+        Check(provider: new ResendOptions { ApiKey = "re_test_key" }).ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// The sandbox sender is the easiest thing in this list to leave behind: it needs no domain
+    /// verification, so it works in testing and then reaches nobody in production.
+    /// </summary>
+    [Fact]
+    public void Live_email_from_the_providers_sandbox_sender_is_refused()
+    {
+        var email = SafeEmail();
+        email.From = "onboarding@resend.dev";
+
+        Check(email: email).ShouldContain(p => p.Contains("sandbox sender"));
+    }
+
+    [Fact]
+    public void A_sandbox_sender_is_fine_while_nothing_is_being_sent()
+    {
+        var email = SafeEmail();
+        email.From = "onboarding@resend.dev";
+        email.LiveSendingEnabled = false;
+
+        Check(email: email).ShouldBeEmpty();
     }
 }

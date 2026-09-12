@@ -80,6 +80,15 @@ public class Project : Entity
 
     public string? MapsUrl { get; set; }
 
+    /// <summary>
+    /// Where enquiries and hold notices about this development go.
+    /// </summary>
+    /// <remarks>
+    /// Blank falls back to the portal-wide inbox. Developments are sold by different people,
+    /// and an address that can only be changed by a deploy is an address that goes stale.
+    /// </remarks>
+    public string? SalesInbox { get; set; }
+
     public DateTimeOffset? PublishedAt { get; set; }
 
     /// <summary>

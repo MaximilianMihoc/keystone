@@ -38,13 +38,15 @@ public sealed class HubixOptions
 public sealed class HoldNotifier(
     IEmailSender email,
     IStringLocalizer<SharedResource> localizer,
-    IOptions<HubixOptions> options)
+    IOptionsSnapshot<HubixOptions> options,
+    SalesInboxResolver inboxes)
 {
     private readonly HubixOptions _options = options.Value;
 
     public async Task HoldConfirmedAsync(
         string toEmail,
         string locale,
+        Guid projectId,
         string projectName,
         string unitCode,
         DateTimeOffset expiresAt,
@@ -67,7 +69,8 @@ public sealed class HoldNotifier(
             unitCode,
             projectName));
 
-        await email.SendAsync(new EmailMessage(toEmail, subject, body, _options.SalesInbox), ct);
+        await email.SendAsync(
+            new EmailMessage(toEmail, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
     }
 
     public async Task HoldExpiredAsync(ExpiredHold hold, CancellationToken ct)
@@ -97,6 +100,7 @@ public sealed class HoldNotifier(
     public async Task WaitlistJoinedAsync(
         string toEmail,
         string locale,
+        Guid projectId,
         string projectName,
         string? typeLabel,
         int place,
@@ -118,7 +122,8 @@ public sealed class HoldNotifier(
             localizer["Email.WaitlistJoinedSubject"].Value,
             projectName));
 
-        await email.SendAsync(new EmailMessage(toEmail, subject, body, _options.SalesInbox), ct);
+        await email.SendAsync(
+            new EmailMessage(toEmail, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
     }
 
     public async Task UnitFreedAsync(
@@ -149,6 +154,7 @@ public sealed class HoldNotifier(
     /// market under the same countdown, and nothing else tells them which.
     /// </param>
     public async Task SalesNotifiedAsync(
+        Guid projectId,
         string projectName,
         string unitCode,
         string prospectEmail,
@@ -174,7 +180,7 @@ public sealed class HoldNotifier(
 
         await email.SendAsync(
             new EmailMessage(
-                _options.SalesInbox,
+                await inboxes.ForAsync(projectId, ct),
                 $"Hold: {unitCode} — {projectName}",
                 body,
                 prospectEmail),

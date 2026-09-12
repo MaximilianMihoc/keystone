@@ -26,6 +26,7 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.City).HasMaxLength(120).IsRequired();
         builder.Property(p => p.Currency).HasMaxLength(3).IsRequired();
         builder.Property(p => p.MapsUrl).HasMaxLength(1000);
+        builder.Property(p => p.SalesInbox).HasMaxLength(320);
 
         // Enums are stored as strings. A few bytes more than an int, and the database stays
         // readable without a lookup join when someone inspects it directly.

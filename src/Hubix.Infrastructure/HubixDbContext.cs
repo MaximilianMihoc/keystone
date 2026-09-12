@@ -50,6 +50,8 @@ public class HubixDbContext(DbContextOptions<HubixDbContext> options) : DbContex
 
     public DbSet<ImportProfile> ImportProfiles => Set<ImportProfile>();
 
+    public DbSet<PortalSettings> PortalSettings => Set<PortalSettings>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(typeof(HubixDbContext).Assembly);

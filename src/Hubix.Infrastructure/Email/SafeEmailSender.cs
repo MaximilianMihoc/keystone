@@ -18,6 +18,20 @@ public sealed class EmailOptions
     public bool LiveSendingEnabled { get; set; }
 
     /// <summary>
+    /// The address mail is sent as.
+    /// </summary>
+    /// <remarks>
+    /// Configuration rather than the settings screen, unlike the guards below. This one has to
+    /// match the domain whose SPF, DKIM and DMARC records were set up, and an address changed
+    /// from a screen without the DNS to match does not fail — it quietly starts landing in spam,
+    /// which for a two-day hold countdown means a lost apartment.
+    /// </remarks>
+    public string From { get; set; } = "";
+
+    /// <summary>What a recipient sees instead of the bare address. Optional.</summary>
+    public string? FromName { get; set; }
+
+    /// <summary>
     /// When set, every message is re-addressed here regardless of who it was for.
     /// </summary>
     /// <remarks>
@@ -45,6 +59,13 @@ public sealed class EmailOptions
     public List<string> BlockedRecipients { get; set; } = ["*@hubix.ro"];
 }
 
+/// <summary>What became of one message.</summary>
+/// <param name="Transmitted">True when it was handed to the provider, false when it was kept.</param>
+/// <param name="To">Who it actually went to, which is not who it was addressed to if a redirect is set.</param>
+/// <param name="DivertedBecause">Why it went to the outbox instead, in words fit to show somebody.</param>
+public sealed record EmailDelivery(bool Transmitted, string To, string? DivertedBecause);
+
+
 /// <summary>
 /// Decides whether a message may really be sent, and diverts it to the outbox if not.
 /// </summary>
@@ -62,7 +83,19 @@ public sealed class SafeEmailSender(
 {
     private readonly EmailOptions _options = options.Value;
 
-    public async Task SendAsync(EmailMessage message, CancellationToken ct)
+    public async Task SendAsync(EmailMessage message, CancellationToken ct) =>
+        await DeliverAsync(message, ct);
+
+    /// <summary>
+    /// Sends, and says what became of it.
+    /// </summary>
+    /// <remarks>
+    /// The same path as <see cref="SendAsync"/>, which is the point: a test send that took a
+    /// different route would prove nothing about the real one. It exists because the settings
+    /// screen has to report where a message actually went, and asking it to work that out from
+    /// the options itself would be a second copy of these rules, free to drift from them.
+    /// </remarks>
+    public async Task<EmailDelivery> DeliverAsync(EmailMessage message, CancellationToken ct)
     {
         // Redirect first, so every later check sees the address that would really be used.
         var outgoing = Redirect(message);
@@ -76,7 +109,7 @@ public sealed class SafeEmailSender(
                 outgoing.To, verdict);
 
             await outbox.SendAsync(outgoing, ct);
-            return;
+            return new EmailDelivery(false, outgoing.To, verdict);
         }
 
         if (live is null)
@@ -86,10 +119,11 @@ public sealed class SafeEmailSender(
                 "Message to {To} written to the outbox.", outgoing.To);
 
             await outbox.SendAsync(outgoing, ct);
-            return;
+            return new EmailDelivery(false, outgoing.To, "no provider is configured");
         }
 
         await live.SendAsync(outgoing, ct);
+        return new EmailDelivery(true, outgoing.To, null);
     }
 
     /// <summary>
@@ -118,7 +152,18 @@ public sealed class SafeEmailSender(
                  — — — — — — — — — — — — — — — — — — — — — — — — — — — —
 
                  {message.Body}
-                 """
+                 """,
+
+            // The same warning on the HTML part. A reader whose client prefers HTML would
+            // otherwise be shown a test copy with nothing on it to say so.
+            HtmlBody = message.HtmlBody is null
+                ? null
+                : $"""
+                   <p><strong>This is a test copy.</strong> It would have been sent to
+                   {message.To}.</p>
+                   <hr />
+                   {message.HtmlBody}
+                   """
         };
     }
 

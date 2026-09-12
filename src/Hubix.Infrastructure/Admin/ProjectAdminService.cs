@@ -59,7 +59,10 @@ public sealed record ProjectEdit(
     decimal? ReservationFee,
     string Currency,
     int HoldDurationHours,
-    string? MapsUrl);
+    string? MapsUrl,
+
+    /// <summary>Blank falls back to the portal inbox.</summary>
+    string? SalesInbox);
 
 /// <summary>
 /// The translatable prose of a project, for one culture.
@@ -398,6 +401,7 @@ public sealed class ProjectAdminService(
         diff.Set("Currency", project.Currency, edit.Currency, v => project.Currency = v);
         diff.Set("HoldDurationHours", project.HoldDurationHours, edit.HoldDurationHours, v => project.HoldDurationHours = v);
         diff.Set("MapsUrl", project.MapsUrl, edit.MapsUrl, v => project.MapsUrl = v);
+        diff.Set("SalesInbox", project.SalesInbox, edit.SalesInbox, v => project.SalesInbox = v);
 
         if (diff.IsEmpty)
         {

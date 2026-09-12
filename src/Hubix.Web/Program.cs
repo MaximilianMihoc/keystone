@@ -11,6 +11,7 @@ using Hubix.Infrastructure.Email;
 using Hubix.Infrastructure.Assets;
 using Hubix.Infrastructure.Import;
 using Hubix.Infrastructure.Sales;
+using Hubix.Infrastructure.Settings;
 using Hubix.Web;
 using Hubix.Web.Api;
 using Hubix.Infrastructure.Privacy;
@@ -18,6 +19,7 @@ using Hubix.Web.Health;
 using Hubix.Web.Jobs;
 using Hubix.Web.Pages.Admin;
 using Hubix.Web.Notifications;
+using Hubix.Web.Settings;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -48,6 +50,7 @@ builder.Services.AddScoped<WaitlistService>();
 builder.Services.AddScoped<EnquiryService>();
 builder.Services.AddScoped<HoldNotifier>();
 builder.Services.AddScoped<EnquiryNotifier>();
+builder.Services.AddScoped<SalesInboxResolver>();
 builder.Services.AddScoped<HoldExpiryJob>();
 builder.Services.AddScoped<StaffAuthService>();
 builder.Services.AddScoped<StaffNotifier>();
@@ -57,6 +60,7 @@ builder.Services.AddScoped<PricingAdminService>();
 builder.Services.AddScoped<StaffAdminService>();
 builder.Services.AddScoped<ProspectAdminService>();
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<SettingsService>();
 builder.Services.AddScoped<ParkingAdminService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<WaitlistPromoter>();
@@ -152,20 +156,13 @@ builder.Services.AddAuthorizationBuilder()
 // Hubix has not been approached about this system. Their addresses are on the blocked
 // list by default, so wiring up a provider cannot introduce the project to them by
 // emailing them a reservation notice.
-builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.Section));
+builder.Services.AddHubixEmail(
+    builder.Configuration,
+    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox"));
 
-builder.Services.AddSingleton<LoggingEmailSender>(sp => new LoggingEmailSender(
-    sp.GetRequiredService<ILogger<LoggingEmailSender>>(),
-    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox")));
-
-builder.Services.AddSingleton<IEmailSender>(sp => new SafeEmailSender(
-    outbox: sp.GetRequiredService<LoggingEmailSender>(),
-    options: sp.GetRequiredService<IOptions<EmailOptions>>(),
-    logger: sp.GetRequiredService<ILogger<SafeEmailSender>>(),
-
-    // No real provider yet. Register one here when there is, and it still cannot reach
-    // anyone the options above do not permit.
-    live: null));
+// The addresses half of the saved settings. Its options type lives in this project, so its
+// overlay does too; the guards half is registered inside AddHubixEmail.
+builder.Services.AddScoped<IPostConfigureOptions<HubixOptions>, HubixSettingsFromDatabase>();
 
 // --- Background jobs --------------------------------------------------------------
 // Hangfire persists in the same database, so the schedule survives restarts, retries on

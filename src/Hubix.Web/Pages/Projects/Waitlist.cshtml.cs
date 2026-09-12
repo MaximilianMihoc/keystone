@@ -149,7 +149,7 @@ public class WaitlistModel(
         try
         {
             await notifier.WaitlistJoinedAsync(
-                Input.Email!, CultureInfo.CurrentUICulture.Name, ProjectName,
+                Input.Email!, CultureInfo.CurrentUICulture.Name, ProjectId, ProjectName,
                 typeLabel, place, token, ct);
         }
         catch (Exception ex)
