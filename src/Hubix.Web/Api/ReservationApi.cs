@@ -161,6 +161,14 @@ public static class ReservationApi
                    ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
+                var buyerType = BuyerType.Individual;
+
+                if (request.BuyerType is { Length: > 0 } rawBuyerType
+                    && !TryBuyerType(rawBuyerType, out buyerType, out var problem))
+                {
+                    return Results.BadRequest(new { error = problem });
+                }
+
                 // A buyer is only needed when no hold already names one.
                 var details = string.IsNullOrWhiteSpace(request.Email)
                     ? null
@@ -178,7 +186,7 @@ public static class ReservationApi
                 var result = await reservations.CreateAsync(
                     unitId,
                     details,
-                    request.BuyerType ?? BuyerType.Individual,
+                    buyerType,
                     AdminApi.ActorId(user),
                     AdminApi.ActorLabel(user),
                     ct);
@@ -235,11 +243,30 @@ public static class ReservationApi
 
         editable.MapPatch("/reservations/{reservationId:guid}",
             async (Guid reservationId,
-                   ReservationEdit edit,
+                   EditRequest request,
                    ReservationService reservations,
                    ClaimsPrincipal user,
                    CancellationToken ct) =>
             {
+                BuyerType? buyerType = null;
+
+                if (request.BuyerType is { Length: > 0 } rawBuyerType)
+                {
+                    if (!TryBuyerType(rawBuyerType, out var parsed, out var problem))
+                    {
+                        return Results.BadRequest(new { error = problem });
+                    }
+
+                    buyerType = parsed;
+                }
+
+                var edit = new ReservationEdit(
+                    request.ContractNumber,
+                    request.NotaryLocation,
+                    request.NotaryAppointmentAt,
+                    request.InternalNotes,
+                    buyerType);
+
                 var result = await reservations.EditAsync(
                     reservationId, edit, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct);
 
@@ -327,6 +354,19 @@ public static class ReservationApi
         _ => Results.Problem()
     };
 
+    private static bool TryBuyerType(string raw, out BuyerType buyerType, out string? problem)
+    {
+        problem = null;
+
+        if (Enum.TryParse(raw, out buyerType) && Enum.IsDefined(buyerType))
+        {
+            return true;
+        }
+
+        problem = $"\"{raw}\" is not a buyer type.";
+        return false;
+    }
+
     /// <summary>
     /// One row of the board.
     /// </summary>
@@ -382,7 +422,15 @@ public static class ReservationApi
         string? Phone,
         string? City,
         string? Country,
-        BuyerType? BuyerType);
+        string? BuyerType);
+
+    /// <summary>The paperwork a PATCH may carry; see <see cref="ReservationEdit"/>.</summary>
+    public sealed record EditRequest(
+        string? ContractNumber,
+        string? NotaryLocation,
+        DateTimeOffset? NotaryAppointmentAt,
+        string? InternalNotes,
+        string? BuyerType);
 
     public sealed record MoveRequest(string State, string? Reason);
 }
