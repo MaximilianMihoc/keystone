@@ -9,7 +9,7 @@
 
 **Date:** 2026-09-13
 **Target:** hubix-portal (ASP.NET Core 10 / EF Core / React admin), pre-public review
-**Tracking:** GitHub issues #29–#38, indexed by the tracking issue #39.
+**Tracking:** GitHub issues [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29)–[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38), indexed by the tracking issue [#39](https://github.com/MaximilianMihoc/hubix-portal/issues/39).
 **Status:** Consolidates two independent assessments, de-duplicates the overlapping findings and
 re-grades each against a consistent attacker model.
 
@@ -73,20 +73,20 @@ problematically, on email addresses supplied through forms (see F-1).
 
 | # | Finding | Issue | Verdict | Severity | Confidence |
 |---|---------|-------|---------|----------|------------|
-| F-1a | Waitlist form discloses another buyer's access token | #29 | Genuine (code-confirmed) | **High** | High |
-| F-1b | Public forms overwrite a buyer's record / block them | #30 | Genuine (code-confirmed) | **High** | High |
-| F-2 | Stored XSS via SVG asset upload | #31 | Genuine (reproduced primitive) | **High** | High |
-| F-3 | Host-header injection poisons staff sign-in links | #33 | Genuine (reproduced end-to-end) | **High** | High |
-| F-4 | Deactivated/demoted staff sessions retain authority | #34 | Genuine (code-confirmed) | **Medium–High** | High |
-| F-5 | Missing security response headers | #32 | Genuine, hardening | **Medium** | High |
-| F-6 | Reservation move/cancel race → inconsistent "zombie" row | #36 | **Genuine (reproduced)**, over-rated elsewhere | **Medium (integrity)** | High |
-| F-7 | Auth cookie `SecurePolicy = SameAsRequest` | #35 | Genuine, largely mitigated | **Low–Medium** | High |
-| F-8 | Three-hold limit bypassable by concurrency | #37 | Genuine, minor | **Low** | High |
-| F-9 | Import "commit matches preview" hash is optional | #38 | Genuine, integrity-only | **Low** | High |
+| F-1a | Waitlist form discloses another buyer's access token | [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29) | Genuine (code-confirmed) | **High** | High |
+| F-1b | Public forms overwrite a buyer's record / block them | [#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) | Genuine (code-confirmed) | **High** | High |
+| F-2 | Stored XSS via SVG asset upload | [#31](https://github.com/MaximilianMihoc/hubix-portal/issues/31) | Genuine (reproduced primitive) | **High** | High |
+| F-3 | Host-header injection poisons staff sign-in links | [#33](https://github.com/MaximilianMihoc/hubix-portal/issues/33) | Genuine (reproduced end-to-end) | **High** | High |
+| F-4 | Deactivated/demoted staff sessions retain authority | [#34](https://github.com/MaximilianMihoc/hubix-portal/issues/34) | Genuine (code-confirmed) | **Medium–High** | High |
+| F-5 | Missing security response headers | [#32](https://github.com/MaximilianMihoc/hubix-portal/issues/32) | Genuine, hardening | **Medium** | High |
+| F-6 | Reservation move/cancel race → inconsistent "zombie" row | [#36](https://github.com/MaximilianMihoc/hubix-portal/issues/36) | **Genuine (reproduced)**, over-rated elsewhere | **Medium (integrity)** | High |
+| F-7 | Auth cookie `SecurePolicy = SameAsRequest` | [#35](https://github.com/MaximilianMihoc/hubix-portal/issues/35) | Genuine, largely mitigated | **Low–Medium** | High |
+| F-8 | Three-hold limit bypassable by concurrency | [#37](https://github.com/MaximilianMihoc/hubix-portal/issues/37) | Genuine, minor | **Low** | High |
+| F-9 | Import "commit matches preview" hash is optional | [#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38) | Genuine, integrity-only | **Low** | High |
 | N-1 | "Stale cancellation frees another buyer's unit" | — | **Disproven — false positive (test)** | — | — |
 
-F-1 is split across two issues because the two halves have different fixes: #29 is a contained code
-change, #30 needs a product decision about mailbox verification.
+F-1 is split across two issues because the two halves have different fixes: [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29) is a contained code
+change, [#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) needs a product decision about mailbox verification.
 
 ---
 
@@ -355,24 +355,24 @@ Each item is a GitHub issue carrying its own reproduction, acceptance criteria a
 **Constraints / don't break** section naming the repo invariants a plausible fix can violate.
 
 ### P0 — before public deployment
-1. **#31 — F-2 SVG XSS** — drop/sanitize `.svg`; serve assets `attachment` + `nosniff`.
-2. **#32 — F-5 headers** — add `X-Content-Type-Options: nosniff`, CSP, `frame-ancestors 'none'`.
-3. **#29 — F-1a waitlist token** — stop returning an existing bearer token to an anonymous submitter.
-4. **#30 — F-1b email-claim** — gate prospect mutation and hold-lapse penalties behind mailbox
+1. **[#31](https://github.com/MaximilianMihoc/hubix-portal/issues/31) — F-2 SVG XSS** — drop/sanitize `.svg`; serve assets `attachment` + `nosniff`.
+2. **[#32](https://github.com/MaximilianMihoc/hubix-portal/issues/32) — F-5 headers** — add `X-Content-Type-Options: nosniff`, CSP, `frame-ancestors 'none'`.
+3. **[#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29) — F-1a waitlist token** — stop returning an existing bearer token to an anonymous submitter.
+4. **[#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) — F-1b email-claim** — gate prospect mutation and hold-lapse penalties behind mailbox
    verification. *Needs a product decision first; see the issue for the three options.*
 
 ### P1 — before enabling live email / soon after launch
-5. **#33 — F-3 host-header link** — pin `AllowedHosts`; build the Verify link from `PublicBaseUrl`.
+5. **[#33](https://github.com/MaximilianMihoc/hubix-portal/issues/33) — F-3 host-header link** — pin `AllowedHosts`; build the Verify link from `PublicBaseUrl`.
    **This one gates the live-email switch**: it is harmless while mail goes to `./outbox` and
    exploitable the moment it does not.
-6. **#34 — F-4 session revocation** — validate active status + security stamp per request; absolute
+6. **[#34](https://github.com/MaximilianMihoc/hubix-portal/issues/34) — F-4 session revocation** — validate active status + security stamp per request; absolute
    session lifetime; revoke on account change.
-7. **#35 — F-7** — cookie `SecurePolicy.Always` in Production.
+7. **[#35](https://github.com/MaximilianMihoc/hubix-portal/issues/35) — F-7** — cookie `SecurePolicy.Always` in Production.
 
 ### P2 — hardening / integrity
-8. **#36 — F-6** — reservation rowversion / guarded update; `State`↔`CancelledAt` CHECK constraint.
-9. **#37 — F-8** — enforce the three-hold cap inside the hold transaction.
-10. **#38 — F-9** — make the import file-hash mandatory on commit.
+8. **[#36](https://github.com/MaximilianMihoc/hubix-portal/issues/36) — F-6** — reservation rowversion / guarded update; `State`↔`CancelledAt` CHECK constraint.
+9. **[#37](https://github.com/MaximilianMihoc/hubix-portal/issues/37) — F-8** — enforce the three-hold cap inside the hold transaction.
+10. **[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38) — F-9** — make the import file-hash mandatory on commit.
 11. Re-run `dotnet list package --vulnerable` and `npm audit` in CI on a schedule.
 
 ---
