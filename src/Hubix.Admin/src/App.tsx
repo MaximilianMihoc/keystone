@@ -34,12 +34,13 @@ const NEW_PROJECT = '__new';
 /**
  * Views that belong to no project.
  *
- * Organisation is where the first project is created, and the other three are about people
- * rather than inventory — a prospect reaches a project only through a hold, a reservation or a
- * queue, and a request for their data reaches none at all. Telling somebody to "choose a
- * project to see its apartments" on any of these is answering a question they did not ask.
+ * Organisation is where the first project is created, the next three are about people rather
+ * than inventory — a prospect reaches a project only through a hold, a reservation or a queue,
+ * and a request for their data reaches none at all — and Email is portal-wide. Telling somebody
+ * to "choose a project to see its apartments" on any of these is answering a question they did
+ * not ask.
  */
-const UNGATED: View[] = ['organisation', 'prospects', 'privacy', 'audit'];
+const UNGATED: View[] = ['organisation', 'prospects', 'privacy', 'audit', 'settings'];
 
 type Load<T> =
   | { status: 'loading' }
@@ -62,8 +63,10 @@ export function App() {
         const list = await api.projects();
         setProjects({ status: 'ready', data: list });
 
-        // One project today. Skipping a chooser that chooses nothing.
+        // One project today. Skipping a chooser that chooses nothing. With none chosen, every
+        // project view would only say "choose a project", so open on Organisation instead.
         if (list.length === 1) setSelected(list[0].id);
+        else setView('organisation');
       } catch (e) {
         if (e instanceof SessionExpired) setExpired(true);
         else setProjects({ status: 'failed', message: (e as Error).message });
@@ -136,6 +139,7 @@ export function App() {
               }
 
               setSelected(e.target.value || null);
+              if (!e.target.value) setView('organisation');
             }}
           >
             <option value="">Choose a project…</option>
