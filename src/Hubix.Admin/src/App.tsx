@@ -139,6 +139,7 @@ export function App() {
               }
 
               setSelected(e.target.value || null);
+              if (!e.target.value) setView('organisation');
             }}
           >
             <option value="">Choose a project…</option>
