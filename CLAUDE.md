@@ -14,6 +14,13 @@ analysis, proposal and full build spec are `docs/01-business-analysis.md`,
 never shared with Hubix. Source material with real prices and buyer data stays in
 `C:\Repositories\HubixDocs`, outside this repo.
 
+`docs/04-security-assessment.md` is the pre-launch security review. It holds **live exploit detail
+for findings that are not yet fixed** (tracked as issues #29–#38), so it is the most sensitive
+document here and shares the same never-leaves-this-repo rule. Read it before changing anything in
+authentication, asset upload/serving, the public reserve/waitlist/contact forms, or the reservation
+pipeline — it names what is already broken there and, as importantly, which controls are load-bearing
+and were verified working.
+
 ## Branching — read before committing
 
 **Never commit to `main`, and never push to `main`.** Work goes on a feature branch and reaches

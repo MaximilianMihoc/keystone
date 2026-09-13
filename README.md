@@ -172,6 +172,7 @@ Analysis, proposal and the full build specification are in `docs/`.
 | [`01-business-analysis`](docs/01-business-analysis.md) | What Hubix does, both business lines, the current manual process |
 | [`02-application-proposal`](docs/02-application-proposal.md) | Why this system, what is deliberately out of scope, build order |
 | [`03-build-spec`](docs/03-build-spec.md) | Schema, state machine, routes, milestones, production checklist |
+| [`04-security-assessment`](docs/04-security-assessment.md) | Pre-launch security review: findings, what was ruled out, remediation order |
 | [`RUNBOOK`](docs/RUNBOOK.md) | Health checks, what to do when something is wrong, the deploy checklist |
 | `seed-data/` | The five inventory spreadsheets extracted to JSON |
 
