@@ -318,7 +318,9 @@ These are not built, and most cannot be by me.
   Sentry or Application Insights, wired to the existing `ILogger` calls.
 - **The Azure Blob storage path.** `BlobAssetStorage` is written and has never run against a
   real storage account — it says so at the top of the file. The first deployment that turns it
-  on should upload one file and read it back before trusting anything else.
+  on should upload one file and read it back before trusting anything else. The admin Files
+  screen reads each file with `fetch` to draw its preview, so the container needs a CORS rule
+  allowing `GET` from the portal's origin; without it every tile shows "no preview".
 
 ### Needs a person
 

@@ -14,7 +14,10 @@ export default defineConfig({
       output: {
         entryFileNames: 'index.js',
         chunkFileNames: '[name].js',
-        assetFileNames: 'index.[ext]',
+        // pdf.js's worker arrives as .mjs, which the host's static files may not serve as
+        // JavaScript. It is a module either way, so it ships as .js under its own name.
+        assetFileNames: (asset) =>
+          asset.names.some((n) => n.startsWith('pdf.worker')) ? 'pdf.worker.js' : 'index.[ext]',
       },
     },
   },
