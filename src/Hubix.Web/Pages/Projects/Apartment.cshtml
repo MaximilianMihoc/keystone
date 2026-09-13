@@ -163,24 +163,40 @@
         <div class="section">
             <p class="section-label">@L["Asset.Drawings"]</p>
 
-            @* Links are signed and expire, so nothing here is a permanent public address. *@
-            <div class="drawings">
+            @* Links are signed and expire, so nothing here is a permanent public address.
+               Each tile is a plain link to the file, so the page works without script;
+               drawings.js draws PDF first pages into the tiles and opens the same full-screen
+               preview the admin uses. The preview's words ride along as data attributes. *@
+            <div class="drawings" data-drawings
+                 data-open-original="@T["Asset.OpenOriginal"].Value"
+                 data-close="@T["Asset.Close"].Value"
+                 data-hint="@T["Asset.PreviewHint"].Value"
+                 data-previous="@T["Asset.Previous"].Value"
+                 data-next="@T["Asset.Next"].Value">
                 @foreach (var drawing in Model.Drawings)
                 {
-                    <a class="drawing" href="@drawing.Url" target="_blank" rel="noreferrer">
-                        @if (drawing.IsImage)
-                        {
-                            <img src="@drawing.Url" alt="@drawing.Title" loading="lazy" />
-                        }
-                        else
-                        {
-                            <span class="drawing-doc" aria-hidden="true">PDF</span>
-                        }
-                        <span class="drawing-title">@drawing.Title</span>
+                    @* A value, not a present-or-absent attribute: Razor writes data-* attributes
+                       even when the value is null, so data-pdf would have been on every tile. *@
+                    <a class="drawing" href="@drawing.Url" target="_blank" rel="noreferrer"
+                       data-format="@(drawing.IsPdf ? "pdf" : "image")">
+                        <span class="drawing-thumb @drawing.Shape">
+                            @if (drawing.IsPdf)
+                            {
+                                <span class="drawing-doc" aria-hidden="true">PDF</span>
+                            }
+                            else
+                            {
+                                <img src="@drawing.Url" alt="" loading="lazy" />
+                            }
+                        </span>
+                        <span class="drawing-kind" data-kind="@drawing.Kind">@drawing.Label</span>
+                        <span class="drawing-name">@drawing.Name</span>
                     </a>
                 }
             </div>
         </div>
+
+        <script type="module" src="/admin-assets/drawings.js" asp-append-version="true"></script>
     }
 
     <div class="section">

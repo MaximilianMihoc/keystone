@@ -79,7 +79,17 @@ public class ApartmentModel(
     /// </remarks>
     public IReadOnlyList<Drawing> Drawings { get; private set; } = [];
 
-    public sealed record Drawing(string Title, string FileName, string Url, bool IsImage);
+    /// <summary>A file on the apartment's page, as the admin Files screen shows it less the size.</summary>
+    public sealed record Drawing(AssetKind Kind, string Label, string Name, string Url, bool IsPdf)
+    {
+        /// <summary>Drawings are seen whole on a sheet, renders fill the frame, documents are pages.</summary>
+        public string Shape => Kind switch
+        {
+            AssetKind.Render => "photo",
+            AssetKind.FloorPlan or AssetKind.Rlv or AssetKind.SitePlan => "sheet",
+            _ => "page"
+        };
+    }
 
     public async Task<IActionResult> OnGetAsync(string slug, string code, CancellationToken ct)
     {
@@ -207,7 +217,7 @@ public class ApartmentModel(
                             && f.Building == unit.Building
                             && f.Level == level
                             && f.FloorPlanAsset != null)
-                .Select(f => new { f.FloorPlanAsset!.FileName, f.FloorPlanAsset.StorageKey })
+                .Select(f => new { f.FloorPlanAsset!.FileName, f.FloorPlanAsset.StorageKey, f.FloorPlanAsset.Caption })
                 .FirstOrDefaultAsync(ct)
             : null;
 
@@ -216,19 +226,21 @@ public class ApartmentModel(
         foreach (var item in attached)
         {
             drawings.Add(new Drawing(
-                item.Caption ?? Title(item.Kind),
-                item.FileName,
+                item.Kind,
+                Title(item.Kind),
+                item.Caption ?? item.FileName,
                 await assets.LinkAsync(item.StorageKey, ct),
-                IsImage(item.FileName)));
+                IsPdf(item.FileName)));
         }
 
         if (floorPlan is not null)
         {
             drawings.Add(new Drawing(
-                localizer["Asset.FloorPlan"].Value,
-                floorPlan.FileName,
+                AssetKind.FloorPlan,
+                Title(AssetKind.FloorPlan),
+                floorPlan.Caption ?? floorPlan.FileName,
                 await assets.LinkAsync(floorPlan.StorageKey, ct),
-                IsImage(floorPlan.FileName)));
+                IsPdf(floorPlan.FileName)));
         }
 
         return drawings;
@@ -242,6 +254,6 @@ public class ApartmentModel(
         _ => localizer["Asset.Document"].Value
     };
 
-    private static bool IsImage(string fileName) =>
-        Path.GetExtension(fileName).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".webp" or ".svg";
+    private static bool IsPdf(string fileName) =>
+        Path.GetExtension(fileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase);
 }

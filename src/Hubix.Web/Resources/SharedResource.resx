@@ -135,6 +135,11 @@
   <data name="Asset.Rlv"><value>Apartment plan (RLV)</value></data>
   <data name="Asset.Render"><value>Render</value></data>
   <data name="Asset.Document"><value>Document</value></data>
+  <data name="Asset.OpenOriginal"><value>Open original</value></data>
+  <data name="Asset.Close"><value>Close</value></data>
+  <data name="Asset.PreviewHint"><value>Click to zoom · ← → to browse</value></data>
+  <data name="Asset.Previous"><value>Previous file</value></data>
+  <data name="Asset.Next"><value>Next file</value></data>
 
   <data name="Content.OnlyInRomanian"><value>This description is only available in Romanian.</value></data>
 

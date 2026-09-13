@@ -124,6 +124,11 @@
   <data name="Asset.Rlv"><value>Plan apartament (RLV)</value></data>
   <data name="Asset.Render"><value>Randare</value></data>
   <data name="Asset.Document"><value>Document</value></data>
+  <data name="Asset.OpenOriginal"><value>Deschide originalul</value></data>
+  <data name="Asset.Close"><value>Închide</value></data>
+  <data name="Asset.PreviewHint"><value>Click pentru mărire · ← → pentru navigare</value></data>
+  <data name="Asset.Previous"><value>Fișierul anterior</value></data>
+  <data name="Asset.Next"><value>Fișierul următor</value></data>
 
   <data name="Content.OnlyInRomanian"><value>Această descriere este disponibilă doar în limba română.</value></data>
 

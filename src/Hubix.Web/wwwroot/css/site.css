@@ -935,48 +935,158 @@ footer {
   line-height: 1.55;
 }
 
-/* Plans and drawings. A contact sheet: small enough to scan, large enough to tell a
-   two-bed from a studio, and each one opens full size. */
+/* Plans and drawings. The same tiles as the admin Files screen, less the file size: a picture
+   first, what kind of file it is, and its name. Each opens the full-screen preview. */
 .drawings {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 14px;
   margin-top: 14px;
 }
 
 .drawing {
+  position: relative;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--rule);
   background: var(--surface);
   text-decoration: none;
-  color: var(--ink-2);
+  color: var(--ink);
+  transition: box-shadow 0.18s, border-color 0.18s;
 }
 
-.drawing:hover { border-color: var(--amber); }
+.drawing:hover {
+  border-color: color-mix(in srgb, var(--ink-3) 55%, var(--rule));
+  box-shadow: 0 1px 2px rgb(21 25 30 / 6%), 0 10px 28px rgb(21 25 30 / 10%);
+}
 
-.drawing img {
-  width: 100%;
-  height: 150px;
-  object-fit: contain;
+.drawing-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
   background: var(--surface-2);
-  display: block;
+  border-bottom: 1px solid var(--rule-soft);
 }
+
+.drawing-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
+.drawing-thumb.sheet img { object-fit: contain; padding: 12px; filter: drop-shadow(0 1px 3px rgb(0 0 0 / 14%)); }
+.drawing-thumb.page img { object-fit: contain; padding: 10px; filter: drop-shadow(0 2px 6px rgb(0 0 0 / 16%)); }
+.drawing:hover .drawing-thumb.photo img { transform: scale(1.035); }
 
 .drawing-doc {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 150px;
-  background: var(--surface-2);
   font-family: var(--mono);
   font-size: 13px;
   letter-spacing: 0.12em;
   color: var(--ink-3);
 }
 
-.drawing-title {
-  padding: 9px 11px;
-  font-size: 12.5px;
-  border-top: 1px solid var(--rule-soft);
+.drawing-thumb.is-loading {
+  background: linear-gradient(100deg, var(--surface-2) 40%, var(--rule-soft) 50%, var(--surface-2) 60%) 0 0 / 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+.drawing-thumb.is-loading .drawing-doc { visibility: hidden; }
+
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.drawing-kind {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  line-height: 1.4;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  padding: 3px 7px;
+}
+
+.drawing-kind::before { content: ""; width: 6px; height: 6px; background: var(--ink-3); }
+.drawing-kind[data-kind="FloorPlan"]::before { background: var(--amber); }
+.drawing-kind[data-kind="Render"]::before { background: light-dark(#2C6049, #7DBF9E); }
+.drawing-kind[data-kind="Rlv"]::before,
+.drawing-kind[data-kind="SitePlan"]::before { background: var(--ink-2); }
+
+.drawing-name {
+  padding: 10px 12px 12px;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.drawing:hover .drawing-name { color: var(--amber-deep); }
+
+/* Full-screen preview: one dark room whatever the theme, so drawings read the same in both.
+   Mirrors the admin's, in src/Hubix.Admin/src/styles.css. */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #0C0E11;
+  color: #E7EBEE;
+  font-family: var(--display);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.lb-top { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 12px 20px; border-bottom: 1px solid rgb(255 255 255 / 8%); }
+.lb-top .drawing-kind { position: static; color: #AFBAC4; background: transparent; border-color: rgb(255 255 255 / 15%); }
+.lb-name { font-weight: 600; overflow-wrap: anywhere; }
+.lb-count { font-family: var(--mono); font-size: 11px; color: #8B96A0; }
+.lb-spacer { flex: 1; }
+
+.lb-btn {
+  font-family: var(--display);
+  font-size: 13px;
+  padding: 6px 12px;
+  color: #E7EBEE;
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 20%);
+  cursor: pointer;
+}
+
+.lb-btn:hover { color: #F0B36B; border-color: #E39B4A; }
+
+.lb-stage { position: relative; display: grid; place-items: center; overflow: hidden; padding: 20px 72px 28px; }
+
+.lb-image { display: grid; place-items: center; width: 100%; height: 100%; cursor: zoom-in; transition: transform 0.25s ease; }
+.lb-image img { max-width: 100%; max-height: calc(100vh - 130px); object-fit: contain; user-select: none; }
+.lb-image.zoomed { transform: scale(2.4); cursor: zoom-out; }
+
+.lb-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  line-height: 1;
+  color: #E7EBEE;
+  background: rgb(12 14 17 / 60%);
+  border: 1px solid rgb(255 255 255 / 20%);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.lb-nav:hover { border-color: #E39B4A; }
+.lb-nav[hidden] { display: none; }
+.lb-prev { left: 16px; }
+.lb-next { right: 16px; }
+
+@media (max-width: 600px) {
+  .lb-stage { padding: 12px 8px 64px; }
+  .lb-nav { top: auto; bottom: 12px; transform: none; }
+  .lb-hint { display: none; }
 }
