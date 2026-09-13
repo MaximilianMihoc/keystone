@@ -171,6 +171,17 @@ public static class AssetApi
                 Render(await assets.SetFloorPlanAsync(
                     projectId, body.Building, body.Level, body.AssetId, ct)));
 
+        editable.MapPut("/assets/{assetId:guid}/kind",
+            async (Guid assetId,
+                   AssetKindRequest body,
+                   AssetService assets,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                Enum.TryParse<AssetKind>(body.Kind, out var kind) && Enum.IsDefined(kind)
+                    ? Render(await assets.ChangeKindAsync(
+                        assetId, kind, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct))
+                    : Results.BadRequest(new { error = "That is not a kind of file." }));
+
         editable.MapPost("/units/{unitId:guid}/assets/{assetId:guid}",
             async (Guid unitId, Guid assetId, AssetService assets, CancellationToken ct) =>
                 Render(await assets.AttachToUnitAsync(unitId, assetId, ct)));
@@ -190,7 +201,7 @@ public static class AssetApi
 
     private static IResult Render(AssetOutcome outcome) => outcome switch
     {
-        AssetOutcome.Attached or AssetOutcome.Removed => Results.Ok(new { ok = true }),
+        AssetOutcome.Attached or AssetOutcome.Removed or AssetOutcome.Changed => Results.Ok(new { ok = true }),
         AssetOutcome.Saved saved => Results.Ok(new { id = saved.AssetId }),
         AssetOutcome.NotFound => Results.NotFound(),
         AssetOutcome.Refused refused => Results.BadRequest(new { error = refused.Reason }),
@@ -209,4 +220,6 @@ public static class AssetApi
         };
 
     public sealed record FloorPlanRequest(string? Building, int Level, Guid? AssetId);
+
+    public sealed record AssetKindRequest(string Kind);
 }

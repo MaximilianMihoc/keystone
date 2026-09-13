@@ -749,7 +749,16 @@ export interface AuditFilter {
   take?: number;
 }
 
-async function upload<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
+/**
+ * XHR rather than fetch, because fetch still cannot report upload progress and a 20 MB
+ * brochure otherwise sits at "uploading" with nothing moving.
+ */
+function upload<T>(
+  path: string,
+  file: File,
+  fields: Record<string, string>,
+  onProgress?: (fraction: number) => void,
+): Promise<T> {
   const body = new FormData();
   body.append('file', file);
 
@@ -757,21 +766,32 @@ async function upload<T>(path: string, file: File, fields: Record<string, string
     body.append(key, value);
   }
 
-  // No Content-Type header: the browser sets it with the multipart boundary.
-  const response = await fetch(path, { method: 'POST', body, credentials: 'same-origin' });
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', path);
+    xhr.responseType = 'json';
 
-  if (response.status === 401) throw new SessionExpired();
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    }
 
-  if (!response.ok) {
-    const message = await response
-      .json()
-      .then((b: { error?: string }) => b?.error)
-      .catch(() => undefined);
+    xhr.onerror = () => reject(new ApiError('The upload did not reach the server.'));
 
-    throw new ApiError(message ?? `Request failed (${response.status})`);
-  }
+    xhr.onload = () => {
+      if (xhr.status === 401) return reject(new SessionExpired());
 
-  return (await response.json()) as T;
+      const response = xhr.response as ({ error?: string } & T) | null;
+
+      if (xhr.status < 200 || xhr.status >= 300) {
+        return reject(new ApiError(response?.error ?? `Request failed (${xhr.status})`));
+      }
+
+      resolve(response as T);
+    };
+
+    // No Content-Type header: the browser sets it with the multipart boundary.
+    xhr.send(body);
+  });
 }
 
 export const api = {
@@ -1094,12 +1114,19 @@ export const api = {
   assets: (projectId: string) =>
     request<AssetsResponse>(`/api/admin/projects/${projectId}/assets`),
 
-  uploadAsset: (projectId: string, file: File, kind: string, caption?: string) =>
+  uploadAsset: (projectId: string, file: File, kind: string, onProgress?: (fraction: number) => void) =>
     upload<{ id: string; fileName: string }>(
       `/api/admin/projects/${projectId}/assets`,
       file,
-      { kind, ...(caption ? { caption } : {}) },
+      { kind },
+      onProgress,
     ),
+
+  setAssetKind: (assetId: string, kind: string) =>
+    request<{ ok: boolean }>(`/api/admin/assets/${assetId}/kind`, {
+      method: 'PUT',
+      body: JSON.stringify({ kind }),
+    }),
 
   setFloorPlan: (
     projectId: string,

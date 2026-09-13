@@ -15,6 +15,8 @@ public abstract record AssetOutcome
 
     public sealed record Removed : AssetOutcome;
 
+    public sealed record Changed : AssetOutcome;
+
     public sealed record NotFound : AssetOutcome;
 
     public sealed record Refused(string Reason) : AssetOutcome;
@@ -169,6 +171,53 @@ public sealed class AssetService(
         await db.SaveChangesAsync(ct);
 
         return new AssetOutcome.Attached();
+    }
+
+    /// <summary>Refiles an upload under another kind, because the kind is guessed at upload.</summary>
+    /// <remarks>
+    /// A plan still carried by a floor stays a floor plan. Clearing those floors here would
+    /// quietly take the plan off every apartment on them; saying so lets a person decide.
+    /// </remarks>
+    public async Task<AssetOutcome> ChangeKindAsync(
+        Guid assetId,
+        AssetKind kind,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var asset = await db.Assets.FirstOrDefaultAsync(a => a.Id == assetId, ct);
+
+        if (asset is null)
+        {
+            return new AssetOutcome.NotFound();
+        }
+
+        if (asset.Kind == kind)
+        {
+            return new AssetOutcome.Changed();
+        }
+
+        if (kind != AssetKind.FloorPlan && await db.Floors.AnyAsync(f => f.FloorPlanAssetId == assetId, ct))
+        {
+            return new AssetOutcome.Refused("This plan is on a floor. Take it off its floors first.");
+        }
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            ActorType = "staff",
+            ActorId = actorId,
+            ActorLabel = actorLabel,
+            EntityType = "asset",
+            EntityId = assetId,
+            Action = "asset.kind_changed",
+            Before = JsonSerializer.Serialize(new { Kind = asset.Kind.ToString() }),
+            After = JsonSerializer.Serialize(new { Kind = kind.ToString() })
+        });
+
+        asset.Kind = kind;
+        await db.SaveChangesAsync(ct);
+
+        return new AssetOutcome.Changed();
     }
 
     /// <summary>Attaches a file to one apartment — its RLV, or a render of it.</summary>

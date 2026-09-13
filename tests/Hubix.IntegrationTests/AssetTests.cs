@@ -199,6 +199,31 @@ public class AssetTests(DatabaseFixture fixture) : IDisposable
     }
 
     [Fact]
+    public async Task A_plan_on_a_floor_cannot_be_refiled_until_it_comes_off()
+    {
+        await fixture.ResetUnitAsync();
+
+        var saved = await UploadAsync();
+
+        await using var db = fixture.CreateContext();
+        var service = Service(db);
+
+        await service.SetFloorPlanAsync(fixture.ProjectId, null, 1, saved.AssetId, CancellationToken.None);
+
+        (await service.ChangeKindAsync(saved.AssetId, AssetKind.Render, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<AssetOutcome.Refused>();
+
+        await service.SetFloorPlanAsync(fixture.ProjectId, null, 1, null, CancellationToken.None);
+
+        (await service.ChangeKindAsync(saved.AssetId, AssetKind.Render, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<AssetOutcome.Changed>();
+
+        (await db.Assets.AsNoTracking().SingleAsync(a => a.Id == saved.AssetId)).Kind.ShouldBe(AssetKind.Render);
+        (await db.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityId == saved.AssetId && a.Action == "asset.kind_changed"))
+            .ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task An_rlv_attaches_to_one_apartment()
     {
         await fixture.ResetUnitAsync();
