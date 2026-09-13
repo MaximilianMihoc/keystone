@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Hubix.Domain;
 
 /// <summary>
@@ -99,6 +101,11 @@ public enum ReservationState
 /// <summary>
 /// Determines which VAT rate applies, so it cannot be resolved from the unit alone.
 /// </summary>
+/// <remarks>
+/// Request bodies bind this directly, and the admin client sends it by name, the way the board
+/// receives it. Without the converter the API rejects the body before any code runs.
+/// </remarks>
+[JsonConverter(typeof(JsonStringEnumConverter<BuyerType>))]
 public enum BuyerType
 {
     Individual,
