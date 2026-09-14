@@ -79,6 +79,44 @@
         }
     </dl>
 
+    @if (Model.Slides.Count > 0)
+    {
+        @* Without script the first image shows on its own; slideshow.js adds the rest of the
+           movement. Images, never links to the files: an asset opened on its own is a page
+           of its own (issue #31). *@
+        <section class="section">
+            <div class="slideshow" data-slideshow aria-roledescription="carousel" aria-label="@T["Slideshow.Label"]">
+                <div class="slides">
+                    @for (var i = 0; i < Model.Slides.Count; i++)
+                    {
+                        var slide = Model.Slides[i];
+                        <figure class="slide@(i == 0 ? " is-current" : "")" aria-roledescription="slide"
+                                aria-label="@(i + 1) / @Model.Slides.Count" aria-hidden="@(i == 0 ? "false" : "true")">
+                            <img src="@slide.Url" alt="@(slide.Caption ?? "")" loading="@(i == 0 ? "eager" : "lazy")" />
+                            @if (slide.Caption is { Length: > 0 } caption)
+                            {
+                                <figcaption>@caption</figcaption>
+                            }
+                        </figure>
+                    }
+                </div>
+
+                @if (Model.Slides.Count > 1)
+                {
+                    <button class="slide-step prev" type="button" aria-label="@T["Slideshow.Previous"]" hidden>&#8249;</button>
+                    <button class="slide-step next" type="button" aria-label="@T["Slideshow.Next"]" hidden>&#8250;</button>
+                    <div class="slide-dots" hidden>
+                        @for (var i = 0; i < Model.Slides.Count; i++)
+                        {
+                            <button type="button" aria-label="@T["Slideshow.Show", i + 1]"
+                                    aria-current="@(i == 0 ? "true" : "false")"></button>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
     <div class="section" style="display:flex; gap:12px; flex-wrap:wrap;">
         <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@p.Slug">
             @L["Project.ViewApartments", Model.FreeUnits]
@@ -115,3 +153,10 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    @if (Model.Slides.Count > 1)
+    {
+        <script src="~/js/slideshow.js" asp-append-version="true" defer></script>
+    }
+}

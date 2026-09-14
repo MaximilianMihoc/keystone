@@ -145,6 +145,11 @@
   <data name="Project.Location"><value>Deschide în Maps</value></data>
   <data name="Project.About"><value>Despre proiect</value></data>
 
+  <data name="Slideshow.Label"><value>Imagini ale proiectului</value></data>
+  <data name="Slideshow.Previous"><value>Imaginea anterioară</value></data>
+  <data name="Slideshow.Next"><value>Imaginea următoare</value></data>
+  <data name="Slideshow.Show"><value>Arată imaginea {0}</value></data>
+
   <data name="Rental.ShortTerm"><value>Închiriere short-term</value></data>
   <data name="Rental.MidTerm"><value>Închiriere mid-term</value></data>
   <data name="Rental.LongTerm"><value>Închiriere long-term</value></data>
