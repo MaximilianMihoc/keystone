@@ -31,6 +31,7 @@ public static class AssetApi
             string key,
             long expires,
             string signature,
+            HttpContext http,
             IAssetStorage storage,
             CancellationToken ct) =>
         {
@@ -53,8 +54,17 @@ public static class AssetApi
                 return Results.NotFound();
             }
 
-            // Inline so a plan opens in the browser rather than landing in Downloads.
-            return Results.File(stream, ContentTypeFor(key), enableRangeProcessing: true);
+            // Never let the browser second-guess the type: a file it sniffs as HTML runs as HTML.
+            http.Response.Headers.XContentTypeOptions = "nosniff";
+
+            var contentType = ContentTypeFor(key);
+
+            // Inline so a plan opens in the browser rather than landing in Downloads. Anything
+            // that is not a known drawing, such as an SVG uploaded before they were refused,
+            // is handed over as a download and never rendered on this origin.
+            return contentType == "application/octet-stream"
+                ? Results.File(stream, contentType, Path.GetFileName(key), enableRangeProcessing: true)
+                : Results.File(stream, contentType, enableRangeProcessing: true);
         });
     }
 
@@ -215,7 +225,6 @@ public static class AssetApi
             ".png" => "image/png",
             ".jpg" or ".jpeg" => "image/jpeg",
             ".webp" => "image/webp",
-            ".svg" => "image/svg+xml",
             _ => "application/octet-stream"
         };
 

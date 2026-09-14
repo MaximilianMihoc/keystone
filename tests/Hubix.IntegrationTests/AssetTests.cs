@@ -127,6 +127,8 @@ public class AssetTests(DatabaseFixture fixture) : IDisposable
     [InlineData("plan.exe")]
     [InlineData("plan.html")]
     [InlineData("plan.docx")]
+    [InlineData("plan.svg")]
+    [InlineData("PLAN.SVG")]
     [InlineData("plan")]
     public async Task Only_drawings_and_documents_may_be_uploaded(string fileName)
     {
