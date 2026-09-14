@@ -1006,7 +1006,7 @@ main { padding: 22px 20px 60px; }
 
 .kind::before { content: ""; width: 6px; height: 6px; background: var(--ink-3); }
 .kind[data-k="FloorPlan"]::before { background: var(--amber); }
-.kind[data-k="Render"]::before { background: var(--green); }
+.kind[data-k="Render"]::before, .kind[data-k="Gallery"]::before { background: var(--green); }
 .kind[data-k="Rlv"]::before, .kind[data-k="SitePlan"]::before { background: var(--ink-2); }
 
 /* Actions stay out of the way until the tile is approached. Touch has no hover to approach with. */

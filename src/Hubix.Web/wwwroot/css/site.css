@@ -1085,3 +1085,94 @@ footer {
   .lb-nav { top: auto; bottom: 12px; transform: none; }
   .lb-hint { display: none; }
 }
+
+/* ---------- project slideshow ------------------------------------------- */
+
+/* Every slide sits in the same frame; the current one fades in and slowly zooms. Without
+   script only the first is current, so the page shows one still image. */
+.slideshow { position: relative; background: var(--board); }
+
+/* Capped so the buttons under it stay within reach on a short screen; the image crops to fit.
+   The explicit width matters: left auto, the ratio would narrow the frame to honour the cap. */
+.slides { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 70vh; overflow: hidden; }
+
+.slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.slide.is-current { opacity: 1; }
+
+.slide img { width: 100%; height: 100%; object-fit: cover; }
+
+.slide.is-current img { animation: slide-zoom 7s ease-out forwards; }
+
+/* Alternate slides drift the other way, so the movement does not repeat identically. */
+.slide:nth-child(even).is-current img { transform-origin: 70% 40%; }
+.slide:nth-child(odd).is-current img { transform-origin: 30% 60%; }
+
+@keyframes slide-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+
+.slide figcaption {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 10px 16px;
+  font-family: var(--display);
+  font-size: 14px;
+  color: #E7EBEE;
+  background: rgb(12 14 17 / 60%);
+}
+
+.slide-step {
+  position: absolute;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  line-height: 1;
+  color: #E7EBEE;
+  background: rgb(12 14 17 / 60%);
+  border: 1px solid rgb(255 255 255 / 20%);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.slide-step:hover { border-color: #E39B4A; }
+.slide-step.prev { left: 16px; }
+.slide-step.next { right: 16px; }
+
+.slide-dots {
+  position: absolute;
+  right: 16px;
+  bottom: 6px;
+  display: flex;
+}
+
+/* The square is small; the button around it is big enough to tap. */
+.slide-dots button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.slide-dots button::before { content: ""; width: 10px; height: 10px; background: rgb(255 255 255 / 45%); }
+.slide-dots button[aria-current="true"]::before { background: #E39B4A; }
+
+@media (max-width: 600px) {
+  .slides { aspect-ratio: 4 / 3; }
+  .slide-step { width: 36px; height: 36px; font-size: 20px; }
+  .slide-step.prev { left: 8px; }
+  .slide-step.next { right: 8px; }
+}

@@ -17,6 +17,7 @@ const KINDS = [
   { value: 'SitePlan', label: 'Site plan' },
   { value: 'Prospectus', label: 'Prospectus' },
   { value: 'Brochure', label: 'Brochure' },
+  { value: 'Gallery', label: 'Gallery' },
   { value: 'Other', label: 'Other' },
 ];
 
@@ -32,6 +33,7 @@ const TABS: Tab[] = [
   { id: 'all', label: 'All', kinds: null, uploadAs: null },
   { id: 'plans', label: 'Floor plans', kinds: ['FloorPlan'], uploadAs: 'FloorPlan' },
   { id: 'renders', label: 'Renders', kinds: ['Render'], uploadAs: 'Render' },
+  { id: 'gallery', label: 'Gallery', kinds: ['Gallery'], uploadAs: 'Gallery' },
   { id: 'drawings', label: 'Drawings', kinds: ['Rlv', 'SitePlan'], uploadAs: 'SitePlan' },
   { id: 'documents', label: 'Documents', kinds: ['Prospectus', 'Brochure', 'Other'], uploadAs: 'Other' },
 ];
@@ -76,7 +78,7 @@ const isPdf = (asset: ProjectAsset) =>
 
 /** Drawings sit on a sheet and must be seen whole; renders fill their frame; documents are pages. */
 function shape(kind: string): 'sheet' | 'photo' | 'page' {
-  if (kind === 'Render') return 'photo';
+  if (kind === 'Render' || kind === 'Gallery') return 'photo';
   return kind === 'FloorPlan' || kind === 'Rlv' || kind === 'SitePlan' ? 'sheet' : 'page';
 }
 
@@ -320,6 +322,8 @@ export function AssetsPanel({ projectId, units, canEdit, onSessionExpired }: Pro
 
   const usage = useCallback(
     (asset: ProjectAsset): { text: string; unused: boolean } => {
+      if (asset.kind === 'Gallery') return { text: 'In the project slideshow', unused: false };
+
       if (asset.kind === 'FloorPlan') {
         const floors = floorsOf(asset.id);
         if (floors.length > 0) return { text: `Floors ${describeFloors(floors)}`, unused: false };
@@ -855,7 +859,7 @@ function AssetDrawer({
       };
     }),
     ...(looseUnits.length > 0 ? [{ key: 'none', label: 'No floor', units: looseUnits, viaFloor: false }] : []),
-  ].filter((row) => row.units.length > 0);
+  ].filter((row) => asset.kind !== 'Gallery' && row.units.length > 0);
 
   return (
     <aside className="drawer asset-drawer">
@@ -909,13 +913,13 @@ function AssetDrawer({
 
       <h3 className="drawer-split">
         Shown on
-        <span>
-          {shownCount} of {totalUnits} apartments
-        </span>
+        <span>{asset.kind === 'Gallery' ? 'The project page' : `${shownCount} of ${totalUnits} apartments`}</span>
       </h3>
 
       <p className="hint">
-        {asset.kind === 'FloorPlan' && floorsText
+        {asset.kind === 'Gallery'
+          ? 'Plays in the slideshow on the project page, oldest upload first. PDFs are left out.'
+          : asset.kind === 'FloorPlan' && floorsText
           ? `Amber apartments get this plan from their floor (${floorsText}). Change that in the floor list.`
           : canEdit
             ? 'Click an apartment to show or hide this file on its page.'

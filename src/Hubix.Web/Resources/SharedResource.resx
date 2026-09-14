@@ -158,6 +158,11 @@
   <data name="Project.Location"><value>Open in Maps</value></data>
   <data name="Project.About"><value>About the development</value></data>
 
+  <data name="Slideshow.Label"><value>Images of the development</value></data>
+  <data name="Slideshow.Previous"><value>Previous image</value></data>
+  <data name="Slideshow.Next"><value>Next image</value></data>
+  <data name="Slideshow.Show"><value>Show image {0}</value></data>
+
   <data name="Rental.ShortTerm"><value>Short stays</value></data>
   <data name="Rental.MidTerm"><value>Medium stays</value></data>
   <data name="Rental.LongTerm"><value>Long lets</value></data>

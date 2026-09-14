@@ -138,6 +138,9 @@ public enum AssetKind
     SitePlan,
     Prospectus,
     Brochure,
+
+    /// <summary>A picture of the project, played in the slideshow on its page.</summary>
+    Gallery,
     Other
 }
 

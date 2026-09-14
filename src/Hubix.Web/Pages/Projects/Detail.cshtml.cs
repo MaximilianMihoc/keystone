@@ -2,13 +2,14 @@ using System.Globalization;
 using Hubix.Domain;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
+using Hubix.Infrastructure.Assets;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hubix.Web.Pages.Projects;
 
-public class DetailModel(HubixDbContext db) : PageModel
+public class DetailModel(HubixDbContext db, AssetService assets) : PageModel
 {
     public Project Project { get; private set; } = null!;
 
@@ -24,6 +25,15 @@ public class DetailModel(HubixDbContext db) : PageModel
     public int FreeUnits { get; private set; }
 
     public decimal? FromPrice { get; private set; }
+
+    /// <summary>The project's Gallery images for the slideshow, oldest upload first.</summary>
+    /// <remarks>
+    /// PDFs are left out: a slideshow plays pictures. Links are signed and expire, like every
+    /// other file on the public site.
+    /// </remarks>
+    public IReadOnlyList<Slide> Slides { get; private set; } = [];
+
+    public sealed record Slide(string Url, string? Caption);
 
     public async Task<IActionResult> OnGetAsync(string slug, CancellationToken ct)
     {
@@ -62,6 +72,26 @@ public class DetailModel(HubixDbContext db) : PageModel
         TotalUnits = counts?.Total ?? 0;
         FreeUnits = counts?.Free ?? 0;
         FromPrice = counts?.From;
+
+        // By CreatedAt, not by the UUIDv7 id: SQL Server orders uniqueidentifier by its last
+        // bytes first, which is not the order the ids were made in.
+        var gallery = await db.Assets
+            .AsNoTracking()
+            .Where(a => a.ProjectId == project.Id
+                        && a.Kind == AssetKind.Gallery
+                        && a.ContentType != "application/pdf")
+            .OrderBy(a => a.CreatedAt)
+            .Select(a => new { a.StorageKey, a.Caption })
+            .ToListAsync(ct);
+
+        var slides = new List<Slide>(gallery.Count);
+
+        foreach (var image in gallery)
+        {
+            slides.Add(new Slide(await assets.LinkAsync(image.StorageKey, ct), image.Caption));
+        }
+
+        Slides = slides;
 
         return Page();
     }
