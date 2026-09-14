@@ -215,7 +215,6 @@ h3 {
     font-size: 19px;
     line-height: 1.55;
     color: var(--ink-2);
-    max-width: 62ch;
     margin: 0;
 }
 
@@ -367,7 +366,6 @@ h3 {
 
 /* ---------- prose ------------------------------------------------------- */
 
-.prose { max-width: 66ch; }
 .prose p { margin: 0 0 18px; }
 .prose p:last-child { margin-bottom: 0; }
 
@@ -379,7 +377,6 @@ h3 {
     font-size: 14px;
     line-height: 1.55;
     color: var(--ink-2);
-    max-width: 66ch;
 }
 
 /* A note directly under the specification grid explains the figures in it, so the two read
@@ -827,7 +824,6 @@ td .code:hover { border-bottom-color: var(--amber); color: var(--amber-deep); }
     font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
-    max-width: 62ch;
 }
 
 .alert:empty { display: none; }
@@ -838,7 +834,6 @@ td .code:hover { border-bottom-color: var(--amber); color: var(--amber-deep); }
 .notice {
     border-left: 3px solid var(--rule);
     padding: 15px 18px;
-    max-width: 62ch;
     margin-top: 24px;
 }
 
@@ -929,7 +924,7 @@ footer {
 
 .waitlist-cta p {
   margin: 0;
-  max-width: 52ch;
+  flex: 1 1 40ch;
   color: var(--ink-2);
   font-size: 15px;
   line-height: 1.55;
