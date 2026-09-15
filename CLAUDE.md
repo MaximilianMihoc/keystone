@@ -218,6 +218,10 @@ admin bundle.
   signing key. It is deliberately silent outside Production.
 - The Hangfire recurring job is registered through `IRecurringJobManager` from DI, not the static
   `RecurringJob` helper — the static API reads `JobStorage.Current`, which is unset during startup.
+- Every response carries a Content-Security-Policy, set in `Program.cs`. Script is `'self'` only:
+  an inline `<script>` or an `onclick` is silently blocked, so page script goes in `wwwroot/js`.
+  A new external host (a CDN, an analytics tag) has to be added to the policy, and `/assets`
+  has its own sandboxed policy. Check the browser console for violations, not just the headers.
 - Never change `Units.State` with SQL. Route through the services so the hold or reservation and the
   audit row move with it.
 
