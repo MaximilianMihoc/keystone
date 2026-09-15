@@ -45,6 +45,10 @@ public sealed class AssetService(
     /// <remarks>
     /// An allow list, not a block list. These are drawings and brochures; anything else
     /// arriving is a mistake at best, and a file the browser might execute at worst.
+    /// <para>
+    /// No SVG. An SVG is a document that can carry script, and opened on its own it runs that
+    /// script on this site with the viewer's session (issue #31).
+    /// </para>
     /// </remarks>
     private static readonly Dictionary<string, string> Permitted = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -52,8 +56,7 @@ public sealed class AssetService(
         [".png"] = "image/png",
         [".jpg"] = "image/jpeg",
         [".jpeg"] = "image/jpeg",
-        [".webp"] = "image/webp",
-        [".svg"] = "image/svg+xml"
+        [".webp"] = "image/webp"
     };
 
     public async Task<AssetOutcome> UploadAsync(
