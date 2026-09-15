@@ -28,6 +28,10 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// What serves the site is nobody else's business, and a version-shaped header helps nobody but
+// somebody matching it against a list of advisories.
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // Resource files live in Resources/, keyed by the marker type SharedResource.
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
@@ -251,6 +255,59 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 });
 
 var app = builder.Build();
+
+// --- Security headers --------------------------------------------------------------
+// On every response, set as it starts rather than here: the exception handler and the status
+// code pages clear headers before re-running the pipeline, and OnStarting callbacks survive
+// that where headers set now would not.
+//
+// Script comes only from this site, never inline, so markup that slips into a page cannot run.
+// Inline style is allowed because a handful of pages carry style attributes; style cannot run
+// script. blob: is the admin's previews, drawn from PDFs and images in the browser.
+//
+// Files get a policy of their own. Nothing served from /assets is a page, and one opened as a
+// page (an uploaded document, say) runs sandboxed with nothing allowed.
+var blobStorage = string.IsNullOrWhiteSpace(builder.Configuration["Assets:BlobConnectionString"])
+    ? ""
+    : " https://*.blob.core.windows.net";
+
+var sitePolicy = string.Join("; ",
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src https://fonts.gstatic.com",
+    $"img-src 'self' blob:{blobStorage}",
+    $"connect-src 'self'{blobStorage}",
+    "worker-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'");
+
+const string filePolicy = "default-src 'none'; sandbox; frame-ancestors 'none'";
+
+app.Use((context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+
+        headers.ContentSecurityPolicy = context.Request.Path.StartsWithSegments("/assets")
+            ? filePolicy
+            : sitePolicy;
+        headers.XContentTypeOptions = "nosniff";
+        headers.XFrameOptions = "DENY";
+
+        // Hold and waitlist links carry their token in the path. Pinned rather than left to
+        // the browser's default, so the path never goes to another site.
+        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+
+        return Task.CompletedTask;
+    });
+
+    return next(context);
+});
 
 if (!app.Environment.IsDevelopment())
 {
