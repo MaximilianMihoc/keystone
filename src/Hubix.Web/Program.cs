@@ -109,7 +109,13 @@ builder.Services
         options.Cookie.Name = "hubix.staff";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        // HTTPS only, everywhere but Development, rather than "secure if this request was".
+        // UseHttpsRedirection covers most of the gap, but a session cookie is the last thing
+        // that should depend on a redirect having fired first (issue #35). Development keeps
+        // SameAsRequest so the http-only launch profile can still sign in.
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
         options.LoginPath = "/admin/login";
