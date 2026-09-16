@@ -59,16 +59,17 @@ public class LoginModel(
             return Page();
         }
 
-        var url = Url.Page("/Admin/Verify", null, new { token = link.Token }, Request.Scheme)!;
-
-        if (environment.IsDevelopment())
-        {
-            DevelopmentLink = url;
-        }
-
         try
         {
-            await notifier.SignInLinkAsync(link, url, ct);
+            // The notifier builds the address from configuration. This page deliberately does
+            // not: a link built from the request would point wherever the request's Host said,
+            // which is not this page's to decide and not a visitor's either (issue #33).
+            var url = await notifier.SignInLinkAsync(link, ct);
+
+            if (environment.IsDevelopment())
+            {
+                DevelopmentLink = url;
+            }
         }
         catch (Exception ex)
         {

@@ -28,7 +28,8 @@ public static class ProductionReadiness
         AssetOptions assets,
         HubixOptions hubix,
         string? connectionString,
-        ResendOptions? provider = null)
+        ResendOptions? provider = null,
+        string? allowedHosts = null)
     {
         var problems = new List<string>();
 
@@ -52,6 +53,16 @@ public static class ProductionReadiness
         {
             problems.Add(
                 "Hubix:PublicBaseUrl still points at localhost, so every link in every email would be dead.");
+        }
+
+        // A wildcard lets anybody reach the site under any Host they like. Emails no longer
+        // trust that header, but plenty else does — absolute URLs, logs, and whatever is put
+        // in front of this — and naming the host is the cheap half of not trusting it (#33).
+        if (string.IsNullOrWhiteSpace(allowedHosts) || allowedHosts.Split(';').Any(h => h.Trim() == "*"))
+        {
+            problems.Add(
+                "AllowedHosts is a wildcard. Name the host(s) this instance answers to, " +
+                "semicolon-separated, so a forged Host header cannot be served at all.");
         }
 
         if (hubix.SalesInbox.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase))
@@ -150,7 +161,8 @@ public static class ProductionReadiness
             services.GetRequiredService<IOptionsSnapshot<HubixOptions>>().Value,
             app.Configuration.GetConnectionString(
                 Hubix.Infrastructure.DependencyInjection.ConnectionStringName),
-            services.GetRequiredService<IOptions<ResendOptions>>().Value);
+            services.GetRequiredService<IOptions<ResendOptions>>().Value,
+            app.Configuration["AllowedHosts"]);
 
         if (problems.Count == 0)
         {

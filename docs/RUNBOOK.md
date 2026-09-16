@@ -139,6 +139,7 @@ harmful live, and every one fails silently if unchecked:
 | Live email, `Email:From` on `resend.dev` | The sandbox sender reaches nobody but test addresses. |
 | Live email, empty `Resend:ApiKey` | Every message would go quietly to the outbox. |
 | `PublicBaseUrl` still `localhost` | Every link in every email would be dead. |
+| `AllowedHosts` still `*` | Any Host header would be served. Name the host(s), semicolon-separated. |
 | `SalesInbox` still `.invalid` | Internal notifications go nowhere. |
 | No `Assets:SigningKey` and no blob storage | File links break on restart and across instances. |
 

@@ -36,14 +36,33 @@ public class ProductionReadinessTests
         AssetOptions? assets = null,
         HubixOptions? hubix = null,
         string? connection = "Server=real;Database=real",
-        ResendOptions? provider = null) =>
+        ResendOptions? provider = null,
+        string? allowedHosts = "portal.example.ro") =>
         ProductionReadiness.Problems(
-            email ?? SafeEmail(), assets ?? SafeAssets(), hubix ?? SafeHubix(), connection, provider);
+            email ?? SafeEmail(), assets ?? SafeAssets(), hubix ?? SafeHubix(), connection, provider,
+            allowedHosts);
 
     [Fact]
     public void A_properly_configured_instance_has_nothing_to_say()
     {
         Check().ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("*")]
+    [InlineData("portal.example.ro;*")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void A_wildcard_host_is_refused(string? allowedHosts)
+    {
+        // Serving any Host that asks is how a forged one gets in front of anybody at all.
+        Check(allowedHosts: allowedHosts).ShouldContain(p => p.Contains("AllowedHosts"));
+    }
+
+    [Fact]
+    public void Named_hosts_are_what_it_wants()
+    {
+        Check(allowedHosts: "portal.example.ro;www.portal.example.ro").ShouldBeEmpty();
     }
 
     [Fact]
