@@ -258,6 +258,7 @@ Vezi-ți locul sau ieși de pe listă aici:
   <data name="Waitlist.Join"><value>Înscrie-mă pe listă</value></data>
   <data name="Waitlist.NoObligation"><value>Nu se rezervă nimic și nu datorezi nimic. Poți ieși de pe listă oricând.</value></data>
   <data name="Waitlist.CouldNotJoin"><value>Nu te-am putut adăuga pe listă. Te rugăm să încerci din nou.</value></data>
+  <data name="Waitlist.Sent"><value>Mulțumim. Ți-am trimis pe email locul tău în coadă și un link către pagina ta, de unde îl poți verifica sau poți ieși de pe listă oricând.</value></data>
   <data name="Waitlist.YourPlace"><value>Locul tău</value></data>
   <data name="Waitlist.OfWaiting"><value>din {0} în așteptare</value></data>
   <data name="Waitlist.WhatNextBody"><value>Când un apartament de acest tip revine la vânzare, îi scriem primul celui aflat în fruntea listei. Rămâne disponibil pentru toată lumea, deci va reveni celui care rezervă primul — avantajul este că afli înaintea celorlalți, nu că ți-l păstrăm.</value></data>
