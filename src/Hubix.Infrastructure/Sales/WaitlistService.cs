@@ -12,6 +12,8 @@ public sealed record WaitlistCandidate(
     string Locale,
     int Position);
 
+public sealed record WaitlistLink(string Email, string AccessToken);
+
 /// <summary>
 /// The queue for a unit type. First come, first served, as Hubix's documents state.
 /// </summary>
@@ -62,8 +64,7 @@ public sealed class WaitlistService(
         if (existing is not null)
         {
             // Submitting the form twice is a misclick, not an offence.
-            return new WaitlistOutcome.AlreadyWaiting(
-                existing.Id, existing.AccessToken, await PlaceOfAsync(existing.Id, ct));
+            return new WaitlistOutcome.AlreadyWaiting(existing.Id, await PlaceOfAsync(existing.Id, ct));
         }
 
         // Arrival number. Two people joining in the same instant can be given the same one;
@@ -88,9 +89,22 @@ public sealed class WaitlistService(
         logger.LogInformation(
             "{Email} joined the waiting list for project {ProjectId}", prospect.Email, projectId);
 
-        return new WaitlistOutcome.Joined(
-            entry.Id, entry.AccessToken, await PlaceOfAsync(entry.Id, ct));
+        return new WaitlistOutcome.Joined(entry.Id, await PlaceOfAsync(entry.Id, ct));
     }
+
+    /// <summary>
+    /// The address on file for an entry, and the token for the link to it.
+    /// </summary>
+    /// <remarks>
+    /// For the confirmation email and nothing else. The token must never reach whoever
+    /// submitted the form, because that need not be the person on the list.
+    /// </remarks>
+    public Task<WaitlistLink> LinkForAsync(Guid entryId, CancellationToken ct) =>
+        db.WaitlistEntries
+            .AsNoTracking()
+            .Where(w => w.Id == entryId)
+            .Select(w => new WaitlistLink(w.Prospect!.Email, w.AccessToken))
+            .SingleAsync(ct);
 
     /// <summary>Takes somebody off the list. Idempotent, so a second click is harmless.</summary>
     /// <returns>False when there was nothing active to remove.</returns>

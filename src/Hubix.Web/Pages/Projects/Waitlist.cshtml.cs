@@ -42,6 +42,9 @@ public class WaitlistModel(
 
     public string? FailureKey { get; private set; }
 
+    /// <summary>Arriving back from a successful post: the link is on its way.</summary>
+    public bool Sent { get; private set; }
+
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -81,12 +84,14 @@ public class WaitlistModel(
         public bool Consent { get; set; }
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug, string? type, CancellationToken ct)
+    public async Task<IActionResult> OnGetAsync(string slug, string? type, bool sent, CancellationToken ct)
     {
         if (!await LoadAsync(slug, ct))
         {
             return NotFound();
         }
+
+        Sent = sent;
 
         // Arriving from a filtered apartment list should keep the filter.
         Input.Type = Types.Any(t => t.Canonical == type) ? type : null;
@@ -123,16 +128,20 @@ public class WaitlistModel(
                 ConsentSource: $"waitlist-form/{slug}"),
             ct);
 
+        // Joining and already being on the list look exactly the same from here: the same
+        // email, the same page. Whoever submitted the form need not own the address, so the
+        // answer must neither hand over the entry's link nor say whether the address was
+        // already on the list (issue #29). The link reaches only the inbox, and somebody who
+        // submits twice simply gets it again.
         switch (outcome)
         {
             case WaitlistOutcome.Joined joined:
-                await ConfirmAsync(joined.AccessToken, chosen?.Label, joined.Place, ct);
-                return RedirectToPage("/Waitlist", new { token = joined.AccessToken });
+                await ConfirmAsync(joined.EntryId, chosen?.Label, joined.Place, ct);
+                return RedirectToPage(new { slug = Slug, sent = true });
 
-            // Somebody who submits the form twice gets shown where they already stand, not
-            // told off for it.
             case WaitlistOutcome.AlreadyWaiting already:
-                return RedirectToPage("/Waitlist", new { token = already.AccessToken });
+                await ConfirmAsync(already.EntryId, chosen?.Label, already.Place, ct);
+                return RedirectToPage(new { slug = Slug, sent = true });
 
             default:
                 FailureKey = "Waitlist.CouldNotJoin";
@@ -144,13 +153,13 @@ public class WaitlistModel(
     /// The entry is already saved by this point. A confirmation that fails to send must not
     /// undo it or show an error for something that worked.
     /// </summary>
-    private async Task ConfirmAsync(string token, string? typeLabel, int place, CancellationToken ct)
+    private async Task ConfirmAsync(Guid entryId, string? typeLabel, int place, CancellationToken ct)
     {
         try
         {
             await notifier.WaitlistJoinedAsync(
-                Input.Email!, CultureInfo.CurrentUICulture.Name, ProjectId, ProjectName,
-                typeLabel, place, token, ct);
+                entryId, CultureInfo.CurrentUICulture.Name, ProjectId, ProjectName,
+                typeLabel, place, ct);
         }
         catch (Exception ex)
         {

@@ -277,6 +277,7 @@ See your place, or take yourself off the list, here:
   <data name="Waitlist.Join"><value>Join the list</value></data>
   <data name="Waitlist.NoObligation"><value>Nothing is reserved and nothing is owed. You can take yourself off the list at any time.</value></data>
   <data name="Waitlist.CouldNotJoin"><value>We could not add you to the list. Please try again.</value></data>
+  <data name="Waitlist.Sent"><value>Thank you. We have emailed your place in the queue, with a link to your own page where you can check it or leave the list at any time.</value></data>
   <data name="Waitlist.YourPlace"><value>Your place</value></data>
   <data name="Waitlist.OfWaiting"><value>of {0} waiting</value></data>
   <data name="Waitlist.WhatNextBody"><value>When an apartment of this type returns to sale, we email the person at the front of the list first. It stays open to everyone, so it will go to whoever reserves first — the head start is the point, not a claim on it.</value></data>

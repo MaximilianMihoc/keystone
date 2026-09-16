@@ -3,14 +3,18 @@ namespace Hubix.Infrastructure.Sales;
 /// <summary>What happened when someone tried to join a queue.</summary>
 public abstract record WaitlistOutcome
 {
+    // Neither carries the entry's access token. These answer a public form, and anybody can
+    // type somebody else's address into one; the token is the whole credential for an entry,
+    // so it goes only into the email sent to the address on file (issue #29).
+
     /// <summary>They are on the list.</summary>
-    public sealed record Joined(Guid EntryId, string AccessToken, int Place) : WaitlistOutcome;
+    public sealed record Joined(Guid EntryId, int Place) : WaitlistOutcome;
 
     /// <summary>
     /// They were already on it, and this is where. Not an error: somebody who submits the
-    /// form twice should be shown their place, not told off.
+    /// form twice gets their link sent again, not told off.
     /// </summary>
-    public sealed record AlreadyWaiting(Guid EntryId, string AccessToken, int Place) : WaitlistOutcome;
+    public sealed record AlreadyWaiting(Guid EntryId, int Place) : WaitlistOutcome;
 
     public sealed record ProjectNotFound : WaitlistOutcome;
 

@@ -39,7 +39,8 @@ public sealed class HoldNotifier(
     IEmailSender email,
     IStringLocalizer<SharedResource> localizer,
     IOptionsSnapshot<HubixOptions> options,
-    SalesInboxResolver inboxes)
+    SalesInboxResolver inboxes,
+    WaitlistService waitlist)
 {
     private readonly HubixOptions _options = options.Value;
 
@@ -96,18 +97,22 @@ public sealed class HoldNotifier(
     /// <remarks>
     /// Carries the link to their own page, which is where they can leave. An email telling
     /// somebody they are on a list has to also be the way off it.
+    /// <para>
+    /// Takes the entry rather than an address and a token, and reads both itself: the link
+    /// goes to the address on file, and the form that triggered this never holds it.
+    /// </para>
     /// </remarks>
     public async Task WaitlistJoinedAsync(
-        string toEmail,
+        Guid entryId,
         string locale,
         Guid projectId,
         string projectName,
         string? typeLabel,
         int place,
-        string accessToken,
         CancellationToken ct)
     {
-        var link = $"{_options.PublicBaseUrl.TrimEnd('/')}/waitlist/{accessToken}";
+        var entry = await waitlist.LinkForAsync(entryId, ct);
+        var link = $"{_options.PublicBaseUrl.TrimEnd('/')}/waitlist/{entry.AccessToken}";
 
         var body = InLocale(locale, () => string.Format(
             CultureInfo.CurrentCulture,
@@ -123,7 +128,7 @@ public sealed class HoldNotifier(
             projectName));
 
         await email.SendAsync(
-            new EmailMessage(toEmail, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
+            new EmailMessage(entry.Email, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
     }
 
     public async Task UnitFreedAsync(

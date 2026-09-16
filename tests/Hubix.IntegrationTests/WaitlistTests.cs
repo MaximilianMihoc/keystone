@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Hubix.Domain;
 using Hubix.Domain.Entities;
 using Hubix.Infrastructure;
@@ -37,6 +38,12 @@ public class WaitlistTests(DatabaseFixture fixture)
             .ShouldBeOfType<WaitlistOutcome.Joined>();
     }
 
+    private async Task<string> TokenOfAsync(Guid entryId)
+    {
+        await using var db = fixture.CreateContext();
+        return await db.WaitlistEntries.Where(w => w.Id == entryId).Select(w => w.AccessToken).SingleAsync();
+    }
+
     [Fact]
     public async Task Joining_puts_somebody_at_the_back_of_the_queue()
     {
@@ -59,7 +66,7 @@ public class WaitlistTests(DatabaseFixture fixture)
         var third = await JoinAsync("third@example.ro", type);
 
         await using var db = fixture.CreateContext();
-        (await Service(db).LeaveAsync(first.AccessToken, CancellationToken.None)).ShouldBeTrue();
+        (await Service(db).LeaveAsync(await TokenOfAsync(first.EntryId), CancellationToken.None)).ShouldBeTrue();
 
         // The stored arrival number does not move; what somebody is told does. A place that
         // was written down once would still be claiming third long after they became second.
@@ -84,6 +91,26 @@ public class WaitlistTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task Joining_with_somebody_elses_address_does_not_hand_over_their_link()
+    {
+        await fixture.ResetUnitAsync();
+        var type = await TypeIdAsync();
+
+        var victim = await JoinAsync("victim@example.ro", type);
+        var token = await TokenOfAsync(victim.EntryId);
+
+        // Anybody can type an address into a public form. The token is the whole credential
+        // for an entry, so what comes back must not contain it, or knowing an address would
+        // be enough to take somebody off the list (issue #29).
+        await using var db = fixture.CreateContext();
+        var outcome = await Service(db).JoinAsync(
+            fixture.ProjectId, type, Person("victim@example.ro"), CancellationToken.None);
+
+        outcome.ShouldBeOfType<WaitlistOutcome.AlreadyWaiting>();
+        JsonSerializer.Serialize<object>(outcome).ShouldNotContain(token);
+    }
+
+    [Fact]
     public async Task Somebody_may_queue_for_one_type_and_for_anything_at_once()
     {
         await fixture.ResetUnitAsync();
@@ -103,11 +130,12 @@ public class WaitlistTests(DatabaseFixture fixture)
     {
         await fixture.ResetUnitAsync();
         var joined = await JoinAsync("gone@example.ro", null);
+        var token = await TokenOfAsync(joined.EntryId);
 
         await using var db = fixture.CreateContext();
 
-        (await Service(db).LeaveAsync(joined.AccessToken, CancellationToken.None)).ShouldBeTrue();
-        (await Service(db).LeaveAsync(joined.AccessToken, CancellationToken.None)).ShouldBeFalse();
+        (await Service(db).LeaveAsync(token, CancellationToken.None)).ShouldBeTrue();
+        (await Service(db).LeaveAsync(token, CancellationToken.None)).ShouldBeFalse();
     }
 
     [Fact]
@@ -126,16 +154,18 @@ public class WaitlistTests(DatabaseFixture fixture)
         await fixture.ResetUnitAsync();
 
         var one = await JoinAsync("one@example.ro", null);
+        var oneToken = await TokenOfAsync(one.EntryId);
         await using var db = fixture.CreateContext();
-        (await Service(db).LeaveAsync(one.AccessToken, CancellationToken.None)).ShouldBeTrue();
+        (await Service(db).LeaveAsync(oneToken, CancellationToken.None)).ShouldBeTrue();
 
         var two = await JoinAsync("two@example.ro", null);
+        var twoToken = await TokenOfAsync(two.EntryId);
 
         // Not derived from the id: those are UUIDv7 and time-ordered, so a neighbour could
         // guess at them.
-        two.AccessToken.ShouldNotBe(one.AccessToken);
-        two.AccessToken.Length.ShouldBeGreaterThan(40);
-        two.AccessToken.ShouldNotContain(two.EntryId.ToString());
+        twoToken.ShouldNotBe(oneToken);
+        twoToken.Length.ShouldBeGreaterThan(40);
+        twoToken.ShouldNotContain(two.EntryId.ToString());
     }
 
     [Fact]
@@ -233,7 +263,7 @@ public class WaitlistTests(DatabaseFixture fixture)
         await using var db = fixture.CreateContext();
         var service = Service(db);
 
-        await service.LeaveAsync(first.AccessToken, CancellationToken.None);
+        await service.LeaveAsync(await TokenOfAsync(first.EntryId), CancellationToken.None);
 
         var next = await service.NextInLineAsync(fixture.ProjectId, type, CancellationToken.None);
         next!.Email.ShouldBe("stayed@example.ro");
