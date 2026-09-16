@@ -13,6 +13,7 @@ using Hubix.Infrastructure.Import;
 using Hubix.Infrastructure.Sales;
 using Hubix.Infrastructure.Settings;
 using Hubix.Web;
+using Hubix.Web.Auth;
 using Hubix.Web.Api;
 using Hubix.Infrastructure.Privacy;
 using Hubix.Web.Health;
@@ -121,6 +122,11 @@ builder.Services
         options.LoginPath = "/admin/login";
         options.LogoutPath = "/admin/logout";
         options.AccessDeniedPath = "/admin/login";
+
+        // What the cookie says about somebody is checked against the database while they use
+        // it, so deactivating or demoting an account ends its open session rather than waiting
+        // for the cookie to lapse. See StaffSessionValidator for the interval and the ceiling.
+        options.Events.OnValidatePrincipal = StaffSessionValidator.ValidateAsync;
 
         // The admin client talks JSON. Redirecting its fetch calls to an HTML login page
         // would surface as a parse error rather than "your session ended".

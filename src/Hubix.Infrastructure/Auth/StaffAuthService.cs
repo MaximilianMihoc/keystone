@@ -15,6 +15,35 @@ public sealed class StaffAuthService(
     ILogger<StaffAuthService> logger)
 {
     /// <summary>
+    /// Whether an open session's account may still be used, as its cookie describes it.
+    /// </summary>
+    /// <remarks>
+    /// Role and identity are written into the cookie at sign-in, so something has to keep
+    /// asking: without this, deactivating or demoting somebody changed a column and left their
+    /// live session fully privileged until the cookie lapsed (issue #34).
+    /// <para>
+    /// A role that no longer matches fails, rather than being quietly corrected. The claims
+    /// were handed out at sign-in, and re-issuing them mid-request would leave whatever the
+    /// request had already decided standing on the old ones.
+    /// </para>
+    /// </remarks>
+    public async Task<bool> IsSessionStillGoodAsync(
+        Guid staffId,
+        string? roleClaim,
+        CancellationToken ct)
+    {
+        var staff = await db.StaffUsers
+            .AsNoTracking()
+            .Where(u => u.Id == staffId)
+            .Select(u => new { u.IsActive, u.Role })
+            .FirstOrDefaultAsync(ct);
+
+        return staff is not null
+               && staff.IsActive
+               && string.Equals(roleClaim, staff.Role.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Issues a sign-in link, or returns null when the address is not a known active account.
     /// </summary>
     /// <remarks>

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Hubix.Infrastructure.Auth;
+using Hubix.Web.Auth;
 using Hubix.Web.Notifications;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -108,14 +109,20 @@ public class VerifyModel(StaffAuthService auth, ILogger<VerifyModel> logger) : P
         var identity = new System.Security.Claims.ClaimsIdentity(
             claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
+        var properties = new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(12)
+        };
+
+        // When this session began and when its account was last looked at. The twelve hours
+        // above slide; the ceiling those two carry does not (issue #34).
+        StaffSessionValidator.Begin(properties, DateTimeOffset.UtcNow);
+
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             new System.Security.Claims.ClaimsPrincipal(identity),
-            new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(12)
-            });
+            properties);
 
         logger.LogInformation("{Email} signed in as {Role}", staff.Email, staff.Role);
 
