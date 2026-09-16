@@ -32,6 +32,21 @@
         </div>
     }
 
+    @* Nothing is held yet. The apartment goes off sale only when the link in that email is
+       followed, because anybody can type anybody's address into this form. *@
+    @if (Model.Sent)
+    {
+        <div class="form-wrap" role="status">
+            <p>@L["Reserve.CheckEmail"]</p>
+            <p>
+                <a class="btn ghost" asp-page="/Projects/Apartment"
+                   asp-route-slug="@Model.Slug" asp-route-code="@Model.UnitCode">@Model.UnitCode</a>
+            </p>
+        </div>
+
+        return;
+    }
+
     @if (Model.FailureKey is { } failure)
     {
         <div class="alert" role="alert">

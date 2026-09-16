@@ -58,6 +58,9 @@ public class ReserveModel(
     /// <summary>Set when the attempt failed, so the page can explain rather than just fail.</summary>
     public string? FailureKey { get; private set; }
 
+    /// <summary>Arriving back from a successful post: the link is on its way.</summary>
+    public bool Sent { get; private set; }
+
     public object[] FailureArgs { get; private set; } = [];
 
     [BindProperty]
@@ -107,13 +110,15 @@ public class ReserveModel(
         public int ParkingQuantity { get; set; } = 1;
     }
 
-    public async Task<IActionResult> OnGetAsync(string slug, string code, CancellationToken ct)
+    public async Task<IActionResult> OnGetAsync(string slug, string code, bool sent, CancellationToken ct)
     {
         var loaded = await LoadAsync(slug, code, ct);
         if (!loaded)
         {
             return NotFound();
         }
+
+        Sent = sent;
 
         return Page();
     }
@@ -144,7 +149,7 @@ public class ReserveModel(
             parking = new ParkingRequest(kind, Input.ParkingQuantity);
         }
 
-        var outcome = await holds.TryHoldAsync(
+        var outcome = await holds.RequestAsync(
             UnitId,
             new ProspectDetails(
                 Email: Input.Email!,
@@ -160,48 +165,22 @@ public class ReserveModel(
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct);
 
+        // Nothing is held yet, and the apartment is still on sale. Anybody can type anybody's
+        // address into this form, so the hold waits for the link sent to that address to come
+        // back (issue #30). Only the apartment and the project's own parking rule can be
+        // answered here; everything about the buyer's record waits for the confirmed link.
         switch (outcome)
         {
-            case HoldOutcome.Created created:
-                await SendConfirmationsAsync(created, ct);
-                return RedirectToPage("/Hold", new { token = created.AccessToken });
+            case HoldRequestOutcome.Recorded recorded:
+                await SendVerificationAsync(recorded, ct);
+                return RedirectToPage(new { slug, code, sent = true });
 
-            case HoldOutcome.NoLongerAvailable:
-                FailureKey = "Reserve.LostTheRace";
-                return Page();
-
-            case HoldOutcome.ProspectBlocked:
-                FailureKey = "Reserve.Blocked";
-                return Page();
-
-            case HoldOutcome.TooManyHolds tooMany:
-                FailureKey = "Reserve.TooMany";
-                FailureArgs = [tooMany.Limit];
-                return Page();
-
-            case HoldOutcome.NotEnoughParking shortfall:
-                // Nothing was held, the apartment included, so the form comes back with fresh
-                // counts and they can choose again.
-                await LoadAsync(slug, code, ct);
-
-                // Unless the apartment itself went in the meantime, in which case LoadAsync
-                // has already said so and offering the form again would offer nothing.
-                CanRetry = FailureKey is null;
-                FailureKey = "Reserve.NotEnoughParking";
-                FailureArgs =
-                [
-                    shortfall.Available,
-                    localizer[Display.ParkingSpaceKey(shortfall.Kind)].Value,
-                    shortfall.Requested
-                ];
-                return Page();
-
-            case HoldOutcome.TooManyParkingSpaces tooMany2:
+            case HoldRequestOutcome.TooManyParkingSpaces tooMany:
                 await LoadAsync(slug, code, ct);
 
                 CanRetry = FailureKey is null;
                 FailureKey = "Reserve.TooManyParking";
-                FailureArgs = [tooMany2.Limit, tooMany2.Requested];
+                FailureArgs = [tooMany.Limit, tooMany.Requested];
                 return Page();
 
             default:
@@ -211,25 +190,22 @@ public class ReserveModel(
     }
 
     /// <summary>
-    /// The hold is already committed by this point. An email that fails to send must not
-    /// undo it or show the prospect an error for something that actually worked.
+    /// The request is saved by this point. An email that fails to send must not undo it, but
+    /// it does leave the buyer with no link, so the page says plainly what to do.
     /// </summary>
-    private async Task SendConfirmationsAsync(HoldOutcome.Created created, CancellationToken ct)
+    private async Task SendVerificationAsync(HoldRequestOutcome.Recorded recorded, CancellationToken ct)
     {
         try
         {
-            await notifier.HoldConfirmedAsync(
+            await notifier.ReserveConfirmAsync(
                 Input.Email!, CultureInfo.CurrentUICulture.Name, ProjectId, ProjectName, UnitCode,
-                created.ExpiresAt, HoldDurationHours, created.AccessToken, ct);
-
-            await notifier.SalesNotifiedAsync(
-                ProjectId, ProjectName, UnitCode, Input.Email!, FullName, Input.Phone,
-                created.ExpiresAt, created.ParkingSpaces, ct);
+                recorded.Token, recorded.ExpiresAt, ct);
         }
         catch (Exception ex)
         {
             logger.LogError(ex,
-                "Hold {HoldId} was created but its confirmation email failed", created.HoldId);
+                "A reservation request for {UnitCode} was saved but its link could not be sent",
+                UnitCode);
         }
     }
 

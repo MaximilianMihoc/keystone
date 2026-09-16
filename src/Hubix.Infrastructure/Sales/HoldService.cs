@@ -29,6 +29,173 @@ public sealed class HoldService(
     /// </remarks>
     public const int MaxActiveHoldsPerProject = 3;
 
+    /// <summary>
+    /// Writes down what somebody asked for, and holds nothing.
+    /// </summary>
+    /// <remarks>
+    /// The apartment stays on sale, no prospect record is touched and nobody is blocked until
+    /// the link emailed to that address comes back. Anybody can type anybody's address into a
+    /// public form, so until then this is a claim about a mailbox, not a buyer (issue #30).
+    /// <para>
+    /// Only the unit is checked here. Whether the address is known, blocked, or already
+    /// holding its limit are answers about somebody's record, and this form must not give
+    /// those to whoever typed the address; they wait for the confirmed link.
+    /// </para>
+    /// </remarks>
+    public async Task<HoldRequestOutcome> RequestAsync(
+        Guid unitId,
+        ProspectDetails details,
+        ParkingRequest? parking,
+        string? ipAddress,
+        CancellationToken ct)
+    {
+        var unit = await db.Units
+            .AsNoTracking()
+            .Where(u => u.Id == unitId)
+            .Select(u => new { u.Id, u.Code, u.State, MaxParking = u.Project!.MaxParkingSpacesPerReservation })
+            .FirstOrDefaultAsync(ct);
+
+        if (unit is null)
+        {
+            return new HoldRequestOutcome.UnitNotFound();
+        }
+
+        if (unit.State != UnitState.Available)
+        {
+            return new HoldRequestOutcome.NoLongerAvailable();
+        }
+
+        // Asking for more spaces than the project allows is a rule about the project, not
+        // about whoever is asking, so saying so now costs nothing and saves them finding out
+        // after they have been to their inbox. How many are free is still only settled in the
+        // transaction at the other end.
+        if (parking is { Quantity: > 0 } && parking.Quantity > unit.MaxParking)
+        {
+            return new HoldRequestOutcome.TooManyParkingSpaces(unit.MaxParking, parking.Quantity);
+        }
+
+        var token = HoldRequest.NewToken();
+
+        var request = new HoldRequest
+        {
+            UnitId = unitId,
+            TokenHash = HoldRequest.Hash(token),
+            Email = details.Email.Trim(),
+            FirstName = details.FirstName,
+            Surname = details.Surname,
+            Phone = details.Phone,
+            City = details.City,
+            Country = details.Country,
+            Locale = details.Locale,
+            ConsentGiven = details.ConsentGiven,
+            ConsentSource = details.ConsentSource,
+            ParkingKind = parking?.Kind,
+            ParkingQuantity = parking?.Quantity ?? 0,
+            ExpiresAt = clock.GetUtcNow().Add(HoldRequest.Lifetime),
+            RequestedFromIp = ipAddress
+        };
+
+        db.HoldRequests.Add(request);
+        await db.SaveChangesAsync(ct);
+
+        // No address in the log line. Nobody has shown it is theirs yet, and a log is a poor
+        // place to collect addresses somebody else typed.
+        logger.LogInformation(
+            "Unit {UnitCode} asked for; waiting on the link sent to the address given", unit.Code);
+
+        return new HoldRequestOutcome.Recorded(request.Id, token, request.ExpiresAt);
+    }
+
+    /// <summary>
+    /// What a link is for, so the page can say what is about to be held. Null when the link
+    /// has been followed already, run out, or never existed.
+    /// </summary>
+    public async Task<HoldRequestPreview?> FindRequestAsync(string token, CancellationToken ct)
+    {
+        var hash = HoldRequest.Hash(token);
+        var now = clock.GetUtcNow();
+
+        return await db.HoldRequests
+            .AsNoTracking()
+            .Where(r => r.TokenHash == hash && r.ConfirmedAt == null && r.ExpiresAt > now)
+            .Select(r => new HoldRequestPreview(
+                r.Unit!.ProjectId,
+                r.Unit.Project!.Name,
+                r.Unit.Project.Slug,
+                r.Unit.Code,
+                r.Unit.Project.HoldDurationHours,
+                r.Email,
+                r.FirstName,
+                r.Surname,
+                r.Phone,
+                r.Locale,
+                r.ParkingKind,
+                r.ParkingQuantity,
+                r.ExpiresAt))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    /// <summary>
+    /// Turns a followed link into the hold it asked for.
+    /// </summary>
+    /// <remarks>
+    /// This is the first moment the address is known to belong to whoever is asking, so it is
+    /// also the first moment the prospect record may be written, consent recorded, or the
+    /// serial-canceller rule applied to it.
+    /// <para>
+    /// The link is spent whether or not the hold succeeds. The apartment was never reserved
+    /// while the email sat unread, so it can have gone in the meantime; submitting the form
+    /// again is the honest answer, and a link that could be retried is a link worth stealing.
+    /// </para>
+    /// </remarks>
+    public async Task<HoldOutcome> ConfirmAsync(string token, string? ipAddress, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+        var hash = HoldRequest.Hash(token);
+
+        var request = await db.HoldRequests
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.TokenHash == hash, ct);
+
+        if (request is null || !request.IsUsable(now))
+        {
+            return new HoldOutcome.LinkNotUsable();
+        }
+
+        // Spent by a conditional UPDATE, the same shape as the hold guard itself: two clicks
+        // arriving together must not both go on to hold.
+        var spent = await db.HoldRequests
+            .Where(r => r.Id == request.Id && r.ConfirmedAt == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.ConfirmedAt, now)
+                .SetProperty(r => r.UpdatedAt, now), ct);
+
+        if (spent == 0)
+        {
+            return new HoldOutcome.LinkNotUsable();
+        }
+
+        var parking = request.ParkingKind is { } kind && request.ParkingQuantity > 0
+            ? new ParkingRequest(kind, request.ParkingQuantity)
+            : null;
+
+        return await TryHoldAsync(
+            request.UnitId,
+            new ProspectDetails(
+                Email: request.Email,
+                FirstName: request.FirstName,
+                Surname: request.Surname,
+                Phone: request.Phone,
+                City: request.City,
+                Country: request.Country,
+                Locale: request.Locale,
+                ConsentGiven: request.ConsentGiven,
+                ConsentSource: request.ConsentSource ?? "reserve-form"),
+            parking,
+            ipAddress,
+            ct);
+    }
+
     public async Task<HoldOutcome> TryHoldAsync(
         Guid unitId,
         ProspectDetails details,

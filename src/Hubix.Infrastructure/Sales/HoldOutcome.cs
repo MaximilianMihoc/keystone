@@ -28,6 +28,15 @@ public abstract record HoldOutcome
     /// <summary>Somebody else got it first, or it was never available.</summary>
     public sealed record NoLongerAvailable : HoldOutcome;
 
+    /// <summary>
+    /// The link was never valid, has been followed already, or ran out.
+    /// </summary>
+    /// <remarks>
+    /// One answer for all three. Telling them apart tells somebody probing which half of a
+    /// guess was right.
+    /// </remarks>
+    public sealed record LinkNotUsable : HoldOutcome;
+
     /// <summary>Hubix's serial-canceller rule: this prospect let a hold lapse.</summary>
     public sealed record ProspectBlocked(string? Reason) : HoldOutcome;
 
@@ -59,6 +68,57 @@ public abstract record HoldOutcome
 
 /// <summary>What a buyer asked for from the car park, if anything.</summary>
 public sealed record ParkingRequest(ParkingSpaceKind Kind, int Quantity);
+
+/// <summary>
+/// What a confirmation link is about: enough for the page to say what is about to be held,
+/// and for the emails that follow once it has been.
+/// </summary>
+/// <remarks>
+/// It carries what the form was filled in with, the address included. Only whoever opened
+/// that mailbox has the link, so this is their own data coming back to them — but the page
+/// still shows only the apartment.
+/// </remarks>
+public sealed record HoldRequestPreview(
+    Guid ProjectId,
+    string ProjectName,
+    string ProjectSlug,
+    string UnitCode,
+    int HoldDurationHours,
+    string Email,
+    string? FirstName,
+    string? Surname,
+    string? Phone,
+    string Locale,
+    ParkingSpaceKind? ParkingKind,
+    int ParkingQuantity,
+    DateTimeOffset ExpiresAt);
+
+/// <summary>
+/// What happened when somebody asked to reserve, before they proved the address is theirs.
+/// </summary>
+/// <remarks>
+/// Deliberately a short list. Nothing here may depend on the address submitted — not whether
+/// it is known, blocked, or already holding — or the form would answer questions about other
+/// people's records to anybody who typed their address (issue #30). Those answers wait for
+/// the confirmed link.
+/// </remarks>
+public abstract record HoldRequestOutcome
+{
+    /// <summary>Recorded. The token goes in the email and nowhere else.</summary>
+    public sealed record Recorded(Guid RequestId, string Token, DateTimeOffset ExpiresAt)
+        : HoldRequestOutcome;
+
+    public sealed record UnitNotFound : HoldRequestOutcome;
+
+    /// <summary>Not on sale, so there is nothing to ask for.</summary>
+    public sealed record NoLongerAvailable : HoldRequestOutcome;
+
+    /// <summary>
+    /// More spaces than this project allows with one apartment. A rule about the project, so
+    /// it can be answered here rather than after a trip to the inbox.
+    /// </summary>
+    public sealed record TooManyParkingSpaces(int Limit, int Requested) : HoldRequestOutcome;
+}
 
 /// <summary>What a prospect tells us when they reserve.</summary>
 public sealed record ProspectDetails(
@@ -92,6 +152,26 @@ public static class ProspectDetailsExtensions
         prospect.Phone = details.Phone ?? prospect.Phone;
         prospect.City = details.City ?? prospect.City;
         prospect.Country = details.Country ?? prospect.Country;
+    }
+
+    /// <summary>
+    /// Fills in what is missing and changes nothing that is already there.
+    /// </summary>
+    /// <remarks>
+    /// For a submission from an address nobody has shown is theirs. Anybody can type anybody
+    /// else's address into a public form, and a buyer whose phone number is quietly replaced
+    /// with a stranger's is one the sales team then rings on the wrong number (issue #30).
+    /// Adding what is missing is safe; rewriting what a buyer already told us is not.
+    /// </remarks>
+    public static void FillBlanksOf(this ProspectDetails details, Prospect prospect)
+    {
+        ArgumentNullException.ThrowIfNull(prospect);
+
+        prospect.FirstName ??= details.FirstName;
+        prospect.Surname ??= details.Surname;
+        prospect.Phone ??= details.Phone;
+        prospect.City ??= details.City;
+        prospect.Country ??= details.Country;
     }
 }
 

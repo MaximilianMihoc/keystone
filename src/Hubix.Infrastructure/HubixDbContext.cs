@@ -28,6 +28,8 @@ public class HubixDbContext(DbContextOptions<HubixDbContext> options) : DbContex
 
     public DbSet<Hold> Holds => Set<Hold>();
 
+    public DbSet<HoldRequest> HoldRequests => Set<HoldRequest>();
+
     public DbSet<Prospect> Prospects => Set<Prospect>();
 
     public DbSet<StaffUser> StaffUsers => Set<StaffUser>();

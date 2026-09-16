@@ -62,6 +62,18 @@ public sealed class HoldExpiryJob(
             }
         }
 
+        // Requests nobody confirmed carry a name and a phone number typed by somebody who
+        // never showed the address was theirs. They cannot become holds once they have run
+        // out, so keeping them is collecting other people's details for nothing.
+        var stale = await db.HoldRequests
+            .Where(r => r.ExpiresAt <= clock.GetUtcNow().AddDays(-1))
+            .ExecuteDeleteAsync(ct);
+
+        if (stale > 0)
+        {
+            logger.LogInformation("{Count} unconfirmed reservation request(s) cleared", stale);
+        }
+
         LastSuccessAt = clock.GetUtcNow();
     }
 

@@ -185,6 +185,38 @@ public class WaitlistTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task Joining_cannot_consent_on_behalf_of_somebody_already_on_file()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+
+        db.Prospects.Add(new Prospect
+        {
+            Email = "buyer@example.ro",
+            FirstName = "Real",
+            Surname = "Buyer",
+            Phone = "0722222222",
+            Locale = Cultures.Romanian,
+            Source = "website"
+        });
+
+        await db.SaveChangesAsync();
+
+        await Service(db).JoinAsync(
+            fixture.ProjectId, null, Person("buyer@example.ro"), CancellationToken.None);
+
+        var buyer = await db.Prospects.AsNoTracking().SingleAsync(p => p.Email == "buyer@example.ro");
+
+        // A stranger typing somebody's address must not agree to marketing in their name, nor
+        // replace the details a real buyer gave (issue #30).
+        buyer.GdprConsentAt.ShouldBeNull();
+        buyer.GdprConsentPurpose.ShouldBeEmpty();
+        buyer.FirstName.ShouldBe("Real");
+        buyer.Phone.ShouldBe("0722222222");
+    }
+
+    [Fact]
     public async Task An_unpublished_project_has_no_queue_to_join()
     {
         await fixture.ResetUnitAsync();

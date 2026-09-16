@@ -297,22 +297,22 @@ public sealed class WaitlistService(
 
             details.ApplyTo(prospect);
             db.Prospects.Add(prospect);
+
+            if (details.ConsentGiven)
+            {
+                prospect.GdprConsentAt = clock.GetUtcNow();
+                prospect.GdprConsentSource = details.ConsentSource;
+                prospect.GdprConsentPurpose = [.. prospect.GdprConsentPurpose, "waitlist"];
+            }
         }
         else
         {
-            details.ApplyTo(prospect);
-            prospect.Locale = details.Locale;
-        }
-
-        if (details.ConsentGiven)
-        {
-            prospect.GdprConsentAt = clock.GetUtcNow();
-            prospect.GdprConsentSource = details.ConsentSource;
-
-            if (!prospect.GdprConsentPurpose.Contains("waitlist"))
-            {
-                prospect.GdprConsentPurpose = [.. prospect.GdprConsentPurpose, "waitlist"];
-            }
+            // A record that is already here belongs to somebody who has not shown up to this
+            // form: anybody can type anybody's address into it. So this may fill in what is
+            // missing and nothing else — not the name, not the number, not the language their
+            // email arrives in, and above all not consent, which would be a stranger agreeing
+            // on their behalf (issue #30).
+            details.FillBlanksOf(prospect);
         }
 
         await db.SaveChangesAsync(ct);
