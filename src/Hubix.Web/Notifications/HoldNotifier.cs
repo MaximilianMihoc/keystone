@@ -44,6 +44,44 @@ public sealed class HoldNotifier(
 {
     private readonly HubixOptions _options = options.Value;
 
+    /// <summary>
+    /// Asks whoever owns the address to confirm that they are the one reserving.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is held until this link comes back, so this is the one email in the funnel
+    /// that goes to an address nobody has shown is theirs. It says plainly that ignoring it
+    /// reserves nothing, because the person reading it may not be the person who typed it.
+    /// </remarks>
+    public async Task ReserveConfirmAsync(
+        string toEmail,
+        string locale,
+        Guid projectId,
+        string projectName,
+        string unitCode,
+        string token,
+        DateTimeOffset expiresAt,
+        CancellationToken ct)
+    {
+        var link = $"{_options.PublicBaseUrl.TrimEnd('/')}/reserve/{token}";
+
+        var body = InLocale(locale, () => string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["Email.ReserveConfirmBody"].Value,
+            unitCode,
+            projectName,
+            link,
+            expiresAt.ToLocalTime().ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)));
+
+        var subject = InLocale(locale, () => string.Format(
+            CultureInfo.CurrentCulture,
+            localizer["Email.ReserveConfirmSubject"].Value,
+            unitCode,
+            projectName));
+
+        await email.SendAsync(
+            new EmailMessage(toEmail, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
+    }
+
     public async Task HoldConfirmedAsync(
         string toEmail,
         string locale,

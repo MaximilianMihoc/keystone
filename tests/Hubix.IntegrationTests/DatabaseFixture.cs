@@ -137,6 +137,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
         // Reservations next: they hold restricting foreign keys to both units and prospects,
         // so deleting either out from under them fails.
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [Reservations]");
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [HoldRequests]");
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [Holds]");
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [AuditLogs]");
         await db.Database.ExecuteSqlRawAsync("DELETE FROM [WaitlistEntries]");

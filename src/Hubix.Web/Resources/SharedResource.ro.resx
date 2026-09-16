@@ -182,6 +182,12 @@
   <data name="Reserve.TooMany"><value>Ai deja {0} apartamente blocate în acest proiect. Renunță la unul, sau mergi mai departe cu unul dintre ele, înainte de a bloca altul.</value></data>
   <data name="Reserve.NotEnoughParking"><value>Au mai rămas doar {0} locuri {1} și ai cerut {2}. Nu s-a rezervat nimic, nici apartamentul, așa că poți alege din nou.</value></data>
   <data name="Reserve.TooManyParking"><value>La acest proiect se pot lua {0} locuri de parcare la un apartament, iar tu ai cerut {1}. Nu s-a rezervat nimic.</value></data>
+  <data name="Reserve.CheckEmail"><value>Verifică-ți emailul. Am trimis un link la adresa pe care ai dat-o, iar dacă îl urmezi blocăm apartamentul pentru tine. Până atunci rămâne la vânzare, așa că nu lăsa pe mâine.</value></data>
+  <data name="Reserve.ConfirmHeading"><value>Confirmă rezervarea</value></data>
+  <data name="Reserve.ConfirmExplain"><value>Astfel blocăm apartamentul {0} din {1} pentru tine.</value></data>
+  <data name="Reserve.ConfirmAction"><value>Blochează-l pentru mine</value></data>
+  <data name="Reserve.LinkNotUsable"><value>Acest link a fost deja folosit sau a expirat. Nu s-a blocat nimic. Reia rezervarea ca să primești un link nou.</value></data>
+  <data name="Reserve.NotEnoughParkingNow"><value>Au mai rămas doar {0} locuri {1}, iar tu ai cerut {2}. Nu s-a blocat nimic, nici apartamentul. Reia rezervarea și alege mai puține locuri.</value></data>
 
   <data name="Form.FirstName"><value>Prenume</value></data>
   <data name="Form.Surname"><value>Nume</value></data>
@@ -216,6 +222,13 @@
   <data name="Hold.Expired"><value>Această rezervare a expirat, iar apartamentul a revenit la vânzare.</value></data>
   <data name="Hold.Converted"><value>Această rezervare a fost confirmată. Hubix te va contacta pentru pașii următori.</value></data>
 
+  <data name="Email.ReserveConfirmSubject"><value>Confirmă rezervarea pentru {0} — {1}</value></data>
+  <data name="Email.ReserveConfirmBody"><value>Ai cerut să rezervi apartamentul {0} din {1}.
+
+Nu am blocat încă nimic, iar apartamentul este în continuare la vânzare. Urmează acest link ca să îl blochezi:
+{2}
+
+Linkul este valabil până la {3}. Dacă nu tu ai cerut asta, ignoră acest email — nu am rezervat nimic pe numele tău și nu s-a perceput nimic.</value></data>
   <data name="Email.HoldSubject"><value>{0} este blocat pentru tine — {1}</value></data>
   <data name="Email.HoldBody"><value>Am blocat apartamentul {0} din {1} pentru tine.
 

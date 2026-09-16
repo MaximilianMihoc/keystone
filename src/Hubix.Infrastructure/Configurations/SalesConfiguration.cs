@@ -97,6 +97,33 @@ public class StaffLoginTokenConfiguration : IEntityTypeConfiguration<StaffLoginT
     }
 }
 
+public class HoldRequestConfiguration : IEntityTypeConfiguration<HoldRequest>
+{
+    public void Configure(EntityTypeBuilder<HoldRequest> builder)
+    {
+        builder.Property(r => r.TokenHash).HasMaxLength(64).IsRequired();
+        builder.Property(r => r.Email).HasMaxLength(320).IsRequired();
+        builder.Property(r => r.FirstName).HasMaxLength(100);
+        builder.Property(r => r.Surname).HasMaxLength(100);
+        builder.Property(r => r.Phone).HasMaxLength(50);
+        builder.Property(r => r.City).HasMaxLength(120);
+        builder.Property(r => r.Country).HasMaxLength(100);
+        builder.Property(r => r.Locale).HasMaxLength(10).IsRequired();
+        builder.Property(r => r.ConsentSource).HasMaxLength(200);
+        builder.Property(r => r.ParkingKind).HasConversion<string>().HasMaxLength(32);
+        builder.Property(r => r.RequestedFromIp).HasMaxLength(45);
+
+        builder.HasOne(r => r.Unit)
+            .WithMany()
+            .HasForeignKey(r => r.UnitId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Confirming resolves by hash alone, so it must be one indexed lookup.
+        builder.HasIndex(r => r.TokenHash).IsUnique();
+        builder.HasIndex(r => r.ExpiresAt);
+    }
+}
+
 public class HoldConfiguration : IEntityTypeConfiguration<Hold>
 {
     public void Configure(EntityTypeBuilder<Hold> builder)

@@ -106,6 +106,14 @@ if (rows == 0) return HoldOutcome.NoLongerAvailable;
 `HoldConcurrencyTests` asserts that 20 simultaneous holds produce exactly one winner. It is a
 release gate. Do not weaken it, and do not "fix" it by loading the entity first.
 
+**A public form never speaks for the address it was given.** Anybody can type anybody's address
+into one, so an unconfirmed submission holds nothing, writes over nothing and blocks nobody.
+Reserving goes `HoldService.RequestAsync` → emailed link → `ConfirmAsync` → `TryHoldAsync`, and
+only that last, confirmed step may touch the prospect record, record consent, or let a lapse
+block a buyer. The waitlist and contact forms fill blanks on an existing record
+(`ProspectDetails.FillBlanksOf`) and never overwrite it or stamp consent on it. Do not wire a
+public form to `TryHoldAsync` or `ApplyTo` again.
+
 **Multi-statement writes wrap in `db.Database.CreateExecutionStrategy()`.** The context is
 configured with `EnableRetryOnFailure`, and a retrying strategy refuses a user-initiated transaction
 unless the whole transaction is one replayable unit. Follow the shape already in `HoldService`,

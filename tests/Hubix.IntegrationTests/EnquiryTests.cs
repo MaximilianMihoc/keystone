@@ -79,4 +79,39 @@ public class EnquiryTests(DatabaseFixture fixture)
         audit.ActorLabel.ShouldBe(email);
         audit.Action.ShouldBe("privacy.request.logged");
     }
+
+    [Fact]
+    public async Task A_message_cannot_rewrite_a_buyer_already_on_file()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+
+        db.Prospects.Add(new Prospect
+        {
+            Email = "buyer@example.ro",
+            FirstName = "Real",
+            Surname = "Buyer",
+            Phone = "0722222222",
+            Locale = Cultures.English,
+            Source = "website"
+        });
+
+        await db.SaveChangesAsync();
+
+        // Anybody can type anybody's address into the contact form, so it may fill in what is
+        // missing and nothing else — otherwise sales ring a stranger's number (issue #30).
+        await Service(db).SubmitAsync(
+            Person("buyer@example.ro"), fixture.ProjectId, "Is it still free?", null, CancellationToken.None);
+
+        var buyer = await db.Prospects.AsNoTracking().SingleAsync(p => p.Email == "buyer@example.ro");
+
+        buyer.FirstName.ShouldBe("Real");
+        buyer.Surname.ShouldBe("Buyer");
+        buyer.Phone.ShouldBe("0722222222");
+        buyer.Locale.ShouldBe(Cultures.English);
+
+        // What was blank is worth having.
+        buyer.City.ShouldBeNull();
+    }
 }

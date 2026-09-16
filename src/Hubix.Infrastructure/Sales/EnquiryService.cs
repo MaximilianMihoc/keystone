@@ -56,10 +56,10 @@ public sealed class EnquiryService(
             }
             else
             {
-                person.ApplyTo(prospect);
-
-                // The language came from this visitor's own browser, so it is theirs to change.
-                prospect.Locale = person.Locale;
+                // Nobody has shown this address is theirs, and the record found under it may
+                // be a buyer's. Missing details are worth having; their name, number and the
+                // language we write to them in are not this form's to change (issue #30).
+                person.FillBlanksOf(prospect);
             }
         }
 
