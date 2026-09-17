@@ -54,7 +54,7 @@ public class StaffNotifierTests
 
         var url = await notifier.SignInLinkAsync(Link, CancellationToken.None);
 
-        url.ShouldBe("https://portal.example.ro/admin/login/verify?token=a-token");
+        url.ShouldBe("https://portal.example.ro/admin/login/verify#token=a-token");
         outbox.Sent.ShouldHaveSingleItem().Body.ShouldContain(url);
     }
 
@@ -72,11 +72,26 @@ public class StaffNotifierTests
     }
 
     [Fact]
+    public async Task The_token_is_in_the_fragment_where_no_request_can_carry_it()
+    {
+        // A browser never sends the fragment. Put this token in the path or the query instead
+        // and it is written to the request log, to every proxy's log in between and to browser
+        // history — and it is a live credential for twelve hours of admin.
+        var (notifier, _) = Build("https://portal.example.ro");
+
+        var url = new Uri(await notifier.SignInLinkAsync(Link, CancellationToken.None));
+
+        url.Fragment.ShouldBe("#token=a-token");
+        url.Query.ShouldBeEmpty();
+        url.AbsolutePath.ShouldNotContain("a-token");
+    }
+
+    [Fact]
     public async Task A_trailing_slash_in_configuration_does_not_double_up()
     {
         var (notifier, _) = Build("https://portal.example.ro/");
 
         (await notifier.SignInLinkAsync(Link, CancellationToken.None))
-            .ShouldBe("https://portal.example.ro/admin/login/verify?token=a-token");
+            .ShouldBe("https://portal.example.ro/admin/login/verify#token=a-token");
     }
 }
