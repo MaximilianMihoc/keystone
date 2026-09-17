@@ -423,7 +423,22 @@ public sealed class ReservationService(
                 })
             });
 
-            await db.SaveChangesAsync(ct);
+            try
+            {
+                await db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // The reservation changed between the read at the top and here — most likely
+                // somebody cancelled it. The rowversion is what makes this a refusal the board
+                // can render rather than a silent overwrite of their work (issue #36).
+                await transaction.RollbackAsync(ct);
+
+                return new ReservationOutcome.Refused(
+                    $"The reservation on {unit.Code} changed while this was being saved. " +
+                    "Reload and try again.");
+            }
+
             await transaction.CommitAsync(ct);
 
             logger.LogInformation(
@@ -532,7 +547,17 @@ public sealed class ReservationService(
             After = Json(changes)
         });
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Same window as a move: this reads, decides, and only then writes. An edit landing
+            // on top of a cancellation would restore the row as open (issue #36).
+            return new ReservationOutcome.Refused(
+                "This reservation changed while your edit was open. Reload and try again.");
+        }
 
         return new ReservationOutcome.Updated(changes);
     }

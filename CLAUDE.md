@@ -119,6 +119,14 @@ configured with `EnableRetryOnFailure`, and a retrying strategy refuses a user-i
 unless the whole transaction is one replayable unit. Follow the shape already in `HoldService`,
 `ReservationService`, `ImportService`, `PrivacyService`.
 
+**`Reservation` carries a rowversion, and it is the only entity that does.** A stage move is read,
+validated against the pipeline and only then written, so there is always a window — unlike a hold
+or a unit, which are won by a conditional UPDATE naming the state they expect. `MoveAsync` and
+`EditAsync` turn a lost race into `ReservationOutcome.Refused`; do not let that exception escape
+as a 500. `CK_Reservations_CancelledAgrees` keeps `State` and `CancelledAt` saying the same thing,
+and `UX_Reservations_OneOpenPerUnit` now filters on `State` alone because of it — a row where the
+two disagreed counted as open to the board and cancelled to the index (issue #36).
+
 **`UnitStateMachine` guards programmer error; the conditional UPDATE guards concurrency.** Both are
 needed and neither substitutes for the other.
 
