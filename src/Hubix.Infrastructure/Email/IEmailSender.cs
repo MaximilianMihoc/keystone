@@ -26,7 +26,7 @@ public interface IEmailSender
 }
 
 /// <summary>
-/// Development sender: writes the message to the log and to a file, and sends nothing.
+/// Development sender: writes the message to a file, notes that it did, and sends nothing.
 /// </summary>
 /// <remarks>
 /// Deliberately not a no-op. A silently discarded email is indistinguishable from a broken one,
@@ -38,10 +38,6 @@ public sealed class LoggingEmailSender(ILogger<LoggingEmailSender> logger, strin
 {
     public async Task SendAsync(EmailMessage message, CancellationToken ct)
     {
-        logger.LogInformation(
-            "EMAIL to {To}\nSubject: {Subject}\n{Body}",
-            message.To, message.Subject, message.Body);
-
         Directory.CreateDirectory(outboxPath);
 
         var file = Path.Combine(
@@ -59,6 +55,13 @@ public sealed class LoggingEmailSender(ILogger<LoggingEmailSender> logger, strin
              {message.Body}
              """,
             ct);
+
+        // Recipient, subject and where it landed. Never the body: every bearer token this
+        // portal issues travels in one, and a log is kept longer, copied further and read by
+        // more people than a mailbox (issue #53). The file just written is where to read it.
+        logger.LogInformation(
+            "EMAIL to {To} written to the outbox as {File}. Subject: {Subject}",
+            message.To, Path.GetFileName(file), message.Subject);
     }
 
     private static string Sanitise(string value) =>

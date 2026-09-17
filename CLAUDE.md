@@ -157,6 +157,12 @@ the allow list. Both defaults live in `EmailOptions` itself and deliberately **n
 default rather than replace it. Seeded accounts use `.invalid` addresses. Do not relax any of
 this, and do not register a live sender, without being told to explicitly.
 
+**No sender logs a body.** Recipient, subject and outcome go to the log; the body goes to
+`./outbox` or to the provider and nowhere else. Every bearer token the portal issues — staff
+sign-in, hold, waitlist, reserve-confirmation links — travels in a body, and a log is kept
+longer, copied further and read by more people than a mailbox (issue #53). `OutboxSenderTests`
+asserts it.
+
 **A real sender is registered.** `ResendEmailSender` (the official `Resend` SDK) goes out over
 Resend's API, but only when `Resend:ApiKey` and `Email:From` are both configured — otherwise
 there is no live sender at all and everything still lands in `./outbox`. It is wrapped by
