@@ -83,7 +83,20 @@ public class LoginModel(
 
 public class VerifyModel(StaffAuthService auth, ILogger<VerifyModel> logger) : PageModel
 {
-    public async Task<IActionResult> OnGetAsync(string? token, CancellationToken ct)
+    /// <summary>
+    /// Renders the page that hands the token back. There is nothing to read here.
+    /// </summary>
+    /// <remarks>
+    /// The token is in the fragment, which the browser keeps to itself, so this request carries
+    /// no credential at all — nothing for a request log, a proxy or browser history to keep.
+    /// It also means a mail scanner or link prefetcher following the link cannot spend the
+    /// token: it does not run <c>verify.js</c> and it does not post forms.
+    /// </remarks>
+    public void OnGet()
+    {
+    }
+
+    public async Task<IActionResult> OnPostAsync(string? token, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(token))
         {

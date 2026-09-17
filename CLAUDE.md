@@ -157,6 +157,13 @@ the allow list. Both defaults live in `EmailOptions` itself and deliberately **n
 default rather than replace it. Seeded accounts use `.invalid` addresses. Do not relax any of
 this, and do not register a live sender, without being told to explicitly.
 
+**The staff sign-in token travels in the URL fragment**, `…/admin/login/verify#token=…`, and
+`verify.js` posts it back. A browser never sends a fragment, so the token reaches no request
+log, no proxy log and no browser history — unlike a path or query, which every one of those
+records. It also means a mail scanner following the link cannot spend it. Do not "simplify"
+this back to `?token=` and a GET. The three buyer links (`/hold/{token}`, `/waitlist/{token}`,
+`/reserve/{token}`) still carry theirs in the path, because those pages work without script.
+
 **No sender logs a body.** Recipient, subject and outcome go to the log; the body goes to
 `./outbox` or to the provider and nowhere else. Every bearer token the portal issues — staff
 sign-in, hold, waitlist, reserve-confirmation links — travels in a body, and a log is kept

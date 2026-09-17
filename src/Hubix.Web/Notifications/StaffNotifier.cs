@@ -14,17 +14,26 @@ public sealed class StaffNotifier(IEmailSender email, IOptionsSnapshot<HubixOpti
     /// Sends the sign-in link, and says what it sent.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The address is built here, from configuration, exactly as every other emailed link is.
     /// It used to be built by the page from <c>Request.Scheme</c> and the request's Host, which
     /// meant anybody who could post the login form could send a real member of staff a link
     /// pointing at their own server and collect a live token from it (issue #33). Nothing a
     /// visitor sends reaches this.
+    /// </para>
+    /// <para>
+    /// The token is in the fragment — after the <c>#</c> — and not the query string, because a
+    /// browser never sends a fragment to a server. A token in the path or the query is written
+    /// to the request log, to every proxy's log in between, and to browser history, and it is a
+    /// live credential for twelve hours of admin. This way the server only ever receives it in
+    /// a form post. <c>verify.js</c> is the other half.
+    /// </para>
     /// </remarks>
     public Task<string> SignInLinkAsync(LoginLink link, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(link);
 
-        var url = $"{options.Value.PublicBaseUrl.TrimEnd('/')}/admin/login/verify?token={link.Token}";
+        var url = $"{options.Value.PublicBaseUrl.TrimEnd('/')}/admin/login/verify#token={link.Token}";
 
         return SendAsync(link, url, ct);
     }
