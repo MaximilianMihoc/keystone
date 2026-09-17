@@ -257,6 +257,9 @@ public sealed class HoldService(
             return new HoldOutcome.ProspectBlocked(prospect.BlockReason);
         }
 
+        // A cheap pre-check, like the unit-state one above: it keeps the common "already at
+        // the limit" case from opening a transaction at all. It is not the guard — the guard
+        // is inside the transaction, behind a lock on the prospect (issue #37).
         var activeHolds = await db.Holds
             .CountAsync(h => h.ProspectId == prospect.Id
                              && h.ReleasedAt == null
@@ -318,6 +321,42 @@ public sealed class HoldService(
                     unit.Code, prospectId);
 
                 return new HoldOutcome.NoLongerAvailable();
+            }
+
+            // ------------------------------------------------------------------------
+            // The cap, enforced where it can actually hold. The count above this method's
+            // transaction is a courtesy: several requests from one person read it at the
+            // same moment, all see a number under the limit, and all proceed (issue #37).
+            //
+            // Counting again in here is not enough on its own. Each transaction's own hold
+            // row is invisible to the others until it commits, so they still all agree they
+            // are under the limit — and worse, each one's count blocks on the others'
+            // uncommitted rows, which deadlocks. Measured: six simultaneous requests
+            // produced ten deadlocks, survived only because the execution strategy retries.
+            //
+            // So take a lock on the person first. Attempts by the same prospect queue here
+            // and each one counts what the previous actually committed; attempts by anybody
+            // else never touch this row and are not delayed at all. The unit is locked
+            // before this and never after, so the two locks are always taken in the same
+            // order and cannot form a cycle.
+            // ------------------------------------------------------------------------
+            await db.Database.ExecuteSqlAsync(
+                $"SELECT [Id] FROM [Prospects] WITH (UPDLOCK) WHERE [Id] = {prospectId}", ct);
+
+            var alreadyHeld = await db.Holds
+                .CountAsync(h => h.ProspectId == prospectId
+                                 && h.ReleasedAt == null
+                                 && h.Unit!.ProjectId == unit.ProjectId, ct);
+
+            if (alreadyHeld >= MaxActiveHoldsPerProject)
+            {
+                await transaction.RollbackAsync(ct);
+
+                logger.LogInformation(
+                    "Hold on {UnitCode} refused: prospect {ProspectId} already holds {Held} here",
+                    unit.Code, prospectId, alreadyHeld);
+
+                return new HoldOutcome.TooManyHolds(MaxActiveHoldsPerProject);
             }
 
             var hold = new Hold

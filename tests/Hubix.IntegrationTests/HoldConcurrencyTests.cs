@@ -71,6 +71,69 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task One_person_cannot_step_over_the_hold_cap_by_asking_all_at_once()
+    {
+        await fixture.ResetUnitAsync();
+
+        // More units than the cap allows, each free, all in the one project.
+        const int contenders = HoldService.MaxActiveHoldsPerProject * 2;
+
+        var units = await fixture.AddUnitsAsync(contenders);
+        var buyer = Prospect(1);
+
+        // The buyer exists before the rush. Anybody near this cap has held something here
+        // already, so this is the realistic case — and it keeps the test about the cap: a
+        // brand-new address racing with itself collides on IX_Prospects_Email instead, which
+        // is a different fault in a different place.
+        var warmUp = units[^1];
+
+        await using (var seed = fixture.CreateContext())
+        {
+            (await NewService(seed).TryHoldAsync(warmUp, buyer, null, CancellationToken.None))
+                .ShouldBeOfType<HoldOutcome.Created>();
+
+            await seed.Holds.Where(h => h.UnitId == warmUp)
+                .ExecuteUpdateAsync(s => s.SetProperty(h => h.ReleasedAt, DateTimeOffset.UtcNow));
+
+            await seed.Units.Where(u => u.Id == warmUp)
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Available));
+        }
+
+        // One person, one project, several apartments, all at the same instant. The count
+        // that enforces the cap used to be taken before the transaction opened, so every
+        // request read the same number and every one of them thought it was under the limit.
+        var barrier = new TaskCompletionSource();
+
+        var attempts = units.Select(async unitId =>
+        {
+            await using var db = fixture.CreateContext();
+            var service = NewService(db);
+
+            await barrier.Task;
+
+            return await service.TryHoldAsync(unitId, buyer, null, CancellationToken.None);
+        }).ToList();
+
+        barrier.SetResult();
+        var outcomes = await Task.WhenAll(attempts);
+
+        outcomes.OfType<HoldOutcome.Created>().Count()
+            .ShouldBe(HoldService.MaxActiveHoldsPerProject);
+
+        outcomes.OfType<HoldOutcome.TooManyHolds>().Count()
+            .ShouldBe(contenders - HoldService.MaxActiveHoldsPerProject);
+
+        await using var verify = fixture.CreateContext();
+
+        // What the cap exists for: one person cannot lock more of a project's inventory than
+        // the rule allows, however they ask.
+        var held = await verify.Holds
+            .CountAsync(h => h.ReleasedAt == null && h.Unit!.ProjectId == fixture.ProjectId);
+
+        held.ShouldBe(HoldService.MaxActiveHoldsPerProject);
+    }
+
+    [Fact]
     public async Task A_second_hold_on_a_held_unit_is_refused()
     {
         await fixture.ResetUnitAsync();

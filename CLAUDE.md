@@ -106,6 +106,16 @@ if (rows == 0) return HoldOutcome.NoLongerAvailable;
 `HoldConcurrencyTests` asserts that 20 simultaneous holds produce exactly one winner. It is a
 release gate. Do not weaken it, and do not "fix" it by loading the entity first.
 
+**The per-project hold cap is enforced behind a lock on the prospect**, taken inside the hold
+transaction after the unit's conditional UPDATE wins. A count alone cannot do it — the count
+outside the transaction is read by every concurrent request before any of them writes, and moving
+it inside changes nothing, because each transaction's own hold row is invisible to the others
+until it commits. Worse, counting inside makes every attempt wait on everybody else's uncommitted
+rows: six simultaneous requests produced ten deadlocks, which only the retrying execution strategy
+hid. The lock is `SELECT [Id] FROM [Prospects] WITH (UPDLOCK)`, so attempts by one person queue
+and attempts by different people never meet. Unit first, prospect second, always — the two locks
+are taken in that order everywhere, which is what stops them forming a cycle (issue #37).
+
 **A public form never speaks for the address it was given.** Anybody can type anybody's address
 into one, so an unconfirmed submission holds nothing, writes over nothing and blocks nobody.
 Reserving goes `HoldService.RequestAsync` → emailed link → `ConfirmAsync` → `TryHoldAsync`, and
