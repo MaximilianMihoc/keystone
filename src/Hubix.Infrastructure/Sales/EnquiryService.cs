@@ -34,7 +34,7 @@ public sealed class EnquiryService(
         CancellationToken ct)
     {
         var email = person.Email.Trim();
-        var prospect = await db.Prospects.FirstOrDefaultAsync(p => p.Email == email, ct);
+        Prospect? prospect;
 
         // A question is a reason to write somebody down. "Delete me" is not: creating a
         // record for a stranger in order to forget them would be the request's own opposite.
@@ -42,17 +42,13 @@ public sealed class EnquiryService(
         // the request itself carries the address.
         if (privacyKind is null)
         {
-            if (prospect is null)
-            {
-                prospect = new Prospect
-                {
-                    Email = email,
-                    Locale = person.Locale,
-                    Source = "enquiry"
-                };
+            bool created;
+            (prospect, created) = await ProspectRegistry.GetOrCreateAsync(
+                db, email, "enquiry", person.Locale, ct);
 
+            if (created)
+            {
                 person.ApplyTo(prospect);
-                db.Prospects.Add(prospect);
             }
             else
             {
@@ -61,6 +57,10 @@ public sealed class EnquiryService(
                 // language we write to them in are not this form's to change (issue #30).
                 person.FillBlanksOf(prospect);
             }
+        }
+        else
+        {
+            prospect = await db.Prospects.FirstOrDefaultAsync(p => p.Email == email, ct);
         }
 
         var enquiry = new Enquiry

@@ -284,19 +284,12 @@ public sealed class WaitlistService(
     {
         var email = details.Email.Trim();
 
-        var prospect = await db.Prospects.FirstOrDefaultAsync(p => p.Email == email, ct);
+        var (prospect, created) = await ProspectRegistry.GetOrCreateAsync(
+            db, email, "waitlist", details.Locale, ct);
 
-        if (prospect is null)
+        if (created)
         {
-            prospect = new Prospect
-            {
-                Email = email,
-                Locale = details.Locale,
-                Source = "waitlist"
-            };
-
             details.ApplyTo(prospect);
-            db.Prospects.Add(prospect);
 
             if (details.ConsentGiven)
             {

@@ -134,6 +134,48 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task A_new_buyer_asking_for_two_units_at_once_gets_one_record()
+    {
+        await fixture.ResetUnitAsync();
+
+        const int contenders = 4;
+
+        var units = await fixture.AddUnitsAsync(contenders);
+
+        // Nobody by this name yet. Every one of these requests looks for the record, finds
+        // nothing, and writes one — and the unique index on the address lets exactly one of
+        // them through. That used to surface as a 500 on a public form because somebody else
+        // was filling it in at the same moment.
+        var newcomer = Prospect(99);
+
+        var barrier = new TaskCompletionSource();
+
+        var attempts = units.Select(async unitId =>
+        {
+            await using var db = fixture.CreateContext();
+            var service = NewService(db);
+
+            await barrier.Task;
+
+            return await service.TryHoldAsync(unitId, newcomer, null, CancellationToken.None);
+        }).ToList();
+
+        barrier.SetResult();
+
+        // The point of the test: none of them throws.
+        var outcomes = await Task.WhenAll(attempts);
+
+        outcomes.OfType<HoldOutcome.Created>().Count().ShouldBeGreaterThan(0);
+
+        await using var verify = fixture.CreateContext();
+
+        // One person, one record. Two would be the same buyer split in half, with their holds
+        // and consent divided between the copies.
+        var records = await verify.Prospects.CountAsync(p => p.Email == newcomer.Email);
+        records.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task A_second_hold_on_a_held_unit_is_refused()
     {
         await fixture.ResetUnitAsync();

@@ -121,7 +121,11 @@ into one, so an unconfirmed submission holds nothing, writes over nothing and bl
 Reserving goes `HoldService.RequestAsync` → emailed link → `ConfirmAsync` → `TryHoldAsync`, and
 only that last, confirmed step may touch the prospect record, record consent, or let a lapse
 block a buyer. The waitlist and contact forms fill blanks on an existing record
-(`ProspectDetails.FillBlanksOf`) and never overwrite it or stamp consent on it. Do not wire a
+(`ProspectDetails.FillBlanksOf`) and never overwrite it or stamp consent on it. Reach the record
+through `ProspectRegistry.GetOrCreateAsync`, which is the only place that inserts one: four
+services used to look the address up and insert if they found nothing, and two requests carrying
+the same new address made one of them die on `IX_Prospects_Email`. The `Created` flag it returns
+is what tells a caller whether it may write the record or only fill its blanks. Do not wire a
 public form to `TryHoldAsync` or `ApplyTo` again.
 
 **Multi-statement writes wrap in `db.Database.CreateExecutionStrategy()`.** The context is

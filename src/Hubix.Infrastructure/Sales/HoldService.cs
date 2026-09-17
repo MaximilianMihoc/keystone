@@ -657,27 +657,15 @@ public sealed class HoldService(
 
         // SQL Server's default collation is case-insensitive, so this matches regardless of
         // how they typed it and cannot create a second record for the same person.
-        var prospect = await db.Prospects.FirstOrDefaultAsync(p => p.Email == email, ct);
+        var (prospect, _) = await ProspectRegistry.GetOrCreateAsync(
+            db, email, "website", details.Locale, ct);
 
-        if (prospect is null)
-        {
-            prospect = new Prospect
-            {
-                Email = email,
-                Locale = details.Locale,
-                Source = "website"
-            };
+        // This is the confirmed path — they have been to their inbox and come back — so it may
+        // write the record properly rather than only filling blanks.
+        details.ApplyTo(prospect);
 
-            details.ApplyTo(prospect);
-            db.Prospects.Add(prospect);
-        }
-        else
-        {
-            details.ApplyTo(prospect);
-
-            // The language came from this visitor's own browser, so it is theirs to change.
-            prospect.Locale = details.Locale;
-        }
+        // The language came from this visitor's own browser, so it is theirs to change.
+        prospect.Locale = details.Locale;
 
         if (details.ConsentGiven)
         {
