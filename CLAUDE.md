@@ -230,6 +230,11 @@ admin bundle.
   an inline `<script>` or an `onclick` is silently blocked, so page script goes in `wwwroot/js`.
   A new external host (a CDN, an analytics tag) has to be added to the policy, and `/assets`
   has its own sandboxed policy. Check the browser console for violations, not just the headers.
+- A staff cookie is re-checked against the database every couple of minutes by
+  `StaffSessionValidator`, so deactivating or demoting somebody ends their open session. Claims
+  written at sign-in (`VerifyModel`) and the claims it compares have to stay in step; a session
+  whose role no longer matches is ended, not quietly corrected. Sessions also have a 24-hour
+  ceiling that sliding renewal cannot lift.
 - Never change `Units.State` with SQL. Route through the services so the hold or reservation and the
   audit row move with it.
 
