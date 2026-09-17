@@ -645,24 +645,10 @@ public sealed class ReservationService(
     {
         var email = details.Email.Trim();
 
-        var prospect = await db.Prospects.FirstOrDefaultAsync(p => p.Email == email, ct);
+        var (prospect, _) = await ProspectRegistry.GetOrCreateAsync(
+            db, email, "staff", details.Locale, ct);
 
-        if (prospect is null)
-        {
-            prospect = new Prospect
-            {
-                Email = email,
-                Locale = details.Locale,
-                Source = "staff"
-            };
-
-            details.ApplyTo(prospect);
-            db.Prospects.Add(prospect);
-        }
-        else
-        {
-            details.ApplyTo(prospect);
-        }
+        details.ApplyTo(prospect);
 
         await db.SaveChangesAsync(ct);
         return prospect;
