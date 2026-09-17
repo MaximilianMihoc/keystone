@@ -932,6 +932,11 @@ namespace Hubix.Infrastructure.Migrations
                     b.Property<Guid>("ProspectId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTimeOffset?>("SignedAgreementAt")
                         .HasColumnType("datetimeoffset");
 
@@ -987,9 +992,12 @@ namespace Hubix.Infrastructure.Migrations
                     b.HasIndex("UnitId")
                         .IsUnique()
                         .HasDatabaseName("UX_Reservations_OneOpenPerUnit")
-                        .HasFilter("[CancelledAt] IS NULL AND [State] <> 'Cancelled'");
+                        .HasFilter("[State] <> 'Cancelled'");
 
-                    b.ToTable("Reservations");
+                    b.ToTable("Reservations", t =>
+                        {
+                            t.HasCheckConstraint("CK_Reservations_CancelledAgrees", "([State] = 'Cancelled' AND [CancelledAt] IS NOT NULL) OR ([State] <> 'Cancelled' AND [CancelledAt] IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Hubix.Domain.Entities.StaffLoginToken", b =>

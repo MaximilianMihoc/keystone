@@ -202,13 +202,31 @@ public class ReservationConfiguration : IEntityTypeConfiguration<Reservation>
                 v => v.Aggregate(0, (acc, t) => HashCode.Combine(acc, t.GetHashCode())),
                 v => v.ToList()));
 
+        // Checked on every save of a tracked reservation, so a move decided on a stale read
+        // loses instead of overwriting what happened in between (issue #36).
+        builder.Property(r => r.RowVersion).IsRowVersion();
+
+        // The two ways of saying "cancelled" have to agree. They are written together and read
+        // apart — the board and the grid ask about State, the unique index below used to ask
+        // about CancelledAt — and a row where they disagreed counted as open to one and
+        // cancelled to the other.
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_Reservations_CancelledAgrees",
+            "([State] = 'Cancelled' AND [CancelledAt] IS NOT NULL) " +
+            "OR ([State] <> 'Cancelled' AND [CancelledAt] IS NULL)"));
+
         builder.HasIndex(r => r.State);
         builder.HasIndex(r => r.ContractNumber);
 
         // One open reservation per unit. A cancelled one may sit alongside a live one.
+        //
+        // The filter asks about State alone. It used to name CancelledAt as well, which was the
+        // gap a half-written row slipped through: cancelled by that column, open by this one,
+        // and so excluded from the index that should have refused it. The check constraint above
+        // now keeps the two in step, and this asks the question every query asks.
         builder.HasIndex(r => r.UnitId)
             .IsUnique()
-            .HasFilter("[CancelledAt] IS NULL AND [State] <> 'Cancelled'")
+            .HasFilter("[State] <> 'Cancelled'")
             .HasDatabaseName("UX_Reservations_OneOpenPerUnit");
     }
 }

@@ -104,6 +104,19 @@ public class Reservation : Entity
 
     public bool IsOpen => ReservationPipeline.IsOpen(State);
 
+    /// <summary>
+    /// Changes whenever the row does, and is checked on every save.
+    /// </summary>
+    /// <remarks>
+    /// The one entity here that is read, decided about, and only then written — a stage move is
+    /// validated against the pipeline before it is applied, so there is always a window. Without
+    /// this, a move decided on a stale read overwrote whatever landed in that window, and a
+    /// cancellation landing there produced a row that was both cancelled and open (issue #36).
+    /// A hold or a unit needs none of this, because those are won by a conditional UPDATE that
+    /// names the state it expects.
+    /// </remarks>
+    public byte[]? RowVersion { get; set; }
+
     /// <summary>Freezes the agreed price onto this reservation.</summary>
     public void ApplySnapshot(PriceBreakdown breakdown)
     {
