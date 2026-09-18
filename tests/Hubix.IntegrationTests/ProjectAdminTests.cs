@@ -182,7 +182,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         var result = await Service(db).EditProjectAsync(
             fixture.ProjectId,
             new ProjectEdit(seeded.Name, seeded.City, "a-new-address", null, seeded.Status,
-                1, null, 0, null, 4_000m, "EUR", 48, null, null),
+                1, null, 0, null, 4_000m, "EUR", 48, 3, null, null),
             Actor, "dev", CancellationToken.None);
 
         result.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("web address cannot change");
@@ -198,7 +198,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         var result = await Service(db).EditProjectAsync(
             fixture.ProjectId,
             new ProjectEdit("Roka Park View", "Brașov", "roka-brasov", null, ProjectStatus.Selling,
-                20, new DateOnly(2027, 6, 30), 6, RentalProfile.ShortTerm, 5_000m, "EUR", 72, null, null),
+                20, new DateOnly(2027, 6, 30), 6, RentalProfile.ShortTerm, 5_000m, "EUR", 72, 5, null, null),
             Actor, "dev", CancellationToken.None);
 
         var updated = result.ShouldBeOfType<AdminWriteResult.Updated>();
@@ -211,6 +211,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         project.City.ShouldBe("Brașov");
         project.DeliveryGraceMonths.ShouldBe(6);
         project.RentalProfile.ShouldBe(RentalProfile.ShortTerm);
+        project.MaxActiveHoldsPerProspect.ShouldBe(5);
     }
 
     [Fact]

@@ -59,6 +59,7 @@ public sealed record ProjectEdit(
     decimal? ReservationFee,
     string Currency,
     int HoldDurationHours,
+    int MaxActiveHoldsPerProspect,
     string? MapsUrl,
 
     /// <summary>Blank falls back to the portal inbox.</summary>
@@ -400,6 +401,7 @@ public sealed class ProjectAdminService(
         diff.Set("ReservationFee", project.ReservationFee, edit.ReservationFee, v => project.ReservationFee = v);
         diff.Set("Currency", project.Currency, edit.Currency, v => project.Currency = v);
         diff.Set("HoldDurationHours", project.HoldDurationHours, edit.HoldDurationHours, v => project.HoldDurationHours = v);
+        diff.Set("MaxActiveHoldsPerProspect", project.MaxActiveHoldsPerProspect, edit.MaxActiveHoldsPerProspect, v => project.MaxActiveHoldsPerProspect = v);
         diff.Set("MapsUrl", project.MapsUrl, edit.MapsUrl, v => project.MapsUrl = v);
         diff.Set("SalesInbox", project.SalesInbox, edit.SalesInbox, v => project.SalesInbox = v);
 

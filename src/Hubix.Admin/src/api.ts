@@ -112,6 +112,8 @@ export interface ProjectEdit {
   reservationFee: number | null;
   currency: string;
   holdDurationHours: number;
+  /** How many apartments one buyer may hold at once in this project. */
+  maxActiveHoldsPerProspect: number;
   mapsUrl: string | null;
   /** Blank falls back to the portal inbox on the Email settings screen. */
   salesInbox: string | null;

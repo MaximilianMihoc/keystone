@@ -330,9 +330,10 @@ These are not built, and most cannot be by me.
   *cesiune*, *transa*, *Pret cesiune faraTVA* — are theirs and are correct. Everything I wrote
   around them is a competent translation at best, and buyers will read it before they read
   anything else. **This is the one item on this list I cannot do, and it is the most visible.**
-- **A decision on `MaxActiveHoldsPerProject`.** It is 3. Hubix's documents say a buyer may take
-  "one (or more)" apartments and never say how many. Without a cap one person can lock the
-  whole remaining inventory for two days; with the wrong cap a genuine investor is refused.
+- **A decision on the hold cap.** It defaults to 3 and is set per project ("Holds per buyer"
+  on the project's setup screen). Hubix's documents say a buyer may take "one (or more)"
+  apartments and never say how many. Without a cap one person can lock the whole remaining
+  inventory for two days; with the wrong cap a genuine investor is refused.
 - **Confirmation of the pipeline itself.** The eight stages were inferred from documents and
   the hidden columns of the spreadsheets, not observed. At least one thing about them is
   wrong. `ReservationPipeline.Stages` is the only place to correct it.

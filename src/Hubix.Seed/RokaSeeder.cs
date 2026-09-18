@@ -73,6 +73,7 @@ public static class RokaSeeder
             ReservationFee = 4_000m,
             Currency = "EUR",
             HoldDurationHours = 48,
+            MaxActiveHoldsPerProspect = 3,
 
             // Roka's parking is bought from the developer rather than through Hubix, so no
             // space is offered with an apartment here. The translated note below says so.

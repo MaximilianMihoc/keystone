@@ -194,6 +194,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
                 .SetProperty(p => p.ReservationFee, (decimal?)4_000m)
                 .SetProperty(p => p.Currency, "EUR")
                 .SetProperty(p => p.HoldDurationHours, 48)
+                .SetProperty(p => p.MaxActiveHoldsPerProspect, 3)
                 .SetProperty(p => p.MapsUrl, (string?)null));
 
         // Units other tests created — the importer makes them by the sheetful.

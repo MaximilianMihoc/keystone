@@ -69,6 +69,7 @@ public static class ProjectApi
                         reservationFee = p.ReservationFee,
                         currency = p.Currency,
                         holdDurationHours = p.HoldDurationHours,
+                        maxActiveHoldsPerProspect = p.MaxActiveHoldsPerProspect,
                         mapsUrl = p.MapsUrl,
                         salesInbox = p.SalesInbox,
                         publishedAt = p.PublishedAt,
@@ -688,8 +689,9 @@ public static class ProjectApi
     /// </summary>
     /// <remarks>
     /// Every check here guards a constraint that already exists: the length limits guard column
-    /// widths that would otherwise throw a truncation error, and the hold duration guards
-    /// <c>CK_Projects_HoldDurationHours</c>, which without this surfaces as a 500 rather than
+    /// widths that would otherwise throw a truncation error, and the hold duration and hold cap
+    /// guard <c>CK_Projects_HoldDurationHours</c> and <c>CK_Projects_MaxActiveHoldsPerProspect</c>,
+    /// which without this surface as a 500 rather than
     /// as a sentence somebody can act on.
     /// </remarks>
     private static bool TryRead(ProjectRequest request, out ProjectEdit edit, out string? problem)
@@ -737,6 +739,12 @@ public static class ProjectApi
             return false;
         }
 
+        if (request.MaxActiveHoldsPerProspect < 1)
+        {
+            problem = "A buyer has to be able to hold at least one apartment.";
+            return false;
+        }
+
         if (request.ReservationFee < 0 || request.UnitsCommitted < 0 || request.DeliveryGraceMonths < 0)
         {
             problem = "That cannot be a negative number.";
@@ -756,6 +764,7 @@ public static class ProjectApi
             request.ReservationFee,
             request.Currency.ToUpperInvariant(),
             request.HoldDurationHours,
+            request.MaxActiveHoldsPerProspect,
             Blank(request.MapsUrl),
             Blank(request.SalesInbox));
 
@@ -803,6 +812,7 @@ public static class ProjectApi
         decimal? ReservationFee,
         string Currency,
         int HoldDurationHours,
+        int MaxActiveHoldsPerProspect,
         string? MapsUrl,
         string? SalesInbox);
 

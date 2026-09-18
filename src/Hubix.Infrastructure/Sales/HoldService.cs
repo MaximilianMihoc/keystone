@@ -20,16 +20,6 @@ public sealed class HoldService(
     ILogger<HoldService> logger)
 {
     /// <summary>
-    /// How many units one person may hold at once in a single project.
-    /// </summary>
-    /// <remarks>
-    /// Hubix's documents say a buyer may take "one (or more) apartments", so holding several is
-    /// legitimate. They do not say how many, and without a cap one person can lock the entire
-    /// remaining inventory for two days. Three is a guess and needs confirming with Hubix.
-    /// </remarks>
-    public const int MaxActiveHoldsPerProject = 3;
-
-    /// <summary>
     /// Writes down what somebody asked for, and holds nothing.
     /// </summary>
     /// <remarks>
@@ -230,7 +220,8 @@ public sealed class HoldService(
                 u.ProjectId,
                 u.State,
                 HoldHours = u.Project!.HoldDurationHours,
-                MaxParking = u.Project.MaxParkingSpacesPerReservation
+                MaxParking = u.Project.MaxParkingSpacesPerReservation,
+                MaxHolds = u.Project.MaxActiveHoldsPerProspect
             })
             .FirstOrDefaultAsync(ct);
 
@@ -265,9 +256,9 @@ public sealed class HoldService(
                              && h.ReleasedAt == null
                              && h.Unit!.ProjectId == unit.ProjectId, ct);
 
-        if (activeHolds >= MaxActiveHoldsPerProject)
+        if (activeHolds >= unit.MaxHolds)
         {
-            return new HoldOutcome.TooManyHolds(MaxActiveHoldsPerProject);
+            return new HoldOutcome.TooManyHolds(unit.MaxHolds);
         }
 
         // Asking for more than the project allows is a different answer from the car park
@@ -348,7 +339,7 @@ public sealed class HoldService(
                                  && h.ReleasedAt == null
                                  && h.Unit!.ProjectId == unit.ProjectId, ct);
 
-            if (alreadyHeld >= MaxActiveHoldsPerProject)
+            if (alreadyHeld >= unit.MaxHolds)
             {
                 await transaction.RollbackAsync(ct);
 
@@ -356,7 +347,7 @@ public sealed class HoldService(
                     "Hold on {UnitCode} refused: prospect {ProspectId} already holds {Held} here",
                     unit.Code, prospectId, alreadyHeld);
 
-                return new HoldOutcome.TooManyHolds(MaxActiveHoldsPerProject);
+                return new HoldOutcome.TooManyHolds(unit.MaxHolds);
             }
 
             var hold = new Hold
