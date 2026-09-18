@@ -275,7 +275,8 @@ var app = builder.Build();
 //
 // Script comes only from this site, never inline, so markup that slips into a page cannot run.
 // Inline style is allowed because a handful of pages carry style attributes; style cannot run
-// script. blob: is the admin's previews, drawn from PDFs and images in the browser.
+// script. blob: is the admin's previews, drawn from PDFs and images in the browser. Fonts
+// from 'self' are Hangfire's dashboard icons.
 //
 // Files get a policy of their own. Nothing served from /assets is a page, and one opened as a
 // page (an uploaded document, say) runs sandboxed with nothing allowed.
@@ -287,7 +288,7 @@ var sitePolicy = string.Join("; ",
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com",
+    "font-src 'self' https://fonts.gstatic.com",
     $"img-src 'self' blob:{blobStorage}",
     $"connect-src 'self'{blobStorage}",
     "worker-src 'self'",
@@ -382,6 +383,17 @@ app.MapHealthChecks("/health/detail", new HealthCheckOptions
 app.MapRazorPages();
 app.MapAdminApi();
 app.MapAssetFiles();
+
+// Hangfire's dashboard, for admins only. It can trigger and delete jobs, so it sits behind
+// the same policy as the rest of admin. Authorization is emptied because Hangfire's default
+// filter allows local requests only and would refuse a signed-in admin on a deployed site;
+// the endpoint policy is what guards it instead.
+app.MapHangfireDashboard("/admin/hangfire", new DashboardOptions
+{
+    Authorization = [],
+    AppPath = "/admin",
+    DashboardTitle = "Hubix jobs"
+}).RequireAuthorization(AuthPolicies.Admin);
 
 // Every minute. Cheap when there is nothing due, and a two-day countdown does not need
 // finer granularity than this.
