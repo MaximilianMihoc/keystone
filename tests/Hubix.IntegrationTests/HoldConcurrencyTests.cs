@@ -75,8 +75,17 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
     {
         await fixture.ResetUnitAsync();
 
+        // Not the default of three, so the test also proves the cap is the project's own.
+        const int cap = 2;
+
+        await using (var setup = fixture.CreateContext())
+        {
+            await setup.Projects.Where(p => p.Id == fixture.ProjectId)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.MaxActiveHoldsPerProspect, cap));
+        }
+
         // More units than the cap allows, each free, all in the one project.
-        const int contenders = HoldService.MaxActiveHoldsPerProject * 2;
+        const int contenders = cap * 2;
 
         var units = await fixture.AddUnitsAsync(contenders);
         var buyer = Prospect(1);
@@ -118,10 +127,10 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
         var outcomes = await Task.WhenAll(attempts);
 
         outcomes.OfType<HoldOutcome.Created>().Count()
-            .ShouldBe(HoldService.MaxActiveHoldsPerProject);
+            .ShouldBe(cap);
 
         outcomes.OfType<HoldOutcome.TooManyHolds>().Count()
-            .ShouldBe(contenders - HoldService.MaxActiveHoldsPerProject);
+            .ShouldBe(contenders - cap);
 
         await using var verify = fixture.CreateContext();
 
@@ -130,7 +139,7 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
         var held = await verify.Holds
             .CountAsync(h => h.ReleasedAt == null && h.Unit!.ProjectId == fixture.ProjectId);
 
-        held.ShouldBe(HoldService.MaxActiveHoldsPerProject);
+        held.ShouldBe(cap);
     }
 
     [Fact]

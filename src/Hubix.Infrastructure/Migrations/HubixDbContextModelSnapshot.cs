@@ -693,6 +693,9 @@ namespace Hubix.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<int>("MaxActiveHoldsPerProspect")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaxParkingSpacesPerReservation")
                         .HasColumnType("int");
 
@@ -743,6 +746,8 @@ namespace Hubix.Infrastructure.Migrations
                     b.ToTable("Projects", t =>
                         {
                             t.HasCheckConstraint("CK_Projects_HoldDurationHours", "[HoldDurationHours] > 0 AND [HoldDurationHours] <= 720");
+
+                            t.HasCheckConstraint("CK_Projects_MaxActiveHoldsPerProspect", "[MaxActiveHoldsPerProspect] > 0");
                         });
                 });
 

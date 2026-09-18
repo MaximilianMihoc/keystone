@@ -68,12 +68,23 @@ public class Project : Entity
     public int HoldDurationHours { get; set; } = 48;
 
     /// <summary>
+    /// How many apartments one person may hold at once in this project.
+    /// </summary>
+    /// <remarks>
+    /// Hubix's documents say a buyer may take "one (or more) apartments", so holding several is
+    /// legitimate. They do not say how many, and without a cap one person can lock the entire
+    /// remaining inventory for the length of a hold. Three is a guess and needs confirming with
+    /// Hubix (issue #61); it is per project so the answer can be set without a deploy.
+    /// </remarks>
+    public int MaxActiveHoldsPerProspect { get; set; } = 3;
+
+    /// <summary>
     /// How many parking spaces one buyer may take with one apartment. Zero means parking is not
     /// sold alongside a flat here, which is Roka's case.
     /// </summary>
     /// <remarks>
     /// Per project rather than a constant, because the developments differ. The numbers are a
-    /// guess in the same way <c>HoldService.MaxActiveHoldsPerProject</c> is a guess: Hubix's
+    /// guess in the same way <see cref="MaxActiveHoldsPerProspect"/> is a guess: Hubix's
     /// documents say a car park exists and what a space costs, never how many one buyer may have.
     /// </remarks>
     public int MaxParkingSpacesPerReservation { get; set; }

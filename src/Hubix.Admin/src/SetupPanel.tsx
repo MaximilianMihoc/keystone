@@ -270,6 +270,15 @@ export function SetupPanel({
                   onChange={(e) => set('holdDurationHours', Number(e.target.value))}
                 />
               </label>
+              <label className="field">
+                <span>Holds per buyer</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={form.maxActiveHoldsPerProspect}
+                  onChange={(e) => set('maxActiveHoldsPerProspect', Number(e.target.value))}
+                />
+              </label>
             </div>
 
             <label className="field">
@@ -472,6 +481,7 @@ function toForm(setup: ProjectSetup): ProjectEdit {
     reservationFee: p.reservationFee,
     currency: p.currency,
     holdDurationHours: p.holdDurationHours,
+    maxActiveHoldsPerProspect: p.maxActiveHoldsPerProspect,
     mapsUrl: p.mapsUrl,
     salesInbox: p.salesInbox,
   };

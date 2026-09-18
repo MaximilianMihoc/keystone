@@ -41,9 +41,16 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasForeignKey(p => p.DeveloperId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.ToTable(t => t.HasCheckConstraint(
-            "CK_Projects_HoldDurationHours",
-            "[HoldDurationHours] > 0 AND [HoldDurationHours] <= 720"));
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint(
+                "CK_Projects_HoldDurationHours",
+                "[HoldDurationHours] > 0 AND [HoldDurationHours] <= 720");
+
+            t.HasCheckConstraint(
+                "CK_Projects_MaxActiveHoldsPerProspect",
+                "[MaxActiveHoldsPerProspect] > 0");
+        });
     }
 }
 
