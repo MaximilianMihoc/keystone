@@ -39,7 +39,7 @@ unlike a heartbeat, so there is no false alarm on deploy.
 ### Holds are not expiring
 
 1. `GET /health/detail` — read `stuckHolds` and `lastSuccessAt`.
-2. Open Hangfire's own dashboard if it is mounted, or query:
+2. Open Hangfire's dashboard at `/admin/hangfire` (admins only), or query:
    ```sql
    SELECT TOP 20 * FROM HangFire.[Job] ORDER BY CreatedAt DESC;
    ```
@@ -242,7 +242,7 @@ Sends happen inside the request that caused them, wrapped in try/catch and logge
 the hold, the queue place or the enquiry is already committed by then, and a message that did not
 go is a better outcome than a reservation that failed because a mail server blinked. It does mean
 a provider outage loses the message rather than retrying it. Moving sends onto Hangfire is the
-fix, and is worth doing before step 3 above.
+fix, and is worth doing before step 3 above (issue #64).
 
 ---
 
