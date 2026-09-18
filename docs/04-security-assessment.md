@@ -1,17 +1,20 @@
 # Security Assessment
 
-> **This document contains live exploit detail for unfixed vulnerabilities in this application.**
-> It stays in this private repository and is never shared with Hubix or anyone outside it, on the
-> same footing as `01-business-analysis`, `02-application-proposal` and `03-build-spec`. It is
-> written on the assumption that everything in §4 is fixed before anything is exposed publicly.
-> Once the P0/P1 findings are closed, the reproduction steps here describe history rather than a
-> working attack — revisit this warning then, do not remove it before.
+> **All ten findings below are fixed.** The reproduction steps now describe history rather than a
+> working attack, which is the revisit the original warning asked for — it read, until
+> 2026-09-18, "this document contains live exploit detail for unfixed vulnerabilities".
+>
+> It still stays in this private repository and is never shared with Hubix or anyone outside it,
+> on the same footing as `01-business-analysis`, `02-application-proposal` and `03-build-spec`.
+> Two reasons that has not changed: it maps this application's weak points in detail, and a
+> deployment running an older build is still a deployment these steps work against.
 
-**Date:** 2026-09-13
+**Date:** 2026-09-13. **Findings closed:** 2026-09-18.
 **Target:** hubix-portal (ASP.NET Core 10 / EF Core / React admin), pre-public review
-**Tracking:** GitHub issues [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29)–[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38), indexed by the tracking issue [#39](https://github.com/MaximilianMihoc/hubix-portal/issues/39).
+**Tracking:** GitHub issues [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29)–[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38), indexed by the tracking issue [#39](https://github.com/MaximilianMihoc/hubix-portal/issues/39) — every box now ticked.
 **Status:** Consolidates two independent assessments, de-duplicates the overlapping findings and
-re-grades each against a consistent attacker model.
+re-grades each against a consistent attacker model. Each finding was reproduced before it was
+fixed and verified afterwards; §10 records what closed each one and what it cost.
 
 **Method:** architecture read-through + live grey/black-box testing against a seeded throwaway
 database with the app run in **Production** mode. PoCs run against `127.0.0.1:5098`; test database
@@ -34,6 +37,12 @@ through the API, and account enumeration.
 
 The genuine problems are boundary-trust mistakes, not architectural flaws. Do not expose publicly
 until the P0/P1 items below are fixed.
+
+> **Closed 2026-09-18.** Every finding in this section is fixed; the tense below is the tense of
+> the original assessment and is left as written. The bar it set — P0/P1 before public exposure —
+> is met, and the P2 items went the same way. What still gates a public deployment is not on this
+> list: live email is still off by default and `*@hubix.ro` is still blocked, deliberately, because
+> Hubix have not been approached about any of this.
 
 **Confirmed, reproduced:**
 - Host-header injection poisons staff sign-in links → staff account takeover (once live email is on).
@@ -71,19 +80,29 @@ problematically, on email addresses supplied through forms (see F-1).
 
 ## 3. Findings index and verdicts
 
-| # | Finding | Issue | Verdict | Severity | Confidence |
-|---|---------|-------|---------|----------|------------|
-| F-1a | Waitlist form discloses another buyer's access token | [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29) | Genuine (code-confirmed) | **High** | High |
-| F-1b | Public forms overwrite a buyer's record / block them | [#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) | Genuine (code-confirmed) | **High** | High |
-| F-2 | Stored XSS via SVG asset upload | [#31](https://github.com/MaximilianMihoc/hubix-portal/issues/31) | Genuine (reproduced primitive) | **High** | High |
-| F-3 | Host-header injection poisons staff sign-in links | [#33](https://github.com/MaximilianMihoc/hubix-portal/issues/33) | Genuine (reproduced end-to-end) | **High** | High |
-| F-4 | Deactivated/demoted staff sessions retain authority | [#34](https://github.com/MaximilianMihoc/hubix-portal/issues/34) | Genuine (code-confirmed) | **Medium–High** | High |
-| F-5 | Missing security response headers | [#32](https://github.com/MaximilianMihoc/hubix-portal/issues/32) | Genuine, hardening | **Medium** | High |
-| F-6 | Reservation move/cancel race → inconsistent "zombie" row | [#36](https://github.com/MaximilianMihoc/hubix-portal/issues/36) | **Genuine (reproduced)**, over-rated elsewhere | **Medium (integrity)** | High |
-| F-7 | Auth cookie `SecurePolicy = SameAsRequest` | [#35](https://github.com/MaximilianMihoc/hubix-portal/issues/35) | Genuine, largely mitigated | **Low–Medium** | High |
-| F-8 | Three-hold limit bypassable by concurrency | [#37](https://github.com/MaximilianMihoc/hubix-portal/issues/37) | Genuine, minor | **Low** | High |
-| F-9 | Import "commit matches preview" hash is optional | [#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38) | Genuine, integrity-only | **Low** | High |
-| N-1 | "Stale cancellation frees another buyer's unit" | — | **Disproven — false positive (test)** | — | — |
+| # | Finding | Issue | Verdict | Severity | Confidence | Status |
+|---|---------|-------|---------|----------|------------|--------|
+| F-1a | Waitlist form discloses another buyer's access token | [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29) | Genuine (code-confirmed) | **High** | High | **Fixed** |
+| F-1b | Public forms overwrite a buyer's record / block them | [#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) | Genuine (code-confirmed) | **High** | High | **Fixed** |
+| F-2 | Stored XSS via SVG asset upload | [#31](https://github.com/MaximilianMihoc/hubix-portal/issues/31) | Genuine (reproduced primitive) | **High** | High | **Fixed** |
+| F-3 | Host-header injection poisons staff sign-in links | [#33](https://github.com/MaximilianMihoc/hubix-portal/issues/33) | Genuine (reproduced end-to-end) | **High** | High | **Fixed** |
+| F-4 | Deactivated/demoted staff sessions retain authority | [#34](https://github.com/MaximilianMihoc/hubix-portal/issues/34) | Genuine (code-confirmed) | **Medium–High** | High | **Fixed** |
+| F-5 | Missing security response headers | [#32](https://github.com/MaximilianMihoc/hubix-portal/issues/32) | Genuine, hardening | **Medium** | High | **Fixed** |
+| F-6 | Reservation move/cancel race → inconsistent "zombie" row | [#36](https://github.com/MaximilianMihoc/hubix-portal/issues/36) | **Genuine (reproduced)**, over-rated elsewhere | **Medium (integrity)** | High | **Fixed** |
+| F-7 | Auth cookie `SecurePolicy = SameAsRequest` | [#35](https://github.com/MaximilianMihoc/hubix-portal/issues/35) | Genuine, largely mitigated | **Low–Medium** | High | **Fixed** |
+| F-8 | Three-hold limit bypassable by concurrency | [#37](https://github.com/MaximilianMihoc/hubix-portal/issues/37) | Genuine, minor | **Low** | High | **Fixed** |
+| F-9 | Import "commit matches preview" hash is optional | [#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38) | Genuine, integrity-only | **Low** | High | **Fixed** |
+| N-1 | "Stale cancellation frees another buyer's unit" | — | **Disproven — false positive (test)** | — | — | No action |
+
+Three further problems were found while fixing these, none of them in the original assessment.
+They are recorded here because a reader comparing the code against this document will otherwise
+wonder where they came from:
+
+| # | Found while | Problem | Issue | Status |
+|---|-------------|---------|-------|--------|
+| L-1 | fixing F-4 | Sign-in links and buyer tokens written to the application log in plain text | [#53](https://github.com/MaximilianMihoc/hubix-portal/issues/53) | **Fixed** |
+| L-2 | fixing L-1 | Sign-in token carried in the URL, so the request log records it | — | **Fixed** |
+| L-3 | fixing F-8 | Concurrent requests for one *new* email address collide on `IX_Prospects_Email` | — | **Fixed** |
 
 F-1 is split across two issues because the two halves have different fixes: [#29](https://github.com/MaximilianMihoc/hubix-portal/issues/29) is a contained code
 change, [#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) needs a product decision about mailbox verification.
@@ -281,7 +300,10 @@ account changes, and impose an absolute session lifetime. (Microsoft: "react to 
   compared *before* the transaction, not guarded inside it, so concurrent requests by one prospect
   can exceed three. Minor: each hold still needs a distinct Available unit; the cap is a soft rule
   the code itself calls "a guess"; the reserve rate limiter (5/10min/IP) blunts it. **Fix:** enforce
-  the cap inside the hold transaction.
+  the cap inside the hold transaction. — *This prescription is wrong and was not what fixed it.
+  Counting inside the transaction changes nothing (each attempt's own row is invisible to the
+  others until it commits) and deadlocks under load. The cap is enforced behind an `UPDLOCK` on
+  the prospect row; see §10.*
 - **F-9 — Import commit hash optional.** `src/Hubix.Web/Api/ImportApi.cs:409` skips the
   preview-vs-commit file-hash check when the client omits `hash`. Not an access hole (still
   `CanEdit`, re-planned server-side, cannot touch held/sold units) — an integrity gap only.
@@ -349,10 +371,26 @@ pending findings" but "downgrade until reproduced, then grade on what the run sh
 
 ---
 
-## 10. Remediation plan
+## 10. Remediation plan — all complete
 
-Each item is a GitHub issue carrying its own reproduction, acceptance criteria and a
+Each item was a GitHub issue carrying its own reproduction, acceptance criteria and a
 **Constraints / don't break** section naming the repo invariants a plausible fix can violate.
+All ten are closed, in the order below, each proved before the fix and verified after it.
+
+**Where the prescribed fix turned out to be wrong.** Worth recording, because the issues were
+written before anything was attempted and three of them mis-prescribed:
+
+- **F-8/[#37](https://github.com/MaximilianMihoc/hubix-portal/issues/37)** proposed re-counting inside the transaction. That does not work — each
+  transaction's own hold row is invisible to the others until it commits — and it is actively
+  harmful: six simultaneous requests produced **ten deadlocks**, measured on SQL Server's own
+  counter, surviving only because the execution strategy retries. The fix is an `UPDLOCK` on the
+  prospect row first, then the count.
+- **L-1/[#53](https://github.com/MaximilianMihoc/hubix-portal/issues/53)**'s follow-up note suggested a path segment as one way to keep a token out of
+  the log. It is not: request logging records the path exactly as it records the query. Only the
+  fragment stays out of the log, because a browser never sends it.
+- **F-9/[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38)** asked for a client fix that was not needed (the admin client already sent the
+  hash) and an integration test that cannot exist (`Hubix.IntegrationTests` does not reference
+  `Hubix.Web`, so it cannot reach an endpoint).
 
 ### P0 — before public deployment
 1. **[#31](https://github.com/MaximilianMihoc/hubix-portal/issues/31) — F-2 SVG XSS** — drop/sanitize `.svg`; serve assets `attachment` + `nosniff`.
@@ -373,7 +411,21 @@ Each item is a GitHub issue carrying its own reproduction, acceptance criteria a
 8. **[#36](https://github.com/MaximilianMihoc/hubix-portal/issues/36) — F-6** — reservation rowversion / guarded update; `State`↔`CancelledAt` CHECK constraint.
 9. **[#37](https://github.com/MaximilianMihoc/hubix-portal/issues/37) — F-8** — enforce the three-hold cap inside the hold transaction.
 10. **[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38) — F-9** — make the import file-hash mandatory on commit.
-11. Re-run `dotnet list package --vulnerable` and `npm audit` in CI on a schedule.
+11. Re-run `dotnet list package --vulnerable` and `npm audit` in CI on a schedule. *Still open —
+    the only item on this list not done.*
+
+### Still open, deliberately
+
+Neither is a finding of this assessment; both were raised by the work on it.
+
+- **[#60](https://github.com/MaximilianMihoc/hubix-portal/issues/60)** — the three buyer links (`/hold/{token}`, `/waitlist/{token}`, `/reserve/{token}`)
+  still carry their token in the URL path, so a request log records them. The staff link was moved
+  to the fragment; these were not, because these pages work without JavaScript and their tokens
+  grant far less. They are, however, much longer-lived than a 15-minute sign-in token, and today
+  they stay out of the log only because `appsettings.json` pins `Microsoft.AspNetCore` to
+  `Warning`. Needs a product decision before implementation.
+- **[#61](https://github.com/MaximilianMihoc/hubix-portal/issues/61)** — `MaxActiveHoldsPerProject = 3` is a guess, and the code says so. F-8 made the
+  number enforceable, not correct. Blocked on a conversation with Hubix that has not happened.
 
 ---
 
@@ -386,3 +438,21 @@ Each item is a GitHub issue carrying its own reproduction, acceptance criteria a
 - **Code-confirmed (not run here):** F-1, F-4, F-8, F-9. F-1 was also observed in Report B's
   synthetic-DB tests.
 - **Disproven by test:** N-1 (throwaway-DB integration test; false positive).
+
+**Since closing (2026-09-18).** Every finding that was only code-confirmed above was afterwards
+reproduced for real before being fixed, so nothing on this list rests on reading alone any more:
+
+- **F-1a/F-1b** — two identical waitlist submissions shown to return byte-identical responses with
+  no token in either; a reservation submission shown to leave the unit `Available` until the
+  emailed link is pressed.
+- **F-4** — a deactivated and a demoted staff cookie both shown returning 401/403 after the
+  two-minute re-check interval.
+- **F-8** — reproduced as a flaky failure first (4 runs in 6; **5 holds against a cap of 3**),
+  which is the honest form of it: a single passing run would have declared it absent.
+- **F-9** — a commit with no hash, and one with a wrong hash, both refused live with HTTP 400,
+  with the audit log confirming nothing was written.
+
+Two of the fixes were also verified in a real browser rather than only by test: the CSP sandbox
+blocking a planted script-bearing SVG (F-2), and the staff sign-in token no longer appearing
+anywhere in the application log with `Microsoft.AspNetCore` logging deliberately raised to
+`Information` (L-2).
