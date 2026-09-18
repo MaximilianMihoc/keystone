@@ -5,6 +5,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      As in Hubix.Infrastructure: so the tests can exercise internal helpers directly rather
+      than widening the public API to suit them. ImportApi.RefuseUnreviewed is the case in
+      point — it decides whether a commit may apply a workbook nobody reviewed, and the
+      endpoint around it cannot be reached from Hubix.IntegrationTests, which does not
+      reference this project.
+    -->
+    <InternalsVisibleTo Include="Hubix.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.25" />
     <PackageReference Include="Hangfire.SqlServer" Version="1.8.25" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">

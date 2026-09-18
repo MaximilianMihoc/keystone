@@ -152,15 +152,10 @@ public static class ImportApi
                 stream.Position = 0;
 
                 var hash = ImportPlanner.Hash(stream);
-                var expected = request.Form["hash"].FirstOrDefault();
 
-                if (!string.IsNullOrEmpty(expected) && expected != hash)
+                if (RefuseUnreviewed(request.Form["hash"].FirstOrDefault(), hash) is { } unreviewed)
                 {
-                    // A different file than the one that was reviewed.
-                    return Results.BadRequest(new
-                    {
-                        error = "This is not the file that was previewed. Upload it again and read the changes."
-                    });
+                    return Results.BadRequest(new { error = unreviewed });
                 }
 
                 var worksheet = request.Form["worksheet"].FirstOrDefault();
@@ -215,6 +210,22 @@ public static class ImportApi
                 return Results.Ok(new { id = profile.Id, name = profile.Name });
             });
     }
+
+    /// <summary>
+    /// Why this upload may not be committed against the preview it claims, or null if it may.
+    /// </summary>
+    /// <remarks>
+    /// A commit has to name the preview somebody approved. This used to be skipped altogether
+    /// when the field was absent, which made "you apply what you read" the caller's to opt into
+    /// — and an import rewrites a whole project's prices in one action, with the audit row
+    /// recording the commit rather than the review (issue #38). A missing hash is refused in the
+    /// same words as a wrong one: in both cases nothing has shown this is the reviewed file, and
+    /// the answer is the same either way — upload it again and read the changes.
+    /// </remarks>
+    internal static string? RefuseUnreviewed(string? claimed, string actual) =>
+        string.Equals(claimed, actual, StringComparison.Ordinal)
+            ? null
+            : "This is not the file that was previewed. Upload it again and read the changes.";
 
     private static string? Refuse(IFormFile? file)
     {

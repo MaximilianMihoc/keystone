@@ -270,6 +270,11 @@ admin bundle.
   written at sign-in (`VerifyModel`) and the claims it compares have to stay in step; a session
   whose role no longer matches is ended, not quietly corrected. Sessions also have a 24-hour
   ceiling that sliding renewal cannot lift.
+- An import commit must name the preview it was approved from. `ImportApi.RefuseUnreviewed`
+  compares the uploaded file's hash with the one the preview handed out, and a missing hash is
+  refused exactly like a wrong one — it used to skip the check altogether, which made "you apply
+  what you read" the caller's to opt into (issue #38). An import rewrites a project's prices in
+  one action and the audit row records the commit, not the review.
 - Never change `Units.State` with SQL. Route through the services so the hold or reservation and the
   audit row move with it.
 
