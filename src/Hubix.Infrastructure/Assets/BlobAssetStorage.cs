@@ -10,9 +10,10 @@ namespace Hubix.Infrastructure.Assets;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Not yet run against a real storage account.</b> It is written and it compiles; nothing
-/// has proved it. The local implementation is what the tests cover, and the first deployment
-/// that turns this on should upload one file and read it back before anything else.
+/// First run against a real storage account on 19 September 2026: upload, signed read and
+/// admin preview all worked. The tests still cover only the local implementation. Previews
+/// need a CORS rule on the account allowing <c>GET</c> from the portal's origin; without it
+/// every tile shows "no preview".
 /// </para>
 /// <para>
 /// The container is created private. Nothing here ever makes it public: every read goes

@@ -16,6 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Local configuration never ships. Production does not load it, but it would still sit on
+      the server holding a developer's connection string and redirect address.
+    -->
+    <Content Update="appsettings.Development*.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.25" />
     <PackageReference Include="Hangfire.SqlServer" Version="1.8.25" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
