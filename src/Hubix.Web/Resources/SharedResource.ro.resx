@@ -54,6 +54,7 @@
 
   <data name="Nav.Projects"><value>Proiecte</value></data>
   <data name="Nav.Contact"><value>Contact</value></data>
+  <data name="Demo.Banner"><value>Demo neoficial. Nu este afiliat cu Hubix și nici aprobat de Hubix. Nu introduceți date personale reale.</value></data>
   <data name="Nav.Language"><value>Limbă</value></data>
   <data name="Nav.Theme"><value>Aspect</value></data>
   <data name="Theme.light"><value>Luminos</value></data>
