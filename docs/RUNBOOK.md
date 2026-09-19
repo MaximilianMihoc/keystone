@@ -87,6 +87,14 @@ refuses blocked recipients, anyone outside the allow list, and redirects everyth
 
 ## Backups
 
+**Azure SQL (the deployed instance)** backs itself up. The Basic tier keeps seven days of
+point-in-time restore with nothing to schedule. A restore is **SQL database → Restore** in the
+portal, which creates a *new* database at the chosen moment and leaves the original alone. The
+drill below applies there too: restore under another name, count the rows, delete it. It has
+not been performed against Azure yet.
+
+The scripts below are for a SQL Server you run yourself, such as the local SQLEXPRESS.
+
 ```powershell
 ./ops/backup.ps1                       # full, verified, 30-day retention
 ./ops/restore-drill.ps1                # restore the latest into a throwaway and count rows
@@ -115,15 +123,69 @@ is a backup job that has been "succeeding" for months against a database it stop
 
 ## Deploying
 
-1. CI must be green: unit tests, integration tests against a real SQL Server, no pending
-   model changes, and the admin bundle present.
-2. Take a backup (`ops/backup.ps1`) **before** applying migrations.
-3. Apply migrations:
-   ```powershell
-   dotnet ef database update --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-   ```
-4. Deploy. A Production instance **refuses to start** if its configuration is unsafe — see
-   below — so a bad deploy fails immediately and loudly rather than serving something wrong.
+The portal runs in Azure, region Germany West Central, all in resource group `hubix-dev`:
+
+| | |
+|---|---|
+| App Service `hubix-dev` | Linux, .NET 10, B1, Always On. https://hubix-dev-gng6fjg5d6bvc7hf.germanywestcentral-01.azurewebsites.net |
+| Azure SQL database | Basic. Hangfire lives in it too. Serverless would never pause, because Hangfire polls it every 15 seconds. |
+| Storage account | Private container `hubix-assets`, created by the app. Account-key access must stay on, because read links are signed with the key. CORS allows `GET` from the site. |
+
+Configuration is in **App Service → Environment variables**, never in a file:
+`ConnectionStrings__HubixDb`, `Assets__BlobConnectionString`, `Hubix__PublicBaseUrl`,
+`Hubix__SalesInbox`, `AllowedHosts`, `Resend__ApiKey`, `Email__From`. `ASPNETCORE_ENVIRONMENT`
+is deliberately unset, which means Production.
+
+**Every merge to `main` deploys.** The `deploy` job in `.github/workflows/ci.yml` runs only
+after the build job has passed every check: unit tests, integration tests against a real SQL
+Server, no pending model changes, and the admin bundle present. It then waits for `/health` to
+answer `ok`. A Production instance **refuses to start** if its configuration is unsafe (see
+below), so a bad deploy fails that step rather than serving something wrong.
+
+**Migrations are not applied by the pipeline.** If a pull request adds one, apply it by hand
+**before merging**. Old code runs fine against a newer schema far more often than new code
+runs against an old one. From a terminal you close afterwards, so `HUBIX_DB` does not linger
+and point every later `dotnet ef` at production:
+
+```powershell
+$env:HUBIX_DB = "<the Azure SQL connection string>"
+dotnet ef migrations list  --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+dotnet ef database update  --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+```
+
+Your IP has to be on the SQL server's firewall list (**SQL server → Networking**). Point-in-time
+restore is the backup, but for a migration that drops or rewrites data, note the time first.
+
+### Signing the pipeline in to Azure (once)
+
+The workflow signs in with OpenID Connect, so there is no stored password or publish profile.
+It needs three repository secrets, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and
+`AZURE_SUBSCRIPTION_ID`, and one app registration that trusts pushes to `main`:
+
+```powershell
+$app = az ad app create --display-name hubix-portal-deploy | ConvertFrom-Json
+az ad sp create --id $app.appId
+'{"name":"main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:MaximilianMihoc/hubix-portal:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}' | Set-Content -Encoding ascii fic.json
+az ad app federated-credential create --id $app.id --parameters "@fic.json"
+Remove-Item fic.json
+az role assignment create --assignee $app.appId --role "Website Contributor" --scope (az group show -n hubix-dev --query id -o tsv)
+```
+
+It can deploy to web apps in `hubix-dev` and do nothing else: not read the database, not touch
+storage, not create resources.
+
+### Deploying by hand
+
+Only when the pipeline cannot, and only from a clean `main`:
+
+```powershell
+dotnet publish src/Hubix.Web -c Release -o publish
+C:\Windows\System32\tar.exe -a -c -f hubix-web.zip -C publish *
+az webapp deploy -g hubix-dev -n hubix-dev --src-path hubix-web.zip --type zip --clean true
+```
+
+Use **Windows' own `tar.exe`**. Git Bash's `tar` ignores `-a`, writes a tar archive named
+`.zip`, and App Service then accepts it and serves its own placeholder page instead of the app.
 
 ### What stops a production start
 
@@ -317,11 +379,6 @@ These are not built, and most cannot be by me.
   the restore drill against something other than a laptop.
 - **Error tracking.** The health checks say something is wrong; they do not say what threw.
   Sentry or Application Insights, wired to the existing `ILogger` calls.
-- **The Azure Blob storage path.** `BlobAssetStorage` is written and has never run against a
-  real storage account — it says so at the top of the file. The first deployment that turns it
-  on should upload one file and read it back before trusting anything else. The admin Files
-  screen reads each file with `fetch` to draw its preview, so the container needs a CORS rule
-  allowing `GET` from the portal's origin; without it every tile shows "no preview".
 
 ### Needs a person
 
