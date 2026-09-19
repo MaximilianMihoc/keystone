@@ -264,7 +264,7 @@ h3 {
     display: grid;
     grid-template-columns: 1fr;
     gap: 18px;
-    padding: 26px 0;
+    padding: 14px 0;
     border-bottom: 1px solid var(--rule);
     text-decoration: none;
     color: inherit;
@@ -279,7 +279,27 @@ h3 {
     }
 }
 
-.project-row:hover { background: var(--surface); }
+.project-row:hover,
+.project-row:focus-visible { background: var(--surface); }
+
+.project-action {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    white-space: nowrap;
+    color: var(--amber-deep);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.project-row:hover .project-action,
+.project-row:focus-visible .project-action {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
 
 .project-row .name {
     font-family: var(--display);

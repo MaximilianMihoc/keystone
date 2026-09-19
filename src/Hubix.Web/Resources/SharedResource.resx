@@ -151,6 +151,7 @@
   <data name="Index.Empty"><value>No projects are open right now.</value></data>
   <data name="Index.From"><value>From</value></data>
   <data name="Index.OfAvailable"><value>of {0} available</value></data>
+  <data name="Index.ViewDetails"><value>View details</value></data>
 
   <!-- Project detail -->
   <data name="Project.FreeOfTotal"><value>{0} of {1} still available</value></data>
