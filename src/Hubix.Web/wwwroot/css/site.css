@@ -97,6 +97,20 @@ a { color: inherit; }
 }
 .skip-link:focus { left: 8px; top: 8px; }
 
+/* ---------- demo banner -------------------------------------------------- */
+
+.demo-banner {
+    margin: 0;
+    padding: 8px 16px;
+    background: var(--amber-soft);
+    color: var(--amber-deep);
+    border-bottom: 1px solid var(--amber);
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+}
+
 /* ---------- masthead ---------------------------------------------------- */
 
 .masthead {
