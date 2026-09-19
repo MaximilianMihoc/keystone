@@ -123,6 +123,9 @@ is a backup job that has been "succeeding" for months against a database it stop
 
 ## Deploying
 
+How it was set up, resource by resource, is in
+[`05-azure-deployment.md`](05-azure-deployment.md). This section is day-to-day operation.
+
 The portal runs in Azure, region Germany West Central, all in resource group `hubix-dev`:
 
 | | |
