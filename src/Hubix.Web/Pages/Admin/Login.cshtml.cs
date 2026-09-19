@@ -143,6 +143,14 @@ public class VerifyModel(StaffAuthService auth, ILogger<VerifyModel> logger) : P
     }
 }
 
+/// <remarks>
+/// No antiforgery token, because the admin client's sign-out is a plain form with no way to
+/// get one, and requiring it refused every sign-out with a 400 (issue #67). That is safe here:
+/// the worst a forged request can do is sign somebody out, and the SameSite=Lax staff cookie
+/// is not sent on a cross-site POST anyway. POST only, so a prefetch or a link scanner cannot
+/// end a session.
+/// </remarks>
+[IgnoreAntiforgeryToken]
 public class LogoutModel : PageModel
 {
     public async Task<IActionResult> OnPostAsync()
