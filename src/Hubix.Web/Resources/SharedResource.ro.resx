@@ -139,6 +139,7 @@
   <data name="Index.Empty"><value>Momentan nu este deschis niciun proiect.</value></data>
   <data name="Index.From"><value>De la</value></data>
   <data name="Index.OfAvailable"><value>din {0} disponibile</value></data>
+  <data name="Index.ViewDetails"><value>Vezi detalii</value></data>
 
   <data name="Project.FreeOfTotal"><value>{0} din {1} încă disponibile</value></data>
   <data name="Project.HoldHours"><value>blochează apartamentul {0}h</value></data>
