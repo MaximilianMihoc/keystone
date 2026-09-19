@@ -165,7 +165,7 @@ It needs three repository secrets, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and
 ```powershell
 $app = az ad app create --display-name hubix-portal-deploy | ConvertFrom-Json
 az ad sp create --id $app.appId
-'{"name":"main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:MaximilianMihoc/hubix-portal:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}' | Set-Content -Encoding ascii fic.json
+'{"name":"main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:MaximilianMihoc@5854236/hubix-portal@1354394993:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}' | Set-Content -Encoding ascii fic.json
 az ad app federated-credential create --id $app.id --parameters "@fic.json"
 Remove-Item fic.json
 az role assignment create --assignee $app.appId --role "Website Contributor" --scope (az group show -n hubix-dev --query id -o tsv)
@@ -173,6 +173,13 @@ az role assignment create --assignee $app.appId --role "Website Contributor" --s
 
 It can deploy to web apps in `hubix-dev` and do nothing else: not read the database, not touch
 storage, not create resources.
+
+**The subject names the owner and repository by numeric id** (`MaximilianMihoc@5854236`,
+`hubix-portal@1354394993`), because that is what this repository's tokens present. The
+familiar `repo:owner/name:ref:…` form is refused with `AADSTS700213: No matching federated
+identity record`, and the error prints the subject that was actually sent. Copy it from there
+if it ever changes. Ids are the better thing to trust anyway: a name can be renamed or
+re-registered by somebody else, and an id cannot.
 
 ### Deploying by hand
 
