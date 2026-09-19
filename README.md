@@ -173,6 +173,7 @@ Analysis, proposal and the full build specification are in `docs/`.
 | [`02-application-proposal`](docs/02-application-proposal.md) | Why this system, what is deliberately out of scope, build order |
 | [`03-build-spec`](docs/03-build-spec.md) | Schema, state machine, routes, milestones, production checklist |
 | [`04-security-assessment`](docs/04-security-assessment.md) | Pre-launch security review: findings, what was ruled out, remediation order |
+| [`05-azure-deployment`](docs/05-azure-deployment.md) | Step by step: every Azure resource, setting and command that took the portal live |
 | [`RUNBOOK`](docs/RUNBOOK.md) | Health checks, what to do when something is wrong, the deploy checklist |
 | `seed-data/` | The five inventory spreadsheets extracted to JSON |
 
@@ -181,22 +182,6 @@ with Hubix.
 
 Source material — prospectuses and spreadsheets containing real prices and buyer data — stays in
 `C:\Repositories\HubixDocs` and is gitignored here.
-
----
-
-## Milestones
-
-| | | |
-|---|---|---|
-| M1 | Schema, EF migrations, seed | ✅ done |
-| M2 | Public project page and inventory, read-only | ✅ done |
-| M3 | Holds, the Hangfire job, transactional email | ✅ done |
-| M4 | Auth, React admin shell, editable units grid | ✅ done |
-| M5 | Reservation pipeline and the board | ✅ done |
-| M6 | Waiting list with auto-promotion | ✅ done |
-| M7 | Importer and exporter | ✅ done |
-| M8 | Assets — floor plans, RLVs, renders | ✅ done |
-| M9 | Hardening and deploy | ✅ code done; deploy items open |
 
 ---
 
