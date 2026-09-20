@@ -70,7 +70,7 @@ public sealed class HoldNotifier(
             unitCode,
             projectName,
             link,
-            expiresAt.ToLocalTime().ToString("dd MMM yyyy HH:mm", CultureInfo.CurrentCulture)));
+            Display.Moment(expiresAt, "dd MMM yyyy HH:mm", localizer)));
 
         var subject = InLocale(locale, () => string.Format(
             CultureInfo.CurrentCulture,
@@ -99,7 +99,7 @@ public sealed class HoldNotifier(
             unitCode,
             projectName,
             holdHours,
-            expiresAt.ToLocalTime().ToString("dd MMMM yyyy, HH:mm", CultureInfo.CurrentCulture),
+            Display.Moment(expiresAt, "dd MMMM yyyy, HH:mm", localizer),
             $"{_options.PublicBaseUrl.TrimEnd('/')}/hold/{accessToken}"));
 
         var subject = InLocale(locale, () => string.Format(
@@ -213,12 +213,17 @@ public sealed class HoldNotifier(
             ? ""
             : $"\nParking: {string.Join(", ", parkingSpaces)}\n";
 
+        // Romanian time, like the buyer's own email. Sales ring the buyer about this deadline,
+        // and the two of them reading different numbers for the same moment helps nobody.
+        var expires = Display.InRomania(expiresAt)
+            .ToString("dd MMM yyyy HH:mm", CultureInfo.InvariantCulture);
+
         var body =
             $"""
              {prospectName ?? "(no name given)"} <{prospectEmail}>{(phone is null ? "" : $"  {phone}")}
              has taken a hold on {unitCode}, {projectName}.
              {parking}
-             It expires {expiresAt:dd MMM yyyy HH:mm} UTC unless they proceed.
+             It expires {expires} (Romania time) unless they proceed.
              """;
 
         await email.SendAsync(

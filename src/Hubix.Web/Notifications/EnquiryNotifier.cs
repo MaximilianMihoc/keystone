@@ -32,7 +32,8 @@ public sealed class EnquiryNotifier(
                    CultureInfo.CurrentCulture,
                    localizer["Email.PrivacyRequestBody"].Value,
                    localizer["Contact.Kind" + request.Kind].Value,
-                   request.DueAt.ToLocalTime().ToString("dd MMMM yyyy", CultureInfo.CurrentCulture)));
+                   Display.InRomania(request.DueAt)
+                       .ToString("dd MMMM yyyy", CultureInfo.CurrentCulture)));
 
         await email.SendAsync(
             new EmailMessage(toEmail, subject, body, await inboxes.ForAsync(projectId, ct)), ct);
@@ -57,7 +58,7 @@ public sealed class EnquiryNotifier(
             ? ""
             : $"""
 
-               This is a GDPR {request.Kind} request. It is due by {request.DueAt:dd MMM yyyy}.
+               This is a GDPR {request.Kind} request. It is due by {Display.InRomania(request.DueAt):dd MMM yyyy}.
                Check who they are before acting on it, and answer it from the Prospects screen.
 
                """;
