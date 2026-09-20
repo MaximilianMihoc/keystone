@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hubix.Infrastructure.Auth;
 using Hubix.Infrastructure.Email;
 using Microsoft.Extensions.Options;
@@ -40,6 +41,12 @@ public sealed class StaffNotifier(IEmailSender email, IOptionsSnapshot<HubixOpti
 
     private async Task<string> SendAsync(LoginLink link, string url, CancellationToken ct)
     {
+        // The date is here because the link lives fifteen minutes: one issued at ten to midnight
+        // expires tomorrow, and this used to say "today". Invariant, because the email is English
+        // whatever language the admin happens to be reading the site in.
+        var expires = Display.InRomania(link.ExpiresAt)
+            .ToString("HH:mm 'on' dd MMM", CultureInfo.InvariantCulture);
+
         var body =
             $"""
              Hello {link.Name},
@@ -48,7 +55,7 @@ public sealed class StaffNotifier(IEmailSender email, IOptionsSnapshot<HubixOpti
 
              {url}
 
-             It works once and stops working at {link.ExpiresAt.ToLocalTime():HH:mm} today.
+             It works once and stops working at {expires} (Romania time).
 
              If you did not ask for this, ignore it — the link is useless without this email,
              and asking for a new one cancels this one.

@@ -44,7 +44,7 @@
                 <span data-countdown>—</span>
             </p>
             <p class="countdown-until">
-                @L["Hold.Until", Model.Hold.ExpiresAt.ToLocalTime().ToString("dd MMMM yyyy, HH:mm")]
+                @L["Hold.Until", Display.Moment(Model.Hold.ExpiresAt, "dd MMMM yyyy, HH:mm", T)]
             </p>
         </div>
 

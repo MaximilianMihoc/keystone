@@ -64,6 +64,7 @@
   <data name="Theme.light"><value>Light</value></data>
   <data name="Theme.dark"><value>Dark</value></data>
   <data name="Theme.system"><value>Auto</value></data>
+  <data name="Time.Zone"><value>(Romania time)</value></data>
 
   <!-- Project pages -->
   <data name="Project.Apartments"><value>Apartments</value></data>

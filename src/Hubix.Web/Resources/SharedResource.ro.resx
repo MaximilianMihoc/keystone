@@ -60,6 +60,7 @@
   <data name="Theme.light"><value>Luminos</value></data>
   <data name="Theme.dark"><value>Întunecat</value></data>
   <data name="Theme.system"><value>Auto</value></data>
+  <data name="Time.Zone"><value>(ora României)</value></data>
 
   <data name="Project.Apartments"><value>Apartamente</value></data>
   <data name="Project.Developer"><value>Dezvoltator</value></data>

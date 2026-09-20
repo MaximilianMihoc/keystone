@@ -14,6 +14,41 @@ namespace Hubix.Web;
 /// </remarks>
 public static class Display
 {
+    /// <summary>
+    /// The timezone every deadline this portal states is stated in.
+    /// </summary>
+    /// <remarks>
+    /// Not the server's. <c>ToLocalTime()</c> converts to wherever the process happens to run,
+    /// which on Linux App Service is UTC, so a buyer in Bucharest was told a deadline two or
+    /// three hours earlier than the real one — and the bug was invisible on a Windows
+    /// development machine, where the server's local time already is Romanian.
+    /// <para>
+    /// The IANA id works on Windows as well as Linux; .NET resolves both spellings through ICU.
+    /// </para>
+    /// </remarks>
+    private static readonly TimeZoneInfo Romania =
+        TimeZoneInfo.FindSystemTimeZoneById("Europe/Bucharest");
+
+    /// <summary>The same instant, read as a clock on a wall in Romania.</summary>
+    public static DateTimeOffset InRomania(DateTimeOffset value) =>
+        TimeZoneInfo.ConvertTime(value, Romania);
+
+    /// <summary>
+    /// A deadline, in Romanian time and saying which time that is.
+    /// </summary>
+    /// <remarks>
+    /// The zone is named because a bare "14:00" in an inbox is unreadable — nothing else in an
+    /// email tells the reader which clock it means, and a hold that lapses is not a thing to be
+    /// vague about.
+    /// </remarks>
+    public static string Moment(DateTimeOffset value, string format, IStringLocalizer localizer)
+    {
+        ArgumentNullException.ThrowIfNull(localizer);
+
+        return InRomania(value).ToString(format, CultureInfo.CurrentCulture)
+               + " " + localizer["Time.Zone"].Value;
+    }
+
     /// <summary>A price, in whole euro. Cents are noise at these amounts.</summary>
     public static string Money(decimal value) =>
         "€" + value.ToString("N0", CultureInfo.CurrentCulture);
