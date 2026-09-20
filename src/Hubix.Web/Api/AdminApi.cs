@@ -37,7 +37,8 @@ public static class AdminApi
 
             var rows = await db.Projects
                 .AsNoTracking()
-                .OrderBy(p => p.Name)
+                .OrderBy(p => p.SortOrder)
+                .ThenBy(p => p.Name)
                 .Select(p => new
                 {
                     p.Id,
@@ -45,6 +46,7 @@ public static class AdminApi
                     p.Name,
                     p.City,
                     p.Status,
+                    p.SortOrder,
                     p.UnitsCommitted,
                     p.PublishedAt,
                     p.DeveloperId,
@@ -69,6 +71,7 @@ public static class AdminApi
                     .Select(t => new ProjectTranslation { Culture = t.Culture, City = t.City })
                     .CityFor(culture, p.City),
                 status = p.Status.ToString(),
+                sortOrder = p.SortOrder,
                 unitsCommitted = p.UnitsCommitted,
                 publishedAt = p.PublishedAt,
                 developerId = p.DeveloperId,

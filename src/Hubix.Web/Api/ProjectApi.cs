@@ -414,6 +414,15 @@ public static class ProjectApi
                 Respond(await admin.SetPublishedAsync(
                     projectId, request.Published, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
 
+        editable.MapPut("/projects/{projectId:guid}/order",
+            async (Guid projectId,
+                   ProjectOrderRequest request,
+                   ProjectAdminService admin,
+                   ClaimsPrincipal user,
+                   CancellationToken ct) =>
+                Respond(await admin.SetProjectOrderAsync(
+                    projectId, request.SortOrder, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
+
         editable.MapPut("/projects/{projectId:guid}/translations/{culture}",
             async (Guid projectId,
                    string culture,
@@ -825,6 +834,8 @@ public static class ProjectApi
         string? ReservationNotice);
 
     public sealed record PublishRequest(bool Published);
+
+    public sealed record ProjectOrderRequest(int SortOrder);
 
     public sealed record TrancheRequest(
         string? Label,

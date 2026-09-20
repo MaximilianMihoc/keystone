@@ -41,6 +41,15 @@ public class Project : Entity
     public ProjectStatus Status { get; set; } = ProjectStatus.Draft;
 
     /// <summary>
+    /// Where this development sits in every list of developments, lowest first.
+    /// </summary>
+    /// <remarks>
+    /// Set on the Organisation screen. Every list breaks ties on whatever it sorted by before,
+    /// so leaving them all at zero leaves those lists exactly as they were.
+    /// </remarks>
+    public int SortOrder { get; set; }
+
+    /// <summary>
     /// How many apartments Hubix committed to.
     /// </summary>
     /// <remarks>

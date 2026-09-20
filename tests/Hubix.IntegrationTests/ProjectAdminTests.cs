@@ -172,6 +172,26 @@ public class ProjectAdminTests(DatabaseFixture fixture)
     }
 
     [Fact]
+    public async Task Ordering_a_project_is_written_once_and_then_says_nothing_changed()
+    {
+        await fixture.ResetUnitAsync();
+
+        var id = await NewProjectAsync();
+
+        await using var db = fixture.CreateContext();
+        var moved = await Service(db).SetProjectOrderAsync(id, 5, Actor, "dev", CancellationToken.None);
+        moved.ShouldBeOfType<AdminWriteResult.Updated>();
+
+        await using var verify = fixture.CreateContext();
+        (await verify.Projects.SingleAsync(p => p.Id == id)).SortOrder.ShouldBe(5);
+
+        // Saving the same number again must not fill the audit log with rows that record nothing.
+        await using var again = fixture.CreateContext();
+        (await Service(again).SetProjectOrderAsync(id, 5, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<AdminWriteResult.NoChange>();
+    }
+
+    [Fact]
     public async Task A_published_project_cannot_change_its_address()
     {
         await fixture.ResetUnitAsync();

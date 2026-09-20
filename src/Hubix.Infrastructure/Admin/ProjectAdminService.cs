@@ -490,6 +490,44 @@ public sealed class ProjectAdminService(
     }
 
     /// <summary>
+    /// Moves a project in the lists that show every project.
+    /// </summary>
+    /// <remarks>
+    /// Its own endpoint rather than a field on <see cref="ProjectEdit"/>: that form is the
+    /// project's own Setup tab, and where a project sits relative to the others is only
+    /// answerable with the others in front of you. One writer per column, as ever.
+    /// </remarks>
+    public async Task<AdminWriteResult> SetProjectOrderAsync(
+        Guid projectId,
+        int sortOrder,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
+        if (project is null)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        var diff = new Diff();
+
+        diff.Set("SortOrder", project.SortOrder, sortOrder, v => project.SortOrder = v);
+
+        if (diff.IsEmpty)
+        {
+            return new AdminWriteResult.NoChange();
+        }
+
+        Audit(actorId, actorLabel, "project", project.Id, "project.edited", diff.Before, diff.Changes);
+
+        await db.SaveChangesAsync(ct);
+
+        return new AdminWriteResult.Updated(diff.Changes);
+    }
+
+    /// <summary>
     /// Writes the prose for one language, creating the row if this is the first time.
     /// </summary>
     public async Task<AdminWriteResult> SaveTranslationAsync(

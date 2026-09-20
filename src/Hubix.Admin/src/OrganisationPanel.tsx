@@ -17,10 +17,12 @@ interface Props {
   canEdit: boolean;
   /** Staff is admin-only, so the tab is hidden rather than shown and refused. */
   isAdmin: boolean;
-  /** Which section to open on, so the project picker's "+ New project" lands in the right place. */
+  /** Which section to open on, so deleting a project lands back on the list it left. */
   initialSection?: Section;
   onSessionExpired: () => void;
   onProjectCreated: (projectId: string) => void;
+  /** Re-reads the list, which this panel is handed rather than fetches. */
+  onProjectsChanged: () => void;
 }
 
 type Section = 'projects' | 'developers' | 'types' | 'staff';
@@ -52,6 +54,7 @@ export function OrganisationPanel({
   initialSection = 'projects',
   onSessionExpired,
   onProjectCreated,
+  onProjectsChanged,
 }: Props) {
   const [section, setSection] = useState<Section>(initialSection);
   const [developers, setDevelopers] = useState<Developer[] | null>(null);
@@ -68,6 +71,15 @@ export function OrganisationPanel({
 
   const [draft, setDraft] = useState<DeveloperEdit>(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
+
+  // Typed-but-unsaved order boxes. Keyed by project, and only the rows somebody has touched
+  // are in here — everything else reads its order straight off the row. A saved row drops out
+  // again, so a box never holds a number somebody typed before a reload moved the row.
+  //
+  // Held as the typed string rather than a number: every project starts at zero, so promoting
+  // one means a negative, and a number-typed box reports a lone "-" as "". Coercing that to 0
+  // makes React write "0" back over the minus mid-keystroke, and the sign can never be typed.
+  const [projectOrders, setProjectOrders] = useState<Record<string, string>>({});
 
   const [catalogue, setCatalogue] = useState<UnitTypeCatalogue | null>(null);
   const [typeName, setTypeName] = useState('');
@@ -241,28 +253,81 @@ export function OrganisationPanel({
               <table className="grid">
                 <thead>
                   <tr>
+                    <th className="num">Order</th>
                     <th>Name</th>
                     <th>City</th>
                     <th>Address</th>
                     <th>Status</th>
                     <th>Apartments</th>
                     <th>Public</th>
+                    {canEdit && <th />}
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.name}</td>
-                      <td>{p.city}</td>
-                      <td>/projects/{p.slug}</td>
-                      <td>{p.status}</td>
-                      <td>{p.total}</td>
-                      <td>{p.publishedAt ? 'Published' : 'Not published'}</td>
-                    </tr>
-                  ))}
+                  {projects.map((p) => {
+                    const typed = projectOrders[p.id] ?? String(p.sortOrder);
+                    // A half-typed "-" or an emptied box is not a number yet, so there is
+                    // nothing to save and nothing to compare against what is stored.
+                    const order = typed.trim() === '' || typed === '-' ? null : Number(typed);
+
+                    return (
+                      <tr key={p.id}>
+                        <td className="num">
+                          <input
+                            type="number"
+                            value={typed}
+                            disabled={!canEdit}
+                            onChange={(e) =>
+                              setProjectOrders({ ...projectOrders, [p.id]: e.target.value })
+                            }
+                          />
+                        </td>
+                        <td>{p.name}</td>
+                        <td>{p.city}</td>
+                        <td>/projects/{p.slug}</td>
+                        <td>{p.status}</td>
+                        <td>{p.total}</td>
+                        <td>{p.publishedAt ? 'Published' : 'Not published'}</td>
+                        {canEdit && (
+                          <td>
+                            <button
+                              className="btn"
+                              type="button"
+                              disabled={busy || order === null || order === p.sortOrder}
+                              onClick={() =>
+                                void run(async () => {
+                                  await api.setProjectOrder(p.id, order!);
+
+                                  // Back to reading off the row. Left here, this box would
+                                  // still show what was typed after somebody else moved the
+                                  // project, and offer to write the stale number back.
+                                  setProjectOrders((current) => {
+                                    const { [p.id]: _saved, ...rest } = current;
+                                    return rest;
+                                  });
+
+                                  onProjectsChanged();
+                                })
+                              }
+                            >
+                              Save
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
+            <p className="hint">
+              Lowest order first, on this list, on the public home page and in the contact form's
+              project picker. Projects sharing a number keep the order they had before, so
+              leaving them all at zero changes nothing. Negative numbers are allowed, and are
+              how you lift one project above the rest without renumbering the others. Be aware
+              that on the home page an order you set outranks the rule that sold-out projects
+              sink to the bottom.
+            </p>
             <p className="hint">
               Choose a project at the top of the page to edit it, publish it or delete it.
             </p>

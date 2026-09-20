@@ -48,6 +48,8 @@ export interface ProjectSummary {
   name: string;
   city: string;
   status: string;
+  /** Where it sits in every list of projects, lowest first. */
+  sortOrder: number;
   unitsCommitted: number | null;
   /** Null until somebody publishes it; the public site gates on exactly this. */
   publishedAt: string | null;
@@ -840,6 +842,12 @@ export const api = {
     request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}/published`, {
       method: 'POST',
       body: JSON.stringify({ published }),
+    }),
+
+  setProjectOrder: (projectId: string, sortOrder: number) =>
+    request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}/order`, {
+      method: 'PUT',
+      body: JSON.stringify({ sortOrder }),
     }),
 
   staff: () => request<StaffMember[]>('/api/admin/staff'),

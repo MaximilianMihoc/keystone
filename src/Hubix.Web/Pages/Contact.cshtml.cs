@@ -153,7 +153,8 @@ public class ContactModel(
         Projects = await db.Projects
             .AsNoTracking()
             .Where(p => p.PublishedAt != null)
-            .OrderBy(p => p.Name)
+            .OrderBy(p => p.SortOrder)
+            .ThenBy(p => p.Name)
             .Select(p => new ProjectChoice(p.Id, p.Slug, p.Name))
             .ToListAsync(ct);
 

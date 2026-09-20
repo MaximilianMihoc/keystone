@@ -20,7 +20,8 @@ public class IndexModel(HubixDbContext db) : PageModel
         var projects = await db.Projects
             .AsNoTracking()
             .Where(p => p.PublishedAt != null && p.Status != ProjectStatus.Archived)
-            .OrderBy(p => p.Status == ProjectStatus.SoldOut)
+            .OrderBy(p => p.SortOrder)
+            .ThenBy(p => p.Status == ProjectStatus.SoldOut)
             .ThenBy(p => p.DeliveryDate)
             .Select(p => new
             {
