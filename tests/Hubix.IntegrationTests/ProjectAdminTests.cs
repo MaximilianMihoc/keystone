@@ -172,23 +172,54 @@ public class ProjectAdminTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task Ordering_a_project_is_written_once_and_then_says_nothing_changed()
+    public async Task Reordering_numbers_the_projects_from_zero_in_the_order_given()
     {
         await fixture.ResetUnitAsync();
 
-        var id = await NewProjectAsync();
+        var second = await NewProjectAsync("Second");
+        var third = await NewProjectAsync("Third");
+
+        // The whole list has to arrive, seeded project included, or the write is refused.
+        var order = new[] { third, fixture.ProjectId, second };
 
         await using var db = fixture.CreateContext();
-        var moved = await Service(db).SetProjectOrderAsync(id, 5, Actor, "dev", CancellationToken.None);
-        moved.ShouldBeOfType<AdminWriteResult.Updated>();
+        (await Service(db).ReorderProjectsAsync(order, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<AdminWriteResult.Updated>();
 
         await using var verify = fixture.CreateContext();
-        (await verify.Projects.SingleAsync(p => p.Id == id)).SortOrder.ShouldBe(5);
+        var stored = await verify.Projects
+            .OrderBy(p => p.SortOrder)
+            .Select(p => p.Id)
+            .ToListAsync();
 
-        // Saving the same number again must not fill the audit log with rows that record nothing.
+        stored.ShouldBe(order);
+
+        // Dense from zero, so a project never ordered sorts like one that was.
+        (await verify.Projects.OrderBy(p => p.SortOrder).Select(p => p.SortOrder).ToListAsync())
+            .ShouldBe(new[] { 0, 1, 2 });
+
+        // Dropping a row back where it started must not fill the audit log with empty rows.
         await using var again = fixture.CreateContext();
-        (await Service(again).SetProjectOrderAsync(id, 5, Actor, "dev", CancellationToken.None))
+        (await Service(again).ReorderProjectsAsync(order, Actor, "dev", CancellationToken.None))
             .ShouldBeOfType<AdminWriteResult.NoChange>();
+    }
+
+    [Fact]
+    public async Task Reordering_a_list_that_has_lost_a_project_is_refused_rather_than_guessed_at()
+    {
+        await fixture.ResetUnitAsync();
+
+        var second = await NewProjectAsync("Second");
+
+        // A screen that loaded before the second project existed would send only the first.
+        await using var db = fixture.CreateContext();
+        var result = await Service(db).ReorderProjectsAsync(
+            [fixture.ProjectId], Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("Reload");
+
+        await using var verify = fixture.CreateContext();
+        (await verify.Projects.SingleAsync(p => p.Id == second)).SortOrder.ShouldBe(0);
     }
 
     [Fact]

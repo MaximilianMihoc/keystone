@@ -414,14 +414,22 @@ public static class ProjectApi
                 Respond(await admin.SetPublishedAsync(
                     projectId, request.Published, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
 
-        editable.MapPut("/projects/{projectId:guid}/order",
-            async (Guid projectId,
-                   ProjectOrderRequest request,
+        // On the list rather than under one project: dragging a project up renumbers everything
+        // it passed, so the whole order is what is being written.
+        editable.MapPut("/projects/order",
+            async (ProjectOrderRequest request,
                    ProjectAdminService admin,
                    ClaimsPrincipal user,
                    CancellationToken ct) =>
-                Respond(await admin.SetProjectOrderAsync(
-                    projectId, request.SortOrder, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct)));
+            {
+                if (request.ProjectIds is not { Count: > 0 } ids)
+                {
+                    return Results.BadRequest(new { error = "That request names no projects." });
+                }
+
+                return Respond(await admin.ReorderProjectsAsync(
+                    ids, AdminApi.ActorId(user), AdminApi.ActorLabel(user), ct));
+            });
 
         editable.MapPut("/projects/{projectId:guid}/translations/{culture}",
             async (Guid projectId,
@@ -835,7 +843,8 @@ public static class ProjectApi
 
     public sealed record PublishRequest(bool Published);
 
-    public sealed record ProjectOrderRequest(int SortOrder);
+    /// <summary>Every project, in the order they should appear.</summary>
+    public sealed record ProjectOrderRequest(List<Guid>? ProjectIds);
 
     public sealed record TrancheRequest(
         string? Label,

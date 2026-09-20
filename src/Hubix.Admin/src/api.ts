@@ -844,10 +844,11 @@ export const api = {
       body: JSON.stringify({ published }),
     }),
 
-  setProjectOrder: (projectId: string, sortOrder: number) =>
-    request<{ changed: Record<string, unknown> }>(`/api/admin/projects/${projectId}/order`, {
+  /** Every project, in the order they should appear. Positions are rewritten from this. */
+  reorderProjects: (projectIds: string[]) =>
+    request<{ changed: Record<string, unknown> }>('/api/admin/projects/order', {
       method: 'PUT',
-      body: JSON.stringify({ sortOrder }),
+      body: JSON.stringify({ projectIds }),
     }),
 
   staff: () => request<StaffMember[]>('/api/admin/staff'),
