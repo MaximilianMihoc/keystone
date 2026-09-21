@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   api,
   ApiError,
@@ -17,10 +17,12 @@ interface Props {
   canEdit: boolean;
   /** Staff is admin-only, so the tab is hidden rather than shown and refused. */
   isAdmin: boolean;
-  /** Which section to open on, so the project picker's "+ New project" lands in the right place. */
+  /** Which section to open on, so deleting a project lands back on the list it left. */
   initialSection?: Section;
   onSessionExpired: () => void;
   onProjectCreated: (projectId: string) => void;
+  /** Re-reads the list, which this panel is handed rather than fetches. */
+  onProjectsChanged: () => void;
 }
 
 type Section = 'projects' | 'developers' | 'types' | 'staff';
@@ -52,6 +54,7 @@ export function OrganisationPanel({
   initialSection = 'projects',
   onSessionExpired,
   onProjectCreated,
+  onProjectsChanged,
 }: Props) {
   const [section, setSection] = useState<Section>(initialSection);
   const [developers, setDevelopers] = useState<Developer[] | null>(null);
@@ -68,6 +71,12 @@ export function OrganisationPanel({
 
   const [draft, setDraft] = useState<DeveloperEdit>(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
+
+  // The row being dragged, and the row it is currently over. The first is a ref because the
+  // drag handlers read it during the drag and a re-render between them would be noise; the
+  // second is state because it draws the line showing where the row would land.
+  const draggingProject = useRef<string | null>(null);
+  const [overProject, setOverProject] = useState<string | null>(null);
 
   const [catalogue, setCatalogue] = useState<UnitTypeCatalogue | null>(null);
   const [typeName, setTypeName] = useState('');
@@ -118,6 +127,26 @@ export function OrganisationPanel({
       }
     },
     [load, onSessionExpired],
+  );
+
+  /**
+   * Lifts one project out of the list and drops it back in at another's position, then saves
+   * the whole order. Moving nothing, or moving a project onto itself, writes nothing.
+   */
+  const moveProject = useCallback(
+    (projectId: string, toIndex: number) => {
+      const from = projects.findIndex((p) => p.id === projectId);
+      if (from < 0 || toIndex < 0 || toIndex >= projects.length || from === toIndex) return;
+
+      const ids = projects.map((p) => p.id);
+      ids.splice(toIndex, 0, ...ids.splice(from, 1));
+
+      void run(async () => {
+        await api.reorderProjects(ids);
+        onProjectsChanged();
+      });
+    },
+    [projects, run, onProjectsChanged],
   );
 
   // The address follows the name until somebody types their own, and then stops interfering.
@@ -241,6 +270,7 @@ export function OrganisationPanel({
               <table className="grid">
                 <thead>
                   <tr>
+                    {canEdit && <th className="order-col">Order</th>}
                     <th>Name</th>
                     <th>City</th>
                     <th>Address</th>
@@ -250,8 +280,72 @@ export function OrganisationPanel({
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.map((p) => (
-                    <tr key={p.id}>
+                  {projects.map((p, index) => (
+                    <tr
+                      key={p.id}
+                      className={[
+                        canEdit ? 'orderable' : '',
+                        overProject === p.id ? 'over' : '',
+                      ].filter(Boolean).join(' ')}
+                      draggable={canEdit && !busy}
+                      onDragStart={(e) => {
+                        draggingProject.current = p.id;
+                        // Something has to be carried or Firefox refuses to start the drag.
+                        e.dataTransfer.setData('text/plain', p.name);
+                        e.dataTransfer.effectAllowed = 'move';
+                      }}
+                      onDragOver={(e) => {
+                        if (!draggingProject.current || draggingProject.current === p.id) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        setOverProject(p.id);
+                      }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                          setOverProject(null);
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const moved = draggingProject.current;
+                        draggingProject.current = null;
+                        setOverProject(null);
+                        if (moved) moveProject(moved, index);
+                      }}
+                      onDragEnd={() => {
+                        draggingProject.current = null;
+                        setOverProject(null);
+                      }}
+                    >
+                      {canEdit && (
+                        <td className="order-col">
+                          {/* Dragging is the quick way; these are the way that works from a
+                              keyboard, and they read the same order out to a screen reader. */}
+                          <span className="order-cell">
+                            <span className="grip" aria-hidden="true">
+                              ⠿
+                            </span>
+                            <button
+                              className="btn ghost nudge"
+                              type="button"
+                              disabled={busy || index === 0}
+                              aria-label={`Move ${p.name} up`}
+                              onClick={() => moveProject(p.id, index - 1)}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              className="btn ghost nudge"
+                              type="button"
+                              disabled={busy || index === projects.length - 1}
+                              aria-label={`Move ${p.name} down`}
+                              onClick={() => moveProject(p.id, index + 1)}
+                            >
+                              ↓
+                            </button>
+                          </span>
+                        </td>
+                      )}
                       <td>{p.name}</td>
                       <td>{p.city}</td>
                       <td>/projects/{p.slug}</td>
@@ -263,6 +357,12 @@ export function OrganisationPanel({
                 </tbody>
               </table>
             )}
+            <p className="hint">
+              Drag a project by its handle, or use the arrows, to set the order it appears in —
+              here, on the public home page and in the contact form's project picker. It saves
+              as soon as you drop it. Note that on the home page the order you set here outranks
+              the rule that sold-out projects sink to the bottom.
+            </p>
             <p className="hint">
               Choose a project at the top of the page to edit it, publish it or delete it.
             </p>

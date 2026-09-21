@@ -310,6 +310,25 @@ main { padding: 22px 20px 60px; }
 
 .grid td > input[type='checkbox'] { margin: 0 10px; accent-color: var(--amber); }
 
+/* Reorderable rows. The whole row is the drag handle, so the grip is a hint rather than a
+   target — dragging by the name reads as naturally as dragging by the dots. */
+.grid tbody tr.orderable { cursor: grab; }
+.grid tbody tr.orderable:active { cursor: grabbing; }
+
+/* The line the row would land on. Drawn on the cells rather than the row, because a
+   border-collapse table drops a border set on a tr. */
+.grid tbody tr.over td { box-shadow: inset 0 2px 0 var(--amber); }
+
+.grid th.order-col, .grid td.order-col { width: 1%; white-space: nowrap; }
+
+.order-cell { display: flex; align-items: center; gap: 2px; padding: 4px 10px; }
+
+.order-cell .grip { color: var(--ink-3); letter-spacing: -2px; cursor: grab; }
+
+/* Arrows exist for the keyboard, so they stay small but keep a real hit area. */
+.btn.nudge { padding: 2px 6px; line-height: 1; min-width: 24px; }
+.btn.nudge:disabled { opacity: 0.3; }
+
 /* Editable cells look inert until hovered: a grid where everything glows is unreadable. */
 .editable { cursor: cell; border: 1px solid transparent; }
 .grid tbody tr:hover .editable { border-color: var(--rule); }

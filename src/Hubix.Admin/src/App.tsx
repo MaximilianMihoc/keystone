@@ -28,9 +28,6 @@ type View =
   | 'audit'
   | 'settings';
 
-/** The picker's last entry, which opens the create form rather than choosing a project. */
-const NEW_PROJECT = '__new';
-
 /**
  * Views that belong to no project.
  *
@@ -132,12 +129,6 @@ export function App() {
             className="project-picker"
             value={selected ?? ''}
             onChange={(e) => {
-              if (e.target.value === NEW_PROJECT) {
-                setOrganisationSection('projects');
-                setView('organisation');
-                return;
-              }
-
               setSelected(e.target.value || null);
               if (!e.target.value) setView('organisation');
             }}
@@ -149,7 +140,6 @@ export function App() {
                 {p.publishedAt ? '' : ' (not published)'}
               </option>
             ))}
-            <option value={NEW_PROJECT}>+ New project…</option>
           </select>
         )}
 
@@ -339,6 +329,7 @@ export function App() {
             isAdmin={me.data.role === 'Admin'}
             initialSection={organisationSection}
             onSessionExpired={() => setExpired(true)}
+            onProjectsChanged={() => void reloadProjects()}
             onProjectCreated={(id) => {
               void reloadProjects();
               setSelected(id);

@@ -185,6 +185,7 @@ public sealed class DatabaseFixture : IAsyncLifetime
                 .SetProperty(p => p.Name, seededProject.Name)
                 .SetProperty(p => p.City, seededProject.City)
                 .SetProperty(p => p.Status, seededProject.Status)
+                .SetProperty(p => p.SortOrder, 0)
                 .SetProperty(p => p.PublishedAt, (DateTimeOffset?)seededProject.PublishedAt)
                 .SetProperty(p => p.DeveloperId, (Guid?)null)
                 .SetProperty(p => p.UnitsCommitted, (int?)1)

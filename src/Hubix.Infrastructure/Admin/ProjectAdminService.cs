@@ -490,6 +490,86 @@ public sealed class ProjectAdminService(
     }
 
     /// <summary>
+    /// Lays the projects out in the order given, which is the order every list shows them in.
+    /// </summary>
+    /// <remarks>
+    /// The whole list arrives at once rather than one project at a time, because dragging a
+    /// project up renumbers everything it jumped over. Sending those as separate writes would
+    /// let the list sit half-renumbered if one failed, and two people dragging at the same
+    /// time would interleave into an order neither of them chose.
+    /// <para>
+    /// Its own endpoint rather than a field on <see cref="ProjectEdit"/>: that form is one
+    /// project's own Setup tab, and where a project sits relative to the others is only
+    /// answerable with the others in front of you. One writer per column, as ever.
+    /// </para>
+    /// <para>
+    /// Positions are rewritten from zero every time, so the stored numbers stay dense and a
+    /// project that was never ordered does not have to be treated differently from one that was.
+    /// A single <c>SaveChanges</c> puts every row and its audit trail in one transaction.
+    /// </para>
+    /// </remarks>
+    public async Task<AdminWriteResult> ReorderProjectsAsync(
+        IReadOnlyList<Guid> orderedIds,
+        Guid actorId,
+        string actorLabel,
+        CancellationToken ct)
+    {
+        if (orderedIds.Distinct().Count() != orderedIds.Count)
+        {
+            return new AdminWriteResult.Rejected("That list names the same project more than once.");
+        }
+
+        var projects = await db.Projects
+            .Where(p => orderedIds.Contains(p.Id))
+            .ToListAsync(ct);
+
+        if (projects.Count != orderedIds.Count)
+        {
+            return new AdminWriteResult.NotFound();
+        }
+
+        // Ordering every project at once is the only way the numbers stay meaningful, so a list
+        // missing one is a stale screen rather than a partial instruction worth honouring.
+        if (await db.Projects.CountAsync(ct) != orderedIds.Count)
+        {
+            return new AdminWriteResult.Rejected(
+                "The list of projects has changed since this screen loaded. Reload and try again.");
+        }
+
+        var changes = new Dictionary<string, object?>();
+
+        for (var position = 0; position < orderedIds.Count; position++)
+        {
+            var project = projects.First(p => p.Id == orderedIds[position]);
+
+            if (project.SortOrder == position)
+            {
+                continue;
+            }
+
+            // A row each, because each project's position genuinely did change and the audit
+            // trail is read by asking what happened to one project, not to the list.
+            var diff = new Diff();
+            diff.Set("SortOrder", project.SortOrder, position, v => project.SortOrder = v);
+
+            Audit(actorId, actorLabel, "project", project.Id, "project.edited", diff.Before, diff.Changes);
+
+            changes[project.Name] = position;
+        }
+
+        if (changes.Count == 0)
+        {
+            return new AdminWriteResult.NoChange();
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        logger.LogInformation("{Actor} reordered {Count} projects", actorLabel, changes.Count);
+
+        return new AdminWriteResult.Updated(changes);
+    }
+
+    /// <summary>
     /// Writes the prose for one language, creating the row if this is the first time.
     /// </summary>
     public async Task<AdminWriteResult> SaveTranslationAsync(
