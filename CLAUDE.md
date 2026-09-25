@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 Investor portal for Hubix real estate hubs: apartment inventory, atomic reservations, waitlists and
-the sales pipeline. Pre-alpha and **unsanctioned** — Hubix have not been approached about it. That
+the sales pipeline. Pre-alpha and **unsanctioned** — Hubix have seen a pitch for it and declined. That
 fact is load-bearing in code (see "Email cannot escape", below), not just a disclaimer.
 
 Read `README.md` for the business context and `docs/RUNBOOK.md` for operational behaviour. The
@@ -122,11 +122,11 @@ Reserving goes `HoldService.RequestAsync` → emailed link → `ConfirmAsync` �
 only that last, confirmed step may touch the prospect record, record consent, or let a lapse
 block a buyer. The waitlist and contact forms fill blanks on an existing record
 (`ProspectDetails.FillBlanksOf`) and never overwrite it or stamp consent on it. Reach the record
-through `ProspectRegistry.GetOrCreateAsync`, which is the only place that inserts one: four
-services used to look the address up and insert if they found nothing, and two requests carrying
-the same new address made one of them die on `IX_Prospects_Email`. The `Created` flag it returns
-is what tells a caller whether it may write the record or only fill its blanks. Do not wire a
-public form to `TryHoldAsync` or `ApplyTo` again.
+through `ProspectRegistry.GetOrCreateAsync`, which is the only place that inserts one: a
+look-up-then-insert anywhere else lets two requests carrying the same new address race, and one
+of them dies on `IX_Prospects_Email`. The `Created` flag it returns is what tells a caller whether
+it may write the record or only fill its blanks. Do not wire a public form to `TryHoldAsync` or
+`ApplyTo`.
 
 **Multi-statement writes wrap in `db.Database.CreateExecutionStrategy()`.** The context is
 configured with `EnableRetryOnFailure`, and a retrying strategy refuses a user-initiated transaction
@@ -138,8 +138,8 @@ validated against the pipeline and only then written, so there is always a windo
 or a unit, which are won by a conditional UPDATE naming the state they expect. `MoveAsync` and
 `EditAsync` turn a lost race into `ReservationOutcome.Refused`; do not let that exception escape
 as a 500. `CK_Reservations_CancelledAgrees` keeps `State` and `CancelledAt` saying the same thing,
-and `UX_Reservations_OneOpenPerUnit` now filters on `State` alone because of it — a row where the
-two disagreed counted as open to the board and cancelled to the index (issue #36).
+which is what lets `UX_Reservations_OneOpenPerUnit` filter on `State` alone — if the two could
+disagree, one row would count as open to the board and cancelled to the index (issue #36).
 
 **`UnitStateMachine` guards programmer error; the conditional UPDATE guards concurrency.** Both are
 needed and neither substitutes for the other.
@@ -207,13 +207,13 @@ sender class and one line of registration. Keep it that way: no provider type be
 `Email:From` stays in configuration rather than on the screen: it has to match the domain
 verified with the provider, whose SPF, DKIM and DMARC are published, and a screen cannot move DNS.
 
-**These settings are now editable by an admin**, on the Email screen, at the owner's explicit
+**These settings are editable by an admin**, on the Email screen, at the owner's explicit
 instruction — including the live-sending switch and the blocked list. A saved `PortalSettings`
 row wins over configuration and applies to the next message rather than the next deploy, because
 `SafeEmailSender` and the notifiers read `IOptionsSnapshot`, which is rebuilt per scope, over a
 scoped `IPostConfigureOptions` that overlays the row. What that means for anyone changing this:
 
-- **Configuration is no longer the whole answer.** Reading `appsettings` tells you what a fresh
+- **Configuration is not the whole answer.** Reading `appsettings` tells you what a fresh
   install starts from, not what is in use. `GET /api/admin/settings/email` answers that.
 - **The screen refuses what production refuses.** `ProductionReadiness.EmailProblems` is the one
   rule, called both at startup and on save, so a setting cannot be saved happily and then stop
@@ -272,9 +272,9 @@ admin bundle.
   ceiling that sliding renewal cannot lift.
 - An import commit must name the preview it was approved from. `ImportApi.RefuseUnreviewed`
   compares the uploaded file's hash with the one the preview handed out, and a missing hash is
-  refused exactly like a wrong one — it used to skip the check altogether, which made "you apply
-  what you read" the caller's to opt into (issue #38). An import rewrites a project's prices in
-  one action and the audit row records the commit, not the review.
+  refused exactly like a wrong one, so "you apply what you read" is never the caller's to opt
+  into (issue #38). An import rewrites a project's prices in one action and the audit row records
+  the commit, not the review.
 - Never change `Units.State` with SQL. Route through the services so the hold or reservation and the
   audit row move with it.
 
