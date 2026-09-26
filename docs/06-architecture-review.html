@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Architecture review for hubix-portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+<style>
+  .seam { border-style: dashed; }
+  .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; }
+  .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; }
+</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+<header class="space-y-3">
+  <h1 class="font-serif text-4xl">hubix-portal: architecture review</h1>
+  <p class="text-sm text-slate-500">2026-09-26 · scoped to hot spots of the last 60 days · project frozen since 2026-09-24</p>
+  <div class="flex flex-wrap gap-4 text-xs text-slate-600">
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border-2 border-slate-400 bg-white"></span>module</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border-2 border-dashed border-slate-400"></span>seam</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-1 bg-red-600"></span>leak / missed path</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 deep"></span>deep module</span>
+  </div>
+</header>
+
+<section id="candidates" class="space-y-10">
+
+<!-- 1 -->
+<article id="c1" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">1 · Make "a unit came free" tell the waitlist, always</h2>
+    <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-0.5 text-xs font-semibold">Strong</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 space-y-0.5">
+    <li>Web/Notifications/WaitlistPromoter.cs</li>
+    <li>Web/Jobs/HoldExpiryJob.cs:56 · Web/Api/ReservationApi.cs:222-237</li>
+    <li>Web/Pages/Hold.cshtml.cs:55 · Infrastructure/Admin/UnitAdminService.cs:212, :282</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-2">Before: callers remember to promote</p>
+      <pre class="mermaid">
+flowchart LR
+  E[Hold expiry job] --> P[WaitlistPromoter]
+  M[Reservation cancelled] --> P
+  C[Buyer cancels hold] -.forgot.-> X(( ))
+  W[Staff un-withdraws] -.forgot.-> X
+  R[Staff un-reserves] -.forgot.-> X
+  classDef miss stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class C,W,R miss
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-2">After: returning to Available implies promotion</p>
+      <pre class="mermaid">
+flowchart LR
+  E[Hold expiry] --> D
+  M[Reservation cancelled] --> D
+  C[Buyer cancels] --> D
+  W[Un-withdraw] --> D
+  R[Un-reserve] --> D
+  D[[Unit returns to sale<br/>+ waitlist promotion]]
+  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a;
+  class D deep
+      </pre>
+    </div>
+  </div>
+  <p><b>Problem.</b> Five paths return a unit to Available, but only two promote the waitlist; a buyer cancelling their own hold frees the apartment silently.</p>
+  <p><b>Solution.</b> Put "unit returns to sale" behind one module in Infrastructure that owns both the state change and the promotion, so no caller can free a unit without the queue hearing about it.</p>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>Locality: the promise lives with the state change</li>
+    <li>Fixes a live defect, 3 paths</li>
+    <li>Promotion becomes integration-testable (Web isn't referenced by tests)</li>
+    <li>Two copies of try/catch logging disappear</li>
+  </ul>
+</article>
+
+<!-- 2 -->
+<article id="c2" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">2 · One Public catalogue module for Published projects</h2>
+    <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-0.5 text-xs font-semibold">Strong</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 space-y-0.5">
+    <li>Web/Pages/Index · Projects/{Detail,Apartments,Apartment,Reserve,Waitlist} · Contact (.cshtml.cs)</li>
+    <li>Web/Api/AdminApi.cs:71 (translation rebuild)</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-3">Before: 7 pages, 7 hand-written queries</p>
+      <div class="grid grid-cols-4 gap-2 text-[11px]">
+        <div class="border-2 border-slate-300 rounded p-2">Index<br><span class="text-red-600">hides Archived<br>total incl. Withdrawn</span></div>
+        <div class="border-2 border-slate-300 rounded p-2">Detail<br><span class="text-red-600">total excl. Withdrawn</span></div>
+        <div class="border-2 border-slate-300 rounded p-2">Apartments</div>
+        <div class="border-2 border-slate-300 rounded p-2">Apartment<br><span class="text-red-600">parking: all</span></div>
+        <div class="border-2 border-slate-300 rounded p-2">Reserve<br><span class="text-red-600">parking: free only</span></div>
+        <div class="border-2 border-slate-300 rounded p-2">Waitlist</div>
+        <div class="border-2 border-slate-300 rounded p-2">Contact</div>
+        <div class="rounded p-2 bg-red-50 text-red-700">each: DbContext + PublishedAt + translation fallback</div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-3">After: pages render, one module decides</p>
+      <div class="grid grid-cols-7 gap-1 text-[10px] text-center mb-2">
+        <div class="border rounded py-1">Index</div><div class="border rounded py-1">Detail</div><div class="border rounded py-1">Apts</div><div class="border rounded py-1">Apt</div><div class="border rounded py-1">Reserve</div><div class="border rounded py-1">Wait</div><div class="border rounded py-1">Contact</div>
+      </div>
+      <div class="border-t-2 border-dashed border-slate-400 my-2"></div>
+      <div class="deep rounded-lg p-4 space-y-1">
+        <p class="lbl text-slate-300">Public catalogue</p>
+        <p class="text-xs text-slate-400">visibility rule · Archived / Withdrawn policy · counts · parking offer · Source-language fallback</p>
+      </div>
+    </div>
+  </div>
+  <p><b>Problem.</b> The Published gate and its read model are copied across seven page models, and the copies already disagree on totals, Archived and parking.</p>
+  <p><b>Solution.</b> A Public catalogue module in Infrastructure owns what the public may see and how it is counted; pages stop touching the DbContext.</p>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>Locality: one visibility rule, one place</li>
+    <li>Drift becomes impossible, not just fixed</li>
+    <li>Tests hit one interface against SQL Server</li>
+    <li>Leak of EF into Web closes</li>
+  </ul>
+  <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-900">ADR-0001: no conflict. It keeps <code>PublishedAt</code> as the gate; this candidate just gives that gate one home. It also makes ADR-0001's rejected option cheap later, but that isn't a reason to reopen it.</div>
+</article>
+
+<!-- 3 -->
+<article id="c3" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">3 · Deepen the audit trail</h2>
+    <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-0.5 text-xs font-semibold">Worth exploring</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 space-y-0.5">
+    <li>Infrastructure/Admin/{Project,Parking,Pricing,Staff,Unit,Prospect,Asset}AdminService.cs</li>
+    <li>Infrastructure/Sales/{Hold,Reservation}Service.cs · Web/Api/*.cs (ActorId/ActorLabel ×47)</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-3">Before: mass diagram, per write</p>
+      <div class="flex items-end gap-6 h-40">
+        <div class="text-center"><div class="w-16 h-28 bg-red-200 border border-red-400 rounded-t"></div><p class="text-[10px] mt-1">what each writer knows<br>(actor, JSON, diff, ActorType)</p></div>
+        <div class="text-center"><div class="w-16 h-32 bg-slate-300 border border-slate-400 rounded-t"></div><p class="text-[10px] mt-1">what's shared<br>(nothing)</p></div>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">4 copied <code>Audit()</code> helpers · ~20 inline <code>new AuditLog</code> · 4 diff styles</p>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-3">After</p>
+      <div class="flex items-end gap-6 h-40">
+        <div class="text-center"><div class="w-16 h-8 bg-emerald-200 border border-emerald-400 rounded-t"></div><p class="text-[10px] mt-1">interface:<br>actor + change</p></div>
+        <div class="text-center"><div class="w-16 h-36 deep rounded-t"></div><p class="text-[10px] mt-1">Audit trail<br>diff, serialise, row</p></div>
+      </div>
+    </div>
+  </div>
+  <p><b>Problem.</b> "Every transition writes an AuditLog row" is a convention re-implemented per file, with four different ways of recording what changed.</p>
+  <p><b>Solution.</b> One audit-trail module in Infrastructure takes an actor and a change set and owns the row's shape.</p>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>Leverage: ~30 call sites, one interface</li>
+    <li>Audit shape testable once</li>
+    <li>Delete 4 copied helpers</li>
+  </ul>
+</article>
+
+<!-- 4 -->
+<article id="c4" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">4 · One admin write outcome, one HTTP mapping</h2>
+    <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-0.5 text-xs font-semibold">Worth exploring</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 space-y-0.5">
+    <li>Infrastructure/Admin/UnitAdminService.cs:54 (UnitEditResult) · ProjectAdminService.cs:102 (AdminWriteResult)</li>
+    <li>Web/Api/AdminApi.cs:166-215 · ReservationApi.cs:194, :343 · AssetApi.cs:167, :212 · ParkingApi.cs:209 · PrivacyApi.cs:133</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-2">Before</p>
+      <pre class="mermaid">
+flowchart LR
+  U1[UnitEditResult] --> S1[switch x3 in AdminApi]
+  U2[AdminWriteResult] --> R1[ProjectApi.Respond]
+  RS[Reservation outcome] --> R2[ReservationApi.Render]
+  AS[Asset outcome] --> R3[AssetApi.Render]
+  PK[Parking outcome] --> R4[ParkingApi.Saved]
+  U2 -.Payload leaks HTTP.-> R1
+  linkStyle 5 stroke:#dc2626,stroke-width:2px
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-2">After</p>
+      <pre class="mermaid">
+flowchart LR
+  A[Every admin write] --> O[[Write outcome]]
+  O --> H[One HTTP mapping in Web]
+  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a;
+  class O deep
+      </pre>
+    </div>
+  </div>
+  <p><b>Problem.</b> Two overlapping result types (UnitAdminService returns both) and six mappers for one <code>{changed}/{error}/404</code> contract.</p>
+  <p><b>Solution.</b> One outcome family from Infrastructure, mapped to HTTP once in Web.</p>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>Delete UnitEditResult, 3 pasted switches</li>
+    <li>HTTP stops leaking into Infrastructure</li>
+    <li>Pairs naturally with #3</li>
+  </ul>
+</article>
+
+<!-- 5 -->
+<article id="c5" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">5 · Move admin read models and validation behind Infrastructure's seam</h2>
+    <span class="rounded-full bg-slate-200 text-slate-700 px-3 py-0.5 text-xs font-semibold">Speculative</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 space-y-0.5">
+    <li>Web/Api/ProjectApi.cs (12 queries, validation :444-457) · AdminApi.cs:34-151 (units grid, tallies)</li>
+    <li>Web/Api/ReservationApi.cs (6, TryBuyerType :166) · ImportApi.cs (4) · Admin/src/api.ts:45</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-3">Before: cross-section of an admin read</p>
+      <div class="space-y-1 text-xs">
+        <div class="h-10 border-l-4 border-slate-400 bg-slate-50 px-3 flex items-center">Endpoint: auth</div>
+        <div class="h-10 border-l-4 border-red-500 bg-red-50 px-3 flex items-center">Endpoint: EF query + anonymous shape</div>
+        <div class="h-10 border-l-4 border-red-500 bg-red-50 px-3 flex items-center">Endpoint: validation services never see</div>
+        <div class="h-10 border-l-4 border-slate-300 bg-slate-50 px-3 flex items-center text-slate-400">tests: none reach here</div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-3">After</p>
+      <div class="space-y-1 text-xs">
+        <div class="h-10 border-l-4 border-slate-400 bg-slate-50 px-3 flex items-center">Endpoint: auth + map</div>
+        <div class="h-4 border-t-2 border-dashed border-slate-400"></div>
+        <div class="h-24 deep rounded px-3 flex items-center">Query and write modules: read model + validation, integration-tested</div>
+      </div>
+    </div>
+  </div>
+  <p><b>Problem.</b> ~34 queries and real validation rules live in endpoint handlers that no test reaches; TS types mirror anonymous C# shapes unchecked.</p>
+  <p><b>Solution.</b> Endpoints keep auth and mapping; read models and validation move into Infrastructure modules the existing integration suite can test.</p>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>Validation reachable by tests</li>
+    <li>Handlers become thin, honestly</li>
+    <li>Big diff, spread thin: speculative while frozen</li>
+  </ul>
+</article>
+
+<!-- 6 -->
+<article id="c6" class="rounded-xl border border-slate-200 bg-white p-6 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">6 · Admin client: session expiry and mutations in one place</h2>
+    <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-0.5 text-xs font-semibold">Worth exploring</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 space-y-0.5">
+    <li>Admin/src/App.tsx:310-422 · api.ts:16 · SetupPanel.tsx:83-100</li>
+    <li>OrganisationPanel · ParkingPanel · StructurePanel · PricingPanel · UnitsGrid (.tsx)</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-2">Before</p>
+      <pre class="mermaid">
+flowchart TB
+  A[App] -- onSessionExpired x13 --> P1[Panel] & P2[Panel] & P3[Panel]
+  P1 --> C1[catch SessionExpired / ApiError]
+  P2 --> C2[catch SessionExpired / ApiError]
+  P3 --> C3[own run wrapper]
+  classDef leak stroke:#dc2626,stroke-width:2px;
+  class C1,C2,C3 leak
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-4">
+      <p class="lbl text-slate-500 mb-2">After</p>
+      <pre class="mermaid">
+flowchart TB
+  R[request in api.ts] --> S[[Session + mutation module]]
+  S --> P1[Panel] & P2[Panel] & P3[Panel]
+  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a;
+  class S deep
+      </pre>
+    </div>
+  </div>
+  <p><b>Problem.</b> 87 <code>onSessionExpired</code> props, 28 copies of the same catch, and a busy/error/notice wrapper re-declared per panel.</p>
+  <p><b>Solution.</b> <code>request()</code> raises session expiry once; one shared mutation module owns busy, error and notice.</p>
+  <ul class="list-disc pl-6 text-sm space-y-1">
+    <li>Locality: 401 handled in one place</li>
+    <li>Panels drop a prop</li>
+    <li>Delete ~28 catch blocks</li>
+  </ul>
+</article>
+
+<section class="rounded-xl border border-slate-200 bg-slate-100 p-5 text-sm space-y-2">
+  <h3 class="font-serif text-lg">Checked and fine</h3>
+  <p><code>api.ts request()</code> is deep: one path for 90+ calls. <code>ProspectRegistry</code>, <code>SalesInboxResolver</code>, <code>SafeEmailSender</code> and the hold/reservation invariant machinery are deep and deliberate. <code>ProjectAdminService</code> is wide, not shallow; split only alongside #3. Program.cs churn is DI registration, which is cosmetic.</p>
+</section>
+
+</section>
+
+<section id="top-recommendation" class="rounded-2xl deep p-8 space-y-3">
+  <p class="lbl text-emerald-300">Top recommendation</p>
+  <h2 class="font-serif text-3xl"><a href="#c1" class="underline decoration-emerald-400">1 · Make "a unit came free" tell the waitlist, always</a></h2>
+  <p class="text-slate-300">It is a live defect as much as a shape problem: three of five release paths skip the queue, and the deepening is exactly the fix. Small diff, and the only candidate worth doing while the project is frozen.</p>
+</section>
+
+</main>
+</body>
+</html>
