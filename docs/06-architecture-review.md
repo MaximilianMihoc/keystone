@@ -25,7 +25,7 @@ complex as the implementation; a **seam** is where that interface lives. Domain 
 
 ## 1. A unit coming free always tells the waitlist
 
-**Strong.** This is a defect as much as a shape problem.
+**Strong.** This is a defect as much as a shape problem — tracked as issue #86.
 
 Five paths return a unit to `Available`. Only two promote the waitlist:
 
