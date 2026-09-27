@@ -249,6 +249,11 @@ adding it there too, or the suite becomes order-dependent.
 CI also fails on a pending model change (an entity edited without a migration) and on a missing
 admin bundle.
 
+Before calling a change done, run what CI would: `dotnet build`, `dotnet test tests/Hubix.Tests`,
+and `has-pending-model-changes` if an entity moved. Add `tests/Hubix.IntegrationTests` when the
+change touches holds, reservations or anything with a transaction. Report failures as they are;
+do not call work finished on a red build.
+
 ## Gotchas
 
 - `Hubix.Web.csproj` builds the admin client via a `BuildAdminClient` target. Its `AdminClientSource`
@@ -277,6 +282,34 @@ admin bundle.
   the commit, not the review.
 - Never change `Units.State` with SQL. Route through the services so the hold or reservation and the
   audit row move with it.
+
+## Lessons
+
+This harness should get sharper every session. When something goes wrong, fix the harness as
+well as the code, so the same mistake cannot happen twice.
+
+Write a lesson **immediately**, at the moment it happens, not at session end, when:
+
+- the owner corrects you or rejects an approach;
+- a test, build or runtime check proves an assumption wrong (API changed, library behaves
+  differently, wrong default);
+- you lose time to the environment (a command, path, port, version or Windows quirk);
+- you finish something the harness should have made faster, such as information you had to dig
+  for that should have been one line away.
+
+A lesson is specific and actionable, in the form **trigger → what to do instead → why**. "Be
+careful with MSBuild" is not a lesson. This is: "An ItemGroup used in a target's `Inputs=` →
+declare it outside the target → `Inputs` is evaluated before the target runs, so an ItemGroup
+inside it resolves to nothing and shipped a stale admin bundle."
+
+Put the fix in the strongest place that would have caught it: a test or hook that fails beats
+a rule in the section it belongs to, which beats a line in this list. Use this list only for
+lessons with no better home. Tell the owner in one line what you wrote and where. `/reflect`
+sweeps a session for anything missed and prunes lines that are stale or have been folded into
+the sections above.
+
+<!-- lessons below, newest last -->
+
 
 ## Agent skills
 
