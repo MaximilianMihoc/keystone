@@ -111,29 +111,10 @@ body {
 
 .link:hover { color: var(--amber-deep); }
 
-/* Segmented control, matching the public site's language switcher. Buttons rather than links,
-   because switching here must not reload the grid the user is working in. */
-.segmented {
-  display: inline-flex;
-  border: 1px solid var(--rule);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.segmented button {
-  padding: 4px 9px;
-  font: inherit;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.segmented button + button { border-left: 1px solid var(--rule); }
-.segmented button:hover { color: var(--ink); }
-.segmented button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+/* One icon showing the current theme; clicking moves to the next. A button rather than a
+   link, because switching here must not reload the grid the user is working in. */
+.theme-icon { display: inline-flex; padding: 4px; color: var(--ink-3); background: none; border: none; cursor: pointer; }
+.theme-icon:hover { color: var(--ink); }
 
 main { padding: 22px 20px 60px; }
 

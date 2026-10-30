@@ -159,8 +159,7 @@ a { color: inherit; }
 .masthead nav a { color: var(--ink-2); text-decoration: none; }
 .masthead nav a:hover { color: var(--ink); }
 
-.lang,
-.segmented {
+.lang {
     display: inline-flex;
     border: 1px solid var(--rule);
     font-family: var(--mono);
@@ -168,20 +167,20 @@ a { color: inherit; }
     letter-spacing: 0.04em;
 }
 
-.lang a,
-.segmented a {
+.lang a {
     padding: 5px 10px;
     text-decoration: none;
     color: var(--ink-3);
     text-transform: uppercase;
 }
 
-.lang a + a,
-.segmented a + a { border-left: 1px solid var(--rule); }
-.lang a:hover,
-.segmented a:hover { color: var(--ink); }
-.lang a[aria-current="true"],
-.segmented a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.lang a + a { border-left: 1px solid var(--rule); }
+.lang a:hover { color: var(--ink); }
+.lang a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+
+/* One icon showing the current mode; following it moves to the next. */
+.masthead nav .theme-icon { display: inline-flex; padding: 4px; color: var(--ink-3); }
+.masthead nav .theme-icon:hover { color: var(--ink); }
 
 /* ---------- generic page furniture -------------------------------------- */
 
