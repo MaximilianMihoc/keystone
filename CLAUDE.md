@@ -233,7 +233,8 @@ Provider order: query string → cookie (set by `/language`) → `Accept-Languag
 UI strings live in `Resources/SharedResource.resx` / `.ro.resx`, reached via
 `IStringLocalizer<SharedResource>`. Project prose lives in translation rows and falls back to
 Romanian rather than blank. Formatting goes through `Web/Display.cs` — never concatenate a number
-into a string, Romanian inverts the separators.
+into a string, Romanian inverts the separators. In a view, `L[...]` is a `LocalizedHtmlString`:
+interpolating it into a C# string prints the type name, so take `.Value`.
 
 ## Tests
 

@@ -26,6 +26,10 @@ public static class Theme
     /// <summary>What the switcher offers, in the order it shows them.</summary>
     public static readonly string[] Offered = [Light, Dark, System];
 
+    /// <summary>The mode the switcher's single icon moves to: light, dark, auto, round again.</summary>
+    public static string Next(string current) =>
+        Offered[(Array.IndexOf(Offered, current) + 1) % Offered.Length];
+
     public static bool IsSupported(string? theme) => theme is Light or Dark;
 
     /// <summary>
