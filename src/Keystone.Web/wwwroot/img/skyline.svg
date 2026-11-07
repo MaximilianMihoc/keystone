@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120">
+  <!-- One tile of the footer skyline. It repeats horizontally, so the gap at the right edge
+       matches the gaps between buildings. Everything sits on a 12px grid: buildings, and the
+       window pattern, which is anchored at the origin, so windows always land whole. -->
+  <defs>
+    <pattern id="w" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect x="3" y="3" width="6" height="6" fill="#ffffff" fill-opacity="0.09"/>
+    </pattern>
+    <style>
+      .lit { fill: #E39B4A; }
+      .flicker { animation: flicker 7s ease-in-out infinite; }
+      .flicker.b { animation-delay: -2.4s; animation-duration: 9s; }
+      .flicker.c { animation-delay: -5.1s; animation-duration: 11s; }
+      @keyframes flicker { 0%, 100% { opacity: 1; } 45% { opacity: 1; } 50% { opacity: 0.25; } 58% { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .flicker { animation: none; } }
+    </style>
+  </defs>
+
+  <!-- Buildings: x, width and height are all multiples of 12. -->
+  <g fill="#2B363F">
+    <rect x="0"   y="48" width="48" height="72"/>
+    <rect x="60"  y="12" width="36" height="108"/>
+    <rect x="108" y="60" width="72" height="60"/>
+    <rect x="192" y="24" width="48" height="96"/>
+    <rect x="252" y="72" width="84" height="48"/>
+    <rect x="348" y="36" width="36" height="84"/>
+    <rect x="396" y="48" width="72" height="72"/>
+  </g>
+
+  <!-- Window grids, inset one cell from each wall and the roof, none on the ground floor. -->
+  <g fill="url(#w)">
+    <rect x="12"  y="60" width="24" height="48"/>
+    <rect x="72"  y="24" width="12" height="84"/>
+    <rect x="120" y="72" width="48" height="36"/>
+    <rect x="204" y="36" width="24" height="72"/>
+    <rect x="264" y="84" width="60" height="24"/>
+    <rect x="360" y="48" width="12" height="60"/>
+    <rect x="408" y="60" width="48" height="48"/>
+  </g>
+
+  <!-- Lit windows: apartments still available, a light left on. -->
+  <g class="lit">
+    <rect x="15"  y="75"  width="6" height="6"/>
+    <rect x="27"  y="99"  width="6" height="6"/>
+    <rect x="75"  y="39"  width="6" height="6" class="flicker"/>
+    <rect x="75"  y="87"  width="6" height="6"/>
+    <rect x="135" y="87"  width="6" height="6"/>
+    <rect x="159" y="75"  width="6" height="6"/>
+    <rect x="207" y="51"  width="6" height="6"/>
+    <rect x="219" y="75"  width="6" height="6" class="flicker b"/>
+    <rect x="207" y="99"  width="6" height="6"/>
+    <rect x="291" y="87"  width="6" height="6"/>
+    <rect x="363" y="63"  width="6" height="6"/>
+    <rect x="411" y="63"  width="6" height="6"/>
+    <rect x="423" y="75"  width="6" height="6" class="flicker c"/>
+    <rect x="447" y="99"  width="6" height="6"/>
+  </g>
+</svg>

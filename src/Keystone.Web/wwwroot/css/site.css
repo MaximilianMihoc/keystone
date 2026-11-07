@@ -97,20 +97,6 @@ a { color: inherit; }
 }
 .skip-link:focus { left: 8px; top: 8px; }
 
-/* ---------- demo banner -------------------------------------------------- */
-
-.demo-banner {
-    margin: 0;
-    padding: 8px 16px;
-    background: var(--amber-soft);
-    color: var(--amber-deep);
-    border-bottom: 1px solid var(--amber);
-    font-family: var(--display);
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-}
-
 /* ---------- masthead ---------------------------------------------------- */
 
 .masthead {
@@ -927,14 +913,161 @@ td .code:hover { border-bottom-color: var(--amber); color: var(--amber-deep); }
 
 /* ---------- footer ------------------------------------------------------ */
 
-footer {
-    border-top: 1px solid var(--rule);
-    padding: 26px 0 44px;
+/* The board again, from the street at dusk. Like the elevation board it stays dark in both
+   themes, so its colours are fixed rather than tokens that flip: the skyline's buildings are
+   --board, and the band below continues them into the ground. */
+.site-footer {
+    --footer-text:   rgba(255, 255, 255, 0.62);
+    --footer-strong: rgba(255, 255, 255, 0.92);
+    --footer-accent: #F0B36B;
+    --footer-lit:    #E39B4A;
+    color: var(--footer-text);
+}
+
+.skyline {
+    position: relative;
+    height: 120px;
+    background: url("../img/skyline.svg") repeat-x left bottom / 480px 120px;
+}
+
+/* A fainter row behind, on a different tile width so the two never repeat in step. Faint
+   dark reads as distance on either paper, light or dark. */
+.skyline::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.3;
+    background: url("../img/skyline-far.svg") repeat-x -170px bottom / 600px 120px;
+}
+
+.footer-board {
+    background: var(--board);
+    padding: 44px 0 0;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) repeat(3, minmax(0, 1fr));
+    gap: 40px 32px;
+    padding-bottom: 48px;
+}
+
+.footer-brand .wordmark { color: #fff; margin: 0; }
+.footer-brand .wordmark .mark { color: var(--footer-accent); }
+
+.footer-tagline {
+    margin: 14px 0 0;
+    max-width: 38ch;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--footer-strong);
+}
+
+.footer-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* A window with the light on, breathing. The global reduced-motion rule stills it. */
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--footer-lit);
+    box-shadow: 0 0 0 0 rgba(227, 155, 74, 0.55);
+    animation: live 2.6s ease-out infinite;
+}
+
+@keyframes live {
+    0%   { box-shadow: 0 0 0 0 rgba(227, 155, 74, 0.55); }
+    70%  { box-shadow: 0 0 0 9px rgba(227, 155, 74, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(227, 155, 74, 0); }
+}
+
+.footer-col h2 {
+    margin: 4px 0 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--footer-accent);
+}
+
+.footer-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.footer-col a {
+    font-family: var(--display);
+    font-size: 15px;
+    color: var(--footer-strong);
+    text-decoration: none;
+    background: linear-gradient(var(--footer-accent), var(--footer-accent)) no-repeat left bottom / 0 1px;
+    transition: background-size 0.25s ease, color 0.2s ease;
+}
+
+.footer-col a:hover {
+    color: #fff;
+    background-size: 100% 1px;
+}
+
+.footer-col a[aria-current="true"] { color: var(--footer-accent); }
+
+.footer-base {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 28px;
+    padding-top: 20px;
+    padding-bottom: 28px;
     font-family: var(--mono);
     font-size: 11.5px;
-    line-height: 1.8;
-    color: var(--ink-3);
     letter-spacing: 0.02em;
+}
+
+/* Drawn inside the shell's padding, so the rule lines up with the columns above it. */
+.footer-base::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    border-top: 1px solid var(--board-line);
+}
+
+.footer-base p { margin: 0; }
+.footer-base p:first-child { margin-right: auto; }
+
+.to-top {
+    color: var(--footer-strong);
+    text-decoration: none;
+}
+.to-top:hover { color: var(--footer-accent); }
+
+.site-footer :focus-visible { outline-color: var(--footer-accent); }
+
+@media (max-width: 860px) {
+    .footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .footer-brand { grid-column: 1 / -1; }
+}
+
+@media (max-width: 520px) {
+    .skyline { height: 84px; background-size: 336px 84px; }
+    .skyline::before { background-size: 420px 84px; }
+    .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .footer-base p:first-child { flex-basis: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

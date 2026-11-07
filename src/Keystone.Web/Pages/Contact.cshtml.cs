@@ -66,12 +66,15 @@ public class ContactModel(
         public string? Message { get; set; }
     }
 
-    public async Task OnGetAsync(string? project, string? sent, CancellationToken ct)
+    public async Task OnGetAsync(string? project, string? sent, string? kind, CancellationToken ct)
     {
         await LoadAsync(ct);
 
         Sent = sent is "General" or "Access" or "Erasure" ? sent : null;
         Input.Project = Projects.Any(p => p.Slug == project) ? project : null;
+
+        // The footer's "your data" links arrive with the request already chosen.
+        Input.Kind = kind is "Access" or "Erasure" ? kind : "General";
     }
 
     public async Task<IActionResult> OnPostAsync(CancellationToken ct)
