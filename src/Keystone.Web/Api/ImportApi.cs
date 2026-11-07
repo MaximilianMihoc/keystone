@@ -251,7 +251,7 @@ public static class ImportApi
 
         foreach (var column in sheet.Columns)
         {
-            // First column wins. Roka heads two columns "Cod Apartament", and taking the
+            // First column wins. Linden heads two columns "Cod Apartament", and taking the
             // later one would silently read the wrong values.
             if (ImportField.Guess(column.Header) is { } field && !columns.ContainsKey(field.Field))
             {

@@ -50,7 +50,7 @@ public sealed record TrancheAmount(
 /// <param name="CesiuneNet">The operator's assignment fee. Part of the base price, not added to it.</param>
 /// <param name="DeveloperPriceNet">
 /// What reaches the developer: <c>BasePriceNet - CesiuneNet</c>. Percentage-based tranches are
-/// calculated against this, not against the base price — verified against the Roka and Torontal
+/// calculated against this, not against the base price — verified against the Linden and Riverside
 /// spreadsheets, which agree to the cent.
 /// </param>
 public sealed record PriceBreakdown(

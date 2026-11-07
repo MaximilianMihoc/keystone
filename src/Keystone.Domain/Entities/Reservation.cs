@@ -59,7 +59,7 @@ public class Reservation : Entity
     public BuyerType BuyerType { get; set; } = BuyerType.Individual;
 
     // --- Price snapshot ---------------------------------------------------------
-    // What applied when this was agreed. The operator raises prices mid-launch — the Lake Home
+    // What applied when this was agreed. The operator raises prices mid-launch — the Lakeside
     // document describes exactly that — and an agreed reservation must not move with them.
     // These are never recalculated.
 

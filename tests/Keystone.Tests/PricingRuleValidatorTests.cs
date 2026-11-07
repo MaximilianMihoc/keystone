@@ -9,11 +9,11 @@ namespace Keystone.Tests;
 /// </summary>
 /// <remarks>
 /// The shape every real project uses — an advance that also collects the cesiune, then a
-/// remainder — has to stay valid. If a change here rejects Roka's plan, the change is wrong.
+/// remainder — has to stay valid. If a change here rejects Linden's plan, the change is wrong.
 /// </remarks>
 public class PricingRuleValidatorTests
 {
-    private static TrancheDefinition[] RokaTranches() =>
+    private static TrancheDefinition[] LindenTranches() =>
     [
         new("Transa 1", TrancheBasis.AdvancePercentage, true, TrancheDue.AtSigning),
         new("Transa 2", TrancheBasis.Remainder, false, TrancheDue.AtDelivery)
@@ -29,7 +29,7 @@ public class PricingRuleValidatorTests
 
     [Fact]
     public void The_shape_every_real_project_uses_is_valid() =>
-        Validate(RokaTranches()).ShouldBeEmpty();
+        Validate(LindenTranches()).ShouldBeEmpty();
 
     [Fact]
     public void A_three_payment_plan_with_an_interim_percentage_is_valid() =>
@@ -96,16 +96,16 @@ public class PricingRuleValidatorTests
     [InlineData(1.5)]
     [InlineData(-0.1)]
     public void A_rate_is_a_proportion(decimal advance) =>
-        Validate(RokaTranches(), advance: advance).ShouldContain(p => p.Contains("The advance"));
+        Validate(LindenTranches(), advance: advance).ShouldContain(p => p.Contains("The advance"));
 
     [Fact]
     public void The_reduced_rate_cannot_beat_the_standard_one() =>
-        Validate(RokaTranches(), vat: 0.09m, reduced: 0.19m)
+        Validate(LindenTranches(), vat: 0.09m, reduced: 0.19m)
             .ShouldContain(p => p.Contains("higher than the standard"));
 
     [Fact]
     public void A_project_with_no_reduced_rate_is_valid() =>
-        Validate(RokaTranches(), reduced: null).ShouldBeEmpty();
+        Validate(LindenTranches(), reduced: null).ShouldBeEmpty();
 
     [Fact]
     public void A_payment_needs_a_name() =>

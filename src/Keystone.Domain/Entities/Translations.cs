@@ -70,7 +70,7 @@ public class ProjectTranslation : Entity
 
     /// <summary>
     /// The late-delivery penalty, as prose. Varies too much between projects to be a number:
-    /// Coresi is 25% plus 1,000 EUR a month, Torontal is 100%, Roka is 50%.
+    /// Centru is 25% plus 1,000 EUR a month, Riverside is 100%, Linden is 50%.
     /// </summary>
     public string? PenaltyClause { get; set; }
 

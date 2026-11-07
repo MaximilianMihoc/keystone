@@ -3,26 +3,13 @@ using Keystone.Infrastructure;
 using Keystone.Seed;
 using Microsoft.EntityFrameworkCore;
 
-// Loads project data into the local database so development starts from
-// something true rather than an empty schema.
+// Loads staff accounts and one fictional development into the local database, so
+// development starts from something to look at rather than an empty schema.
 //
 //   dotnet run --project src/Keystone.Seed
 //   dotnet run --project src/Keystone.Seed -- --reset
 
 var reset = args.Contains("--reset", StringComparer.OrdinalIgnoreCase);
-
-var repoRoot = FindRepositoryRoot()
-    ?? throw new InvalidOperationException("Could not locate the repository root (Keystone.slnx).");
-
-var seedFile = Path.Combine(repoRoot, "seed-data", "real", "roka-park-view-bucuresti.json");
-
-if (!File.Exists(seedFile))
-{
-    Console.Error.WriteLine($"Seed file not found: {seedFile}");
-    Console.Error.WriteLine(
-        "Real project data is gitignored. Copy the extracted JSON into seed-data/real/ first.");
-    return 1;
-}
 
 await using var db = new KeystoneDbContextFactory().CreateDbContext([]);
 
@@ -54,19 +41,19 @@ Console.WriteLine("Seeding staff...");
 var staffAdded = await StaffSeeder.SeedAsync(db, CancellationToken.None);
 Console.WriteLine($"  {staffAdded} staff account(s) added.");
 
-Console.WriteLine("Seeding Roka Park View...");
-var seeded = await RokaSeeder.SeedAsync(db, seedFile, CancellationToken.None);
+Console.WriteLine("Seeding the demo project...");
+var seeded = await DemoSeeder.SeedAsync(db, CancellationToken.None);
 
 Console.WriteLine();
 Console.WriteLine($"Seeded {seeded} units.");
 Console.WriteLine();
 
-// Report what landed, and prove the pricing engine agrees with the source spreadsheet.
+// Report what landed, with a sample of the pricing engine's arithmetic.
 var project = await db.Projects
     .Include(p => p.Units).ThenInclude(u => u.UnitType)
     .Include(p => p.PricingRules)
     .AsSplitQuery()
-    .FirstOrDefaultAsync(p => p.Slug == RokaSeeder.Slug);
+    .FirstOrDefaultAsync(p => p.Slug == DemoSeeder.Slug);
 
 if (project is null)
 {
@@ -107,15 +94,3 @@ foreach (var unit in project.Units.OrderBy(u => u.Crt).Take(3))
 }
 
 return 0;
-
-static string? FindRepositoryRoot()
-{
-    var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-    while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Keystone.slnx")))
-    {
-        directory = directory.Parent;
-    }
-
-    return directory?.FullName;
-}

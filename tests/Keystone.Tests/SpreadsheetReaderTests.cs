@@ -14,15 +14,15 @@ namespace Keystone.Tests;
 /// </remarks>
 public class SpreadsheetReaderTests
 {
-    /// <summary>Roka's header row, in its own order and spelling.</summary>
-    private static readonly string[] RokaHeaders =
+    /// <summary>Linden's header row, in its own order and spelling.</summary>
+    private static readonly string[] LindenHeaders =
     [
         "Nr Crt", "Disponibil?", "Bloc", "Scara", "Etaj", "Cod Apartament", "Tip Apartament",
         "Orientare", "MPC", "MPU", "MP Balcon/Logie", "Pret total apartament fara TVA",
         "Pret cesiune faraTVA", "Comentarii"
     ];
 
-    private static readonly string[] RokaRow =
+    private static readonly string[] LindenRow =
     [
         "1", "DA", "F", "1", "1", "Ap.104", "2 camere", "S-W", "50.35", "45.71", "4.64",
         "135776", "14444.62", ""
@@ -51,29 +51,29 @@ public class SpreadsheetReaderTests
         }
     }
 
-    private static MemoryStream RokaLike(int titleRows = 0)
+    private static MemoryStream LindenLike(int titleRows = 0)
     {
         return Workbook(sheet =>
         {
             for (var i = 1; i <= titleRows; i++)
             {
-                sheet.Cell(i, 1).Value = "Inventory — Roka Park View";
+                sheet.Cell(i, 1).Value = "Inventory — Linden Park View";
             }
 
-            WriteRow(sheet, titleRows + 1, RokaHeaders);
-            WriteRow(sheet, titleRows + 2, RokaRow);
+            WriteRow(sheet, titleRows + 1, LindenHeaders);
+            WriteRow(sheet, titleRows + 2, LindenRow);
         });
     }
 
     [Fact]
     public void A_plain_sheet_reads_its_header_and_rows()
     {
-        using var stream = RokaLike();
+        using var stream = LindenLike();
         var sheet = SpreadsheetReader.Read(stream);
 
         sheet.HeaderRow.ShouldBe(1);
         sheet.Rows.Count.ShouldBe(1);
-        sheet.Columns.Count.ShouldBe(RokaHeaders.Length);
+        sheet.Columns.Count.ShouldBe(LindenHeaders.Length);
         sheet.Rows[0]["F"].ShouldBe("Ap.104");
     }
 
@@ -81,7 +81,7 @@ public class SpreadsheetReaderTests
     public void A_banner_above_the_table_does_not_become_the_header()
     {
         // These workbooks are shared with buyers, so they carry title rows and logos.
-        using var stream = RokaLike(titleRows: 3);
+        using var stream = LindenLike(titleRows: 3);
         var sheet = SpreadsheetReader.Read(stream);
 
         sheet.HeaderRow.ShouldBe(4);
@@ -94,10 +94,10 @@ public class SpreadsheetReaderTests
     {
         using var stream = Workbook(sheet =>
         {
-            WriteRow(sheet, 1, RokaHeaders);
-            WriteRow(sheet, 2, RokaRow);
+            WriteRow(sheet, 1, LindenHeaders);
+            WriteRow(sheet, 2, LindenRow);
             // row 3 left blank, as the sheets use it
-            WriteRow(sheet, 4, RokaRow);
+            WriteRow(sheet, 4, LindenRow);
         });
 
         SpreadsheetReader.Read(stream).Rows.Count.ShouldBe(2);
@@ -106,12 +106,12 @@ public class SpreadsheetReaderTests
     [Fact]
     public void A_data_row_pasted_over_a_header_cell_is_flagged_not_trusted()
     {
-        // Cartierul Vienez, exactly: every header intact except A1, which holds a record.
+        // Cartierul Nou, exactly: every header intact except A1, which holds a record.
         using var stream = Workbook(sheet =>
         {
-            WriteRow(sheet, 1, RokaHeaders);
+            WriteRow(sheet, 1, LindenHeaders);
             sheet.Cell(1, 1).Value = "Etaj 5 - M12_39A - Studio";
-            WriteRow(sheet, 2, RokaRow);
+            WriteRow(sheet, 2, LindenRow);
         });
 
         var sheet = SpreadsheetReader.Read(stream);
@@ -136,7 +136,7 @@ public class SpreadsheetReaderTests
     [Fact]
     public void Columns_carry_a_sample_so_a_person_can_see_what_they_are_mapping()
     {
-        using var stream = RokaLike();
+        using var stream = LindenLike();
         var sheet = SpreadsheetReader.Read(stream);
 
         sheet.Columns.Single(c => c.Letter == "F").Sample.ShouldBe(["Ap.104"]);
@@ -147,7 +147,7 @@ public class SpreadsheetReaderTests
     {
         using var stream = Workbook(sheet =>
         {
-            WriteRow(sheet, 1, RokaHeaders);
+            WriteRow(sheet, 1, LindenHeaders);
             sheet.Cell(2, 6).Value = "Ap.104";
 
             // Formatted with a thousand separator, as the real sheets are.
@@ -200,7 +200,7 @@ public class ImportFieldTests
     [Fact]
     public void A_rate_suffix_does_not_hide_the_column()
     {
-        // Cartierul Vienez heads this "Pret cesiune faraTVA 21%".
+        // Cartierul Nou heads this "Pret cesiune faraTVA 21%".
         ImportField.Guess("Pret cesiune faraTVA 21%")!.Field.ShouldBe(ImportField.CesiunePriceNet);
         ImportField.Guess("Pret cesiune faraTVA")!.Field.ShouldBe(ImportField.CesiunePriceNet);
     }

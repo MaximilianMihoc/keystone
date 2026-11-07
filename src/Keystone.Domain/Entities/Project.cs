@@ -27,7 +27,7 @@ public class Developer : Entity
 /// </remarks>
 public class Project : Entity
 {
-    /// <summary>URL segment, e.g. <c>roka-park-view</c>. Frozen once published.</summary>
+    /// <summary>URL segment, e.g. <c>linden-park-view</c>. Frozen once published.</summary>
     public required string Slug { get; set; }
 
     public required string Name { get; set; }
@@ -53,14 +53,14 @@ public class Project : Entity
     /// How many apartments the operator committed to.
     /// </summary>
     /// <remarks>
-    /// Stated exactly once. The Roka prospectus says 20 in its description and 30 in its
+    /// Stated exactly once. The Linden prospectus says 20 in its description and 30 in its
     /// contract section; the spreadsheet has 20. One field makes that disagreement impossible.
     /// </remarks>
     public int? UnitsCommitted { get; set; }
 
     public DateOnly? DeliveryDate { get; set; }
 
-    /// <summary>Contractual grace period on delivery. Roka and Lake Home allow six months.</summary>
+    /// <summary>Contractual grace period on delivery. Linden and Lakeside allow six months.</summary>
     public int DeliveryGraceMonths { get; set; }
 
     public RentalProfile? RentalProfile { get; set; }
@@ -89,7 +89,7 @@ public class Project : Entity
 
     /// <summary>
     /// How many parking spaces one buyer may take with one apartment. Zero means parking is not
-    /// sold alongside a flat here, which is Roka's case.
+    /// sold alongside a flat here, which is Linden's case.
     /// </summary>
     /// <remarks>
     /// Per project rather than a constant, because the developments differ. The numbers are a

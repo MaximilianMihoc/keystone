@@ -94,7 +94,7 @@ public sealed record ImportField(
         // rest must match exactly.
         //
         // Exactly, and not as a prefix: "Etaj 5 - M12_39A - Studio" begins with "Etaj", and a
-        // prefix rule silently mapped that ruined Cartierul Vienez cell to the floor column.
+        // prefix rule silently mapped that ruined Cartierul Nou cell to the floor column.
         // A wrong guess presented as a confident one is worse than no guess at all.
         var trimmed = needle.TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
 
@@ -121,7 +121,7 @@ public static class HeaderText
     /// </summary>
     /// <remarks>
     /// A number, a date, or a long dashed string like "Etaj 5 - M12_39A - Studio" is data that
-    /// landed where a name should be — Cartierul Vienez has exactly that in cell A1.
+    /// landed where a name should be — Cartierul Nou has exactly that in cell A1.
     /// Recognising it does not repair the file; it stops the column being guessed at, and lets
     /// the mapping screen say plainly that a person has to choose.
     /// </remarks>

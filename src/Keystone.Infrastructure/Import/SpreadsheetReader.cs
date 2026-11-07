@@ -6,7 +6,7 @@ namespace Keystone.Infrastructure.Import;
 /// <param name="Letter">Excel column letter, so a person can find it in their own file.</param>
 /// <param name="Header">The header text, or null where the cell was empty.</param>
 /// <param name="LooksLikeData">
-/// The header reads like a row of the table rather than a name for one. Cartierul Vienez has
+/// The header reads like a row of the table rather than a name for one. Cartierul Nou has
 /// exactly this: a data row was pasted over cell A1, so its first column is headed
 /// "Etaj 5 - M12_39A - Studio". Flagged rather than guessed at, because the fix is a person
 /// choosing what that column is.
@@ -134,7 +134,7 @@ public static class SpreadsheetReader
     /// Scored rather than assumed to be the first row: these workbooks carry title rows, logos
     /// and merged banners above the table. The score is how many cells match a known column
     /// name, which is a far better signal than "is row 1" — and it survives one corrupted cell,
-    /// which is the difference between reading Cartierul Vienez and refusing it.
+    /// which is the difference between reading Cartierul Nou and refusing it.
     /// </remarks>
     private static int FindHeaderRow(
         IXLWorksheet sheet,

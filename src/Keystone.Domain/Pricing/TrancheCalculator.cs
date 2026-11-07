@@ -28,7 +28,7 @@ public static class TrancheCalculator
     /// The assignment price, excluding VAT — the margin the operator negotiated. This sits <em>inside</em>
     /// the base price rather than on top of it, so the developer receives
     /// <c>basePriceNet - cesiuneNet</c>, and that is what percentage tranches are measured against.
-    /// Verified to the cent against the Roka (15%) and Torontal (20%) spreadsheets.
+    /// Verified to the cent against the Linden (15%) and Riverside (20%) spreadsheets.
     /// </param>
     /// <param name="reducedVatApplies">
     /// Whether this buyer qualifies for the reduced rate on this unit. Depends on both the unit's

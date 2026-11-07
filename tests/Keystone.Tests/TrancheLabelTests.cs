@@ -17,7 +17,7 @@ public class TrancheLabelTests
         string culture, string first, string second)
     {
         // The apartment page numbers by position rather than printing the stored label, which
-        // is the operator's own and untranslatable. Roka's sheet called its second payment "Transa 3".
+        // is the operator's own and untranslatable. Linden's sheet called its second payment "Transa 3".
         var format = Resources.GetString("Tranche.Number", CultureInfo.GetCultureInfo(culture));
 
         string.Format(CultureInfo.GetCultureInfo(culture), format!, 1).ShouldBe(first);

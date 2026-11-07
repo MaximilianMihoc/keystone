@@ -14,13 +14,13 @@ namespace Keystone.Tests;
 public class SlugTests
 {
     [Theory]
-    [InlineData("Roka Park View", "roka-park-view")]
+    [InlineData("Linden Park View", "linden-park-view")]
     [InlineData("București Park", "bucuresti-park")]
-    [InlineData("Cartierul Vienez", "cartierul-vienez")]
+    [InlineData("Cartierul Nou", "cartierul-nou")]
     [InlineData("Ap. 101 / B", "ap-101-b")]
-    [InlineData("  Roka   Park  ", "roka-park")]
-    [InlineData("Prima Solis (Etapa 2)", "prima-solis-etapa-2")]
-    [InlineData("Brașov — Coresi", "brasov-coresi")]
+    [InlineData("  Linden   Park  ", "linden-park")]
+    [InlineData("Prima Vista (Etapa 2)", "prima-vista-etapa-2")]
+    [InlineData("Brașov — Centru", "brasov-centru")]
     public void Turns_a_name_into_an_address(string name, string expected) =>
         ProjectAdminService.Slugify(name).ShouldBe(expected);
 

@@ -28,13 +28,13 @@ public class ProjectAdminTests(DatabaseFixture fixture)
     private static DeveloperEdit Developer(string name = "Vertical Development") =>
         new(name, "Builds things", 12, 400, "https://example.invalid");
 
-    private static ProjectCreate Create(string name = "Roka Park View", string? slug = null) =>
+    private static ProjectCreate Create(string name = "Linden Park View", string? slug = null) =>
         new(name, "București", slug, null);
 
     private static TranslationEdit Prose(string summary) =>
         new(null, summary, null, null, null, null);
 
-    private async Task<Guid> NewProjectAsync(string name = "Roka Park View")
+    private async Task<Guid> NewProjectAsync(string name = "Linden Park View")
     {
         await using var db = fixture.CreateContext();
 
@@ -63,7 +63,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         await using var verify = fixture.CreateContext();
         var project = await verify.Projects.SingleAsync(p => p.Id == id);
 
-        project.Slug.ShouldBe("roka-park-view");
+        project.Slug.ShouldBe("linden-park-view");
         project.Status.ShouldBe(ProjectStatus.Draft);
         project.PublishedAt.ShouldBeNull();
 
@@ -83,7 +83,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         await using var db = fixture.CreateContext();
         var result = await Service(db).CreateProjectAsync(Create(), Actor, "dev", CancellationToken.None);
 
-        result.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("roka-park-view");
+        result.ShouldBeOfType<AdminWriteResult.Rejected>().Reason.ShouldContain("linden-park-view");
     }
 
     [Fact]
@@ -248,7 +248,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         await using var db = fixture.CreateContext();
         var result = await Service(db).EditProjectAsync(
             fixture.ProjectId,
-            new ProjectEdit("Roka Park View", "Brașov", "roka-brasov", null, ProjectStatus.Selling,
+            new ProjectEdit("Linden Park View", "Brașov", "linden-brasov", null, ProjectStatus.Selling,
                 20, new DateOnly(2027, 6, 30), 6, RentalProfile.ShortTerm, 5_000m, "EUR", 72, 5, null, null),
             Actor, "dev", CancellationToken.None);
 
@@ -258,7 +258,7 @@ public class ProjectAdminTests(DatabaseFixture fixture)
         await using var verify = fixture.CreateContext();
         var project = await verify.Projects.SingleAsync(p => p.Id == fixture.ProjectId);
 
-        project.Slug.ShouldBe("roka-brasov");
+        project.Slug.ShouldBe("linden-brasov");
         project.City.ShouldBe("Brașov");
         project.DeliveryGraceMonths.ShouldBe(6);
         project.RentalProfile.ShouldBe(RentalProfile.ShortTerm);

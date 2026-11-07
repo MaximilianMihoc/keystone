@@ -79,7 +79,7 @@ public sealed class InventoryExporter(KeystoneDbContext db)
 
         // The operator's headings, verbatim. The tranche columns are named from each project's own
         // stored labels, which is why the label is stored at all — the public pages number the
-        // payments by position instead. Roka's sheet numbered its second payment "Transa 3";
+        // payments by position instead. Linden's sheet numbered its second payment "Transa 3";
         // that slip is corrected here, so this export no longer matches that column name.
         string[] headers =
         [
