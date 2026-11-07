@@ -3,7 +3,7 @@
 The project's vocabulary. A glossary, not a spec: what a word means here, and which nearby word
 it is not. Implementation lives in the code and in `docs/adr/`.
 
-Hubix's own terminology wins wherever it exists, spelling mistakes aside.
+The operator's own terminology wins wherever it exists, spelling mistakes aside.
 
 ## Inventory and Configuration
 
@@ -62,21 +62,21 @@ is set-null, so the database would happily strip it off a live project rather th
 
 ## Source language
 
-Romanian. The language Hubix writes in, and what every other language falls back to when a
+Romanian. The language the operator writes in, and what every other language falls back to when a
 translation is missing — a Romanian sentence beats an empty page.
 
 English is a translation, not the other way round.
 
 ## Cesiune
 
-Hubix's margin on a unit, taken out of what the buyer pays rather than added on top. Their word,
+The operator's margin on a unit, taken out of what the buyer pays rather than added on top. Their word,
 kept deliberately: it is real terminology in this market, and translating it would lose the
 meaning the paperwork depends on. It can never exceed the price it is part of.
 
 ## Tranche
 
 One scheduled payment in a project's payment plan. Calculated from the pricing rule at the moment
-it is read, never stored on a unit — which is the fix for the column drift across Hubix's five
+it is read, never stored on a unit — which is the fix for the column drift across the operator's five
 spreadsheets, where a typed formula had gone missing from some rows.
 
 ## Snapshot

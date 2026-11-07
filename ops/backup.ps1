@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Backs up the Hubix database.
+    Backs up the Keystone database.
 
 .DESCRIPTION
     A full backup, verified, with the date in the name.

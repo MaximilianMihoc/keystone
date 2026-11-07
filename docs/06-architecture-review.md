@@ -4,7 +4,7 @@
 > Review · 2026-09-26 · no changes made
 
 Where the code is shallow, duplicated or leaking across seams, and what a deeper module would
-absorb. Written after Hubix declined, while the project is frozen: this is a record for whoever
+absorb. Written while the project was frozen: this is a record for whoever
 picks it up next, not a work plan. Nothing here has been acted on.
 
 Scoped to the hot spots of the previous 60 days of commits. Vocabulary: a **module** is deep

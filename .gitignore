@@ -103,6 +103,7 @@ src/Keystone.Web/wwwroot/uploads/
 *.xls
 *.docx
 *.doc
+seed-data/
 
 ## ---------------------------------------------------------------------------
 ## OS noise

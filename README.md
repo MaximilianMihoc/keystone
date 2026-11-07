@@ -1,45 +1,55 @@
-# Hubix Portal
+# Keystone
 
-Investor portal for [Hubix](https://hubix.ro) real estate hubs — live apartment inventory, atomic
-reservations, waitlists and the sales pipeline, replacing a per-project stack of Word documents,
-Google Sheets and Google Forms.
+A sales portal for a real estate operator that buys blocks of apartments in other developers'
+projects and resells them to investors: live apartment inventory, atomic reservations, waitlists
+and the sales pipeline. It replaces a per-project stack of Word documents, spreadsheets and web
+forms.
 
-> **Status: pre-alpha, unsanctioned.** This is an independent side project. Hubix has not been
-> approached about it and has not seen it. Nothing here is an official Hubix product, and the
-> repository is private for that reason.
+A side project, designed against the real workflow of a Romanian operator. The operator decided
+it did not need one, so there is no live instance. Every project, person and price in this
+repository is fictional.
 
 ---
 
 ## The problem
 
-Hubix sells apartments in blocks of 20–40 units per development. Today each project is run from five
-artefacts kept in sync by hand:
+The operator sells apartments in blocks of 20–40 units per development. Each project was run from
+five artefacts kept in sync by hand:
 
-| Artefact | Today |
+| Artefact | Before |
 |---|---|
 | Prospectus | A 13–20 page Word document, emailed out |
-| Inventory | One Google Sheet per project, availability a `DA` / `NU` text cell |
-| Reservation | A Google Form, first-come-first-served on the honour system |
-| Waitlist | Separate Google Forms per apartment type |
+| Inventory | One spreadsheet per project, availability a `DA` / `NU` text cell |
+| Reservation | A web form, first-come-first-served on the honour system |
+| Waitlist | Separate forms per apartment type |
 | Sales pipeline | Hidden right-hand columns of the same sheet |
 
-The syncing is visibly failing — column layouts have drifted between projects, one live spreadsheet has
-its header row pasted over, and one prospectus states two different unit counts in two places.
+The syncing was visibly failing: column layouts had drifted between projects, one live
+spreadsheet had its header row pasted over, and one prospectus stated two different unit counts
+in two places.
 
-**This project's thesis:** enter a project once, render it everywhere.
+**The thesis:** enter a project once, render it everywhere.
+
+**Never in scope:** payments. Money moves by bank transfer and at the notary. This system tracks
+state; it does not hold funds.
 
 ---
 
-## Scope
+## What is in it
 
-**In:** Line A — the "Hubs" business. Apartment inventory, reservations, waitlists, pipeline, documents.
-
-**Out for now:** Hubix Equity. That line is a regulated private placement capped at 149 privately invited
-subscribers per project, and it needs review by a Romanian securities lawyer before any of it is designed,
-let alone built.
-
-**Never:** payments. Money moves by bank transfer and at the notary. This system tracks state; it does not
-hold funds.
+- **A public site** in English and Romanian: projects, a floor-by-floor availability board, an
+  apartment page with its payment plan, reservation, waitlist and contact forms.
+- **An admin** for staff: the units grid, a pipeline board, prospects, a
+  spreadsheet importer with a reviewed preview, pricing rules, parking, files, audit log and
+  email settings.
+- **Holds that cannot double-book**, a per-buyer hold cap, expiry and waitlist promotion as
+  background jobs.
+- **GDPR handling**: access export, erasure that anonymises where accounting needs the record,
+  and request tracking against the one-month deadline.
+- **Email that cannot escape by accident**: off by default, redirect, allow and block lists,
+  editable from the admin and audited.
+- **A pre-launch security review** (stored XSS, host-header injection, session revocation,
+  concurrency bypasses), with every finding fixed.
 
 ---
 
@@ -48,43 +58,24 @@ hold funds.
 | Layer | Choice |
 |---|---|
 | Backend | ASP.NET Core (.NET 10) |
-| Data | EF Core → SQL Server / Azure SQL |
-| Public site | Razor Pages — server-rendered and indexable; prospects share these links |
-| Admin | React + TypeScript (Vite) |
-| Auth | Passwordless sign-in links, cookie session. No password store for a team of four |
-| Background jobs | Hangfire — hold expiry and waitlist promotion |
-| Email | Transactional, Romanian-first |
-| Storage | Azure Blob — floor plans, RLVs, renders |
+| Data | EF Core on SQL Server |
+| Public site | Razor Pages, server-rendered and indexable; prospects share these links |
+| Admin | React + TypeScript (Vite), built into `wwwroot` by `dotnet build` |
+| Auth | Passwordless sign-in links and a cookie session; no password store |
+| Background jobs | Hangfire: hold expiry and waitlist promotion |
+| Email | Resend, behind a guard every message goes through |
+| Storage | Local disk or Azure Blob, for floor plans and renders |
 
-**English is the default language.** A browser sending `Accept-Language: ro` is served Romanian
-automatically, and a language switcher writes a cookie that overrides the browser. Provider order
-is query string, then cookie, then `Accept-Language`, then the `en-GB` default.
-
-UI strings live in `.resx` files; project prose lives in `ProjectTranslations` rows. Hubix authors
-its content in Romanian, so an untranslated field falls back to Romanian rather than showing blank.
-
----
-
-## Planned layout
-
-```
-src/
-  Keystone.Domain/           entities, the unit state machine, pricing rules
-  Keystone.Infrastructure/   EF Core, email, blob storage
-  Keystone.Web/              Razor Pages, API, Hangfire host
-  Keystone.Admin/            React + TypeScript admin client (built into wwwroot by dotnet build)
-  Keystone.Seed/             loads real project data into a local database
-tests/
-  Keystone.Tests/            unit tests
-  Keystone.IntegrationTests/ includes the hold concurrency test
-```
+**English is the default language.** A browser sending `Accept-Language: ro` is served Romanian,
+and a language switcher writes a cookie that overrides the browser. UI strings live in `.resx`
+files; project prose lives in translation rows and falls back to Romanian rather than blank.
 
 ---
 
 ## The bit that matters
 
-A unit moves `Available → Held → Reserved → Contracted → Sold`. The hold is the load-bearing part, and it
-is deliberately a single guarded statement:
+A unit moves `Available → Held → Reserved → Contracted → Sold`. The hold is the load-bearing part,
+and it is deliberately a single guarded statement:
 
 ```csharp
 var rows = await db.Units
@@ -93,21 +84,22 @@ var rows = await db.Units
         .SetProperty(u => u.State,          UnitState.Held)
         .SetProperty(u => u.StateChangedAt, DateTimeOffset.UtcNow), ct);
 
-if (rows == 0) return HoldResult.NoLongerAvailable;
+if (rows == 0) return HoldOutcome.NoLongerAvailable;
 ```
 
-Two people clicking *Reserve* on the same apartment in the same second: exactly one gets `rows == 1`. No
-entity is loaded first, so there is no read-then-write window to lose the race in. Today this is prevented
-only by a member of staff being quick with a spreadsheet.
+Two people clicking *Reserve* on the same apartment in the same second: exactly one gets
+`rows == 1`. No entity is loaded first, so there is no read-then-write window to lose the race
+in. Before, this was prevented only by a member of staff being quick with a spreadsheet.
 
-An integration test asserting that N concurrent holds produce exactly one winner is a **release gate**, not
-a nice-to-have.
+An integration test asserting that 20 concurrent holds produce exactly one winner is a
+**release gate**, and it runs against a real SQL Server, in CI too, because the behaviour it
+covers does not exist in an in-memory provider.
 
 ---
 
 ## Getting started
 
-Requires the .NET 10 SDK, Node 22+, and SQL Server LocalDB (ships with SQL Server Express).
+Requires the .NET 10 SDK, Node 22+, and SQL Server Express.
 
 ```powershell
 winget install Microsoft.DotNet.SDK.10
@@ -115,76 +107,76 @@ winget install Microsoft.SQLServer.2022.Express
 ```
 
 ```powershell
-git clone https://github.com/MaximilianMihoc/hubix-portal.git
-cd hubix-portal
+git clone https://github.com/MaximilianMihoc/keystone.git
+cd keystone
 
 cp src/Keystone.Web/appsettings.Development.example.json src/Keystone.Web/appsettings.Development.json
 dotnet restore
 dotnet ef database update --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
-dotnet run --project src/Keystone.Seed          # loads real project data
-dotnet run --project src/Keystone.Web
+dotnet run --project src/Keystone.Seed          # staff accounts and one fictional project
+dotnet run --project src/Keystone.Web           # http://localhost:5001
 ```
 
-`appsettings.Development.json` is gitignored — it holds your local connection string and the
-address test email is redirected to. The `.example` file documents its shape.
+`appsettings.Development.json` is gitignored. It holds your local connection string and the
+address test email is redirected to; the `.example` file documents its shape.
 
-`dotnet build` also builds the React admin client, so one command produces a working
-application. It is skipped when npm is unavailable, and the admin page then says what to run.
+```powershell
+dotnet test tests/Keystone.Tests                # unit tests
+dotnet test tests/Keystone.IntegrationTests     # against the local SQL Server Express
+```
 
 ### Signing in to the admin
 
-Go to `/admin`. Sign-in is passwordless: you ask for a link and follow it.
+Go to `/admin` and sign in as `dev@keystone.invalid`. Sign-in is passwordless: you ask for a
+link and follow it. No mail leaves the machine: live sending is off, so messages are written to
+`./outbox`, and in Development the sign-in link is also shown on the page.
 
-**No mail leaves the machine.** `Email:LiveSendingEnabled` is `false`, so messages are written to
-`./outbox` instead, and `Email:RedirectAllTo` re-addresses everything to one inbox. Hubix's own
-addresses are on a block list that is checked first. In Development the sign-in link is also shown
-on the page, so you do not have to open the outbox to log in.
+---
 
-Seeded accounts use `.invalid` addresses for the same reason — sign in as `dev@hubix.invalid`.
+## Layout
+
+```
+src/
+  Keystone.Domain/           entities, the unit state machine, the sales pipeline, pricing
+  Keystone.Infrastructure/   EF Core, migrations, services, email, file storage
+  Keystone.Web/              Razor Pages, the admin API, Hangfire host, health checks
+  Keystone.Admin/            React + TypeScript admin client
+  Keystone.Seed/             seeds a local database with fictional data
+tests/
+  Keystone.Tests/            unit tests
+  Keystone.IntegrationTests/ real SQL Server, including the hold concurrency gate
+```
 
 ---
 
 ## Conventions
 
 - **Money is `decimal`.** Never `double`, anywhere, for any reason.
-- **Money is snapshotted at agreement**, never recomputed. Prices change; signed reservations must not.
-- **Every state transition writes an audit row.** "Who released that hold, and when?" has to be answerable.
-- **Consent is captured with purpose and version** from the first migration. Retrofitting GDPR onto a live
-  prospect table is genuinely painful.
+- **Money is snapshotted at agreement**, never recomputed. Prices change; signed reservations
+  must not.
+- **Every state transition writes an audit row.** "Who released that hold, and when?" has to be
+  answerable.
 - **Timestamps are `datetimeoffset`**, stored UTC.
-- **Translatable prose goes in a translations table**, never in `FieldEn` / `FieldRo` column pairs.
-  Adding a language is then a data change rather than a migration.
-- **Primary keys are UUIDv7**, generated in the application — SQL Server clusters on the primary key by
-  default, and random GUIDs fragment that index on every insert.
-- **Hubix's vocabulary wins, spelling mistakes aside.** `cesiune` is real Romanian real estate
-  terminology and is used as such. Their sheet numbered the second of two payments *Transa 3*; that
-  was a slip and is stored as `Transa 2`. The public pages number payments by position so the word
-  can be translated.
+- **Translatable prose goes in a translations table**, never in `FieldEn` / `FieldRo` column
+  pairs. Adding a language is then a data change rather than a migration.
+- **Primary keys are UUIDv7**, generated in the application. SQL Server clusters on the primary
+  key by default, and random GUIDs fragment that index on every insert.
+- **The operator's vocabulary wins**, spelling mistakes aside. `cesiune` is real Romanian real
+  estate terminology and is used as such.
 
 ---
 
 ## Documents
 
-Analysis, proposal and the full build specification are in `docs/`.
-
 | Document | Contents |
 |---|---|
-| [`01-business-analysis`](docs/01-business-analysis.md) | What Hubix does, both business lines, the current manual process |
-| [`02-application-proposal`](docs/02-application-proposal.md) | Why this system, what is deliberately out of scope, build order |
-| [`03-build-spec`](docs/03-build-spec.md) | Schema, state machine, routes, milestones, production checklist |
-| [`04-security-assessment`](docs/04-security-assessment.md) | Pre-launch security review: findings, what was ruled out, remediation order |
-| [`05-azure-deployment`](docs/05-azure-deployment.md) | Step by step: every Azure resource, setting and command that took the portal live |
-| [`RUNBOOK`](docs/RUNBOOK.md) | Health checks, what to do when something is wrong, the deploy checklist |
-| `seed-data/` | The five inventory spreadsheets extracted to JSON |
-
-All three are internal working documents and say so on their face. They have not been shared
-with Hubix.
-
-Source material — prospectuses and spreadsheets containing real prices and buyer data — stays in
-`C:\Repositories\HubixDocs` and is gitignored here.
+| [`CONTEXT`](CONTEXT.md) | The domain vocabulary |
+| [`RUNBOOK`](docs/RUNBOOK.md) | Health checks, what to do when something is wrong, what production needs |
+| [`Architecture review`](docs/06-architecture-review.md) | Where the code is shallow or leaking, and what would fix it |
+| [`ADRs`](docs/adr/) | Decisions worth recording |
 
 ---
 
 ## Licence
 
-None. Private, all rights reserved.
+All rights reserved. The source is public to read.
