@@ -59,9 +59,12 @@ state; it does not hold funds.
 ### An apartment, and what it costs
 
 Every payment calculated from the project's pricing rule at the moment it is read: the deposit,
-the operator's assignment price, VAT on each, and when each instalment falls due.
+the operator's assignment price, VAT on each, and when each instalment falls due. Below it, the
+apartment's plans, which open full screen.
 
-![An apartment page with its payment schedule split into instalments, net, VAT and total](docs/images/apartment.png)
+![An apartment page with its payment schedule split into instalments, net, VAT and total, and its floor plan](docs/images/apartment.png)
+
+![The apartment's floor plan open full screen: rooms with their areas, the balcony, and a title block](docs/images/apartment-plan.png)
 
 ### The admin
 
