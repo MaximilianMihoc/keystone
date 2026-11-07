@@ -64,7 +64,7 @@ pnpm-debug.log*
 .eslintcache
 
 ## Built admin bundle, emitted into the ASP.NET host at build time
-src/Hubix.Web/wwwroot/admin-assets/
+src/Keystone.Web/wwwroot/admin-assets/
 
 ## ---------------------------------------------------------------------------
 ## Database
@@ -91,7 +91,7 @@ coverage/
 ## ---------------------------------------------------------------------------
 uploads/
 storage/
-src/Hubix.Web/wwwroot/uploads/
+src/Keystone.Web/wwwroot/uploads/
 
 ## ---------------------------------------------------------------------------
 ## Hubix source material.

@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: src/Hubix.Admin/package-lock.json
+          cache-dependency-path: src/Keystone.Admin/package-lock.json
 
       - name: Restore
         run: dotnet restore
@@ -53,37 +53,37 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Unit tests
-        run: dotnet test tests/Hubix.Tests --no-build --configuration Release --verbosity quiet
+        run: dotnet test tests/Keystone.Tests --no-build --configuration Release --verbosity quiet
 
       - name: Integration tests
         env:
-          HUBIX_TEST_SQL: "Server=localhost,1433;Database={0};User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
-        run: dotnet test tests/Hubix.IntegrationTests --no-build --configuration Release --verbosity quiet
+          KEYSTONE_TEST_SQL: "Server=localhost,1433;Database={0};User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
+        run: dotnet test tests/Keystone.IntegrationTests --no-build --configuration Release --verbosity quiet
 
       # Catches the commit that changes an entity and forgets the migration. Without this the
       # failure surfaces on deploy, as a schema that does not match the code.
       - name: Migrations are up to date
         env:
-          HUBIX_TEST_SQL: "Server=localhost,1433;Database={0};User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
-          ConnectionStrings__HubixDb: "Server=localhost,1433;Database=HubixCiCheck;User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
+          KEYSTONE_TEST_SQL: "Server=localhost,1433;Database={0};User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
+          ConnectionStrings__KeystoneDb: "Server=localhost,1433;Database=KeystoneCiCheck;User Id=sa;Password=Your_Strong_Passw0rd;TrustServerCertificate=True;Encrypt=False"
         run: |
           dotnet tool install --global dotnet-ef
           export PATH="$PATH:$HOME/.dotnet/tools"
           dotnet ef migrations has-pending-model-changes \
-            --project src/Hubix.Infrastructure \
-            --startup-project src/Hubix.Web
+            --project src/Keystone.Infrastructure \
+            --startup-project src/Keystone.Web
 
       # The bundle is what actually gets deployed, and it is generated rather than committed.
       - name: The admin client builds
         run: |
-          test -f src/Hubix.Web/wwwroot/admin-assets/index.js
-          test -f src/Hubix.Web/wwwroot/admin-assets/index.css
+          test -f src/Keystone.Web/wwwroot/admin-assets/index.js
+          test -f src/Keystone.Web/wwwroot/admin-assets/index.css
 
       # Packaged here, from the build that just passed every check above, so what deploys is
       # exactly what was tested.
       - name: Publish
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: dotnet publish src/Hubix.Web --no-build --configuration Release --output publish
+        run: dotnet publish src/Keystone.Web --no-build --configuration Release --output publish
 
       - name: Keep the package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

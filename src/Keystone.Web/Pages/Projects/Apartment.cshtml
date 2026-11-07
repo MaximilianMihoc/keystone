@@ -1,0 +1,218 @@
+@page "/projects/{slug}/apartments/{code}"
+@model Keystone.Web.Pages.Projects.ApartmentModel
+@{
+    var u = Model.Unit;
+    ViewData["Title"] = $"{u.Code} — {Model.ProjectName}";
+}
+
+<div class="shell">
+    <p class="crumbs">
+        <a asp-page="/Index">@L["Nav.Projects"]</a><span>/</span>
+        <a asp-page="/Projects/Detail" asp-route-slug="@Model.Slug">@Model.ProjectName</a><span>/</span>
+        <a asp-page="/Projects/Apartments" asp-route-slug="@Model.Slug">@L["Project.Apartments"]</a><span>/</span>
+        @u.Code
+    </p>
+
+    <div class="page-head">
+        <p class="eyebrow">@Model.TypeDisplay</p>
+        <h1>@u.Code</h1>
+        <p class="lede">
+            <span class="state @(Model.IsFree ? "is-free" : "")">@L[Display.StateKey(u.State)]</span>
+        </p>
+    </div>
+
+    <dl class="spec">
+        @if (u.FloorLevel is { } level)
+        {
+            <div><dt>@L["Unit.Floor"]</dt><dd>@level</dd></div>
+        }
+        @if (u.Orientation is { Length: > 0 } orientation)
+        {
+            <div><dt>@L["Unit.Orientation"]</dt><dd>@orientation</dd></div>
+        }
+        <div>
+            <dt>@L["Unit.AreaUsable"]</dt>
+            <dd>@Display.Area(u.AreaUsable)</dd>
+        </div>
+        @if (u.AreaBalcony > 0)
+        {
+            <div><dt>@L["Unit.AreaBalcony"]</dt><dd>@Display.Area(u.AreaBalcony)</dd></div>
+        }
+        <div>
+            <dt>@L["Unit.AreaTotal"]</dt>
+            <dd>@Display.Area(u.AreaTotal)</dd>
+        </div>
+        <div>
+            <dt>@L["Unit.PriceNet"]</dt>
+            <dd>@Display.Money(u.BasePriceNet)</dd>
+        </div>
+    </dl>
+
+    @if (Model.Schedule is { } schedule)
+    {
+        @* Every one of Hubix's sheets keeps the first payment in two columns: the advance on
+           the apartment and the assignment price. Those are the two halves the buyer signs
+           for separately, so the page shows them rather than one figure they cannot check. *@
+        var advance = schedule.Tranches
+            .FirstOrDefault(t => t.CesiuneNet > 0 && t.Percentage is not null);
+
+        <div class="section">
+            <p class="section-label">@L["Tranche.Schedule"]</p>
+
+            <div class="schedule">
+                @* Column headers, desktop only. Below 620px each figure carries its own
+                   label via data-label, because the row stacks. *@
+                <div class="tranche head" aria-hidden="true">
+                    <div class="label"></div>
+                    <div class="amt">@L["Tranche.Net"]</div>
+                    <div class="amt">@L["Tranche.Vat"]</div>
+                    <div class="amt">@L["Tranche.Gross"]</div>
+                </div>
+
+                @* The number comes from the position, not from the stored label: it is the
+                   only way to say "Instalment 2" in the reader's language. *@
+                @for (var i = 0; i < schedule.Tranches.Count; i++)
+                {
+                    var tranche = schedule.Tranches[i];
+
+                    <div class="tranche">
+                        <div class="label">
+                            @L["Tranche.Number", i + 1]
+                            <small>@L[Display.DueKey(tranche.Due)]</small>
+                        </div>
+                        <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.Net)</div>
+                        <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.Vat)</div>
+                        <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.Gross)</div>
+                    </div>
+
+                    @* Two figures to show means a payment that collects the assignment price
+                       alongside the apartment. Whether a rate describes the apartment half is
+                       a separate question: the final payment is a remainder, not a rate. *@
+                    @if (tranche.CesiuneNet > 0)
+                    {
+                        <div class="tranche part">
+                            <div class="label">@(tranche.Percentage is { } pct
+                                ? L["Tranche.Advance", (pct * 100).ToString("0.##")]
+                                : L["Tranche.AdvanceNoRate"])</div>
+                            <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.ApartmentNet)</div>
+                            <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.ApartmentVat)</div>
+                            <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.ApartmentNet + tranche.ApartmentVat)</div>
+                        </div>
+
+                        <div class="tranche part">
+                            <div class="label">@L["Tranche.Cesiune"]</div>
+                            <div class="amt" data-label="@T["Tranche.Net"].Value">@Display.MoneyExact(tranche.CesiuneNet)</div>
+                            <div class="amt" data-label="@T["Tranche.Vat"].Value">@Display.MoneyExact(tranche.CesiuneVat)</div>
+                            <div class="amt total" data-label="@T["Tranche.Gross"].Value">@Display.MoneyExact(tranche.CesiuneNet + tranche.CesiuneVat)</div>
+                        </div>
+                    }
+                }
+
+                <p class="schedule-foot">
+                    @L["Tranche.Explainer", (schedule.VatRate * 100).ToString("0.#"), (schedule.CesiuneVatRate * 100).ToString("0.#")]
+
+                    @* The rate is measured against the price less the assignment price, which
+                       is not the price shown above. Saying so is the difference between a
+                       figure a buyer can reproduce and one that looks wrong. *@
+                    @if (advance?.Percentage is { } advancePct)
+                    {
+                        @L["Tranche.AdvanceBasis", (advancePct * 100).ToString("0.##")]
+                    }
+                </p>
+            </div>
+        </div>
+    }
+
+    @if (Model.ShowParking)
+    {
+        <div class="section">
+            <p class="section-label">@L["Parking.Heading"]</p>
+
+            @* What the car park actually holds, priced per kind. The count is the honest part:
+               these are finite, and a buyer deciding today should see how finite. *@
+            @if (Model.ParkingOnOffer.Count > 0)
+            {
+                <dl class="spec">
+                    @foreach (var offer in Model.ParkingOnOffer)
+                    {
+                        <div>
+                            <dt>@L[Display.ParkingSpaceKey(offer.Kind)]</dt>
+                            <dd>
+                                @Display.Money(offer.PriceNet)
+                                <small>
+                                    @L["Parking.Advance"] @Display.Money(offer.DepositNet)
+                                    · @Display.ParkingLevel(offer.Level, T)
+                                    · @L["Parking.Available", offer.Available]
+                                </small>
+                            </dd>
+                        </div>
+                    }
+                </dl>
+            }
+
+            @* Why there is no price, or whatever else the project needs to say about parking. *@
+            @if (Model.ParkingNote is { Length: > 0 } parkingNote)
+            {
+                <p class="note">@parkingNote</p>
+            }
+        </div>
+    }
+
+    @if (Model.Drawings.Count > 0)
+    {
+        <div class="section">
+            <p class="section-label">@L["Asset.Drawings"]</p>
+
+            @* Links are signed and expire, so nothing here is a permanent public address.
+               Each tile is a plain link to the file, so the page works without script;
+               drawings.js draws PDF first pages into the tiles and opens the same full-screen
+               preview the admin uses. The preview's words ride along as data attributes. *@
+            <div class="drawings" data-drawings
+                 data-open-original="@T["Asset.OpenOriginal"].Value"
+                 data-close="@T["Asset.Close"].Value"
+                 data-hint="@T["Asset.PreviewHint"].Value"
+                 data-previous="@T["Asset.Previous"].Value"
+                 data-next="@T["Asset.Next"].Value">
+                @foreach (var drawing in Model.Drawings)
+                {
+                    @* A value, not a present-or-absent attribute: Razor writes data-* attributes
+                       even when the value is null, so data-pdf would have been on every tile. *@
+                    <a class="drawing" href="@drawing.Url" target="_blank" rel="noreferrer"
+                       data-format="@(drawing.IsPdf ? "pdf" : "image")">
+                        <span class="drawing-thumb @drawing.Shape">
+                            @if (drawing.IsPdf)
+                            {
+                                <span class="drawing-doc" aria-hidden="true">PDF</span>
+                            }
+                            else
+                            {
+                                <img src="@drawing.Url" alt="" loading="lazy" />
+                            }
+                        </span>
+                        <span class="drawing-kind" data-kind="@drawing.Kind">@drawing.Label</span>
+                        <span class="drawing-name">@drawing.Name</span>
+                    </a>
+                }
+            </div>
+        </div>
+
+        <script type="module" src="/admin-assets/drawings.js" asp-append-version="true"></script>
+    }
+
+    <div class="section">
+        @if (Model.IsFree)
+        {
+            <p class="note">@L["Reserve.HoldExplainer", Model.HoldDurationHours]</p>
+            <p style="margin-top:16px">
+                <a class="btn" asp-page="/Projects/Reserve"
+                   asp-route-slug="@Model.Slug" asp-route-code="@u.Code">
+                    @L["Reserve.Action"]
+                </a>
+            </p>
+        }
+        else
+        {
+            <p class="note">@L["Reserve.Unavailable"]</p>
+        }
+    </div>
+</div>

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Keystone.Domain/Keystone.Domain.csproj" />
+    <Project Path="src/Keystone.Infrastructure/Keystone.Infrastructure.csproj" />
+    <Project Path="src/Keystone.Seed/Keystone.Seed.csproj" />
+    <Project Path="src/Keystone.Web/Keystone.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Keystone.IntegrationTests/Keystone.IntegrationTests.csproj" />
+    <Project Path="tests/Keystone.Tests/Keystone.Tests.csproj" />
+  </Folder>
+</Solution>

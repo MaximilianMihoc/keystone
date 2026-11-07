@@ -135,8 +135,8 @@ The portal runs in Azure, region Germany West Central, all in resource group `hu
 | Storage account | Private container `hubix-assets`, created by the app. Account-key access must stay on, because read links are signed with the key. CORS allows `GET` from the site. |
 
 Configuration is in **App Service → Environment variables**, never in a file:
-`ConnectionStrings__HubixDb`, `Assets__BlobConnectionString`, `Hubix__PublicBaseUrl`,
-`Hubix__SalesInbox`, `AllowedHosts`, `Resend__ApiKey`, `Email__From`. `ASPNETCORE_ENVIRONMENT`
+`ConnectionStrings__KeystoneDb`, `Assets__BlobConnectionString`, `Keystone__PublicBaseUrl`,
+`Keystone__SalesInbox`, `AllowedHosts`, `Resend__ApiKey`, `Email__From`. `ASPNETCORE_ENVIRONMENT`
 is deliberately unset, which means Production.
 
 **Every merge to `main` deploys.** The `deploy` job in `.github/workflows/ci.yml` runs only
@@ -147,13 +147,13 @@ below), so a bad deploy fails that step rather than serving something wrong.
 
 **Migrations are not applied by the pipeline.** If a pull request adds one, apply it by hand
 **before merging**. Old code runs fine against a newer schema far more often than new code
-runs against an old one. From a terminal you close afterwards, so `HUBIX_DB` does not linger
+runs against an old one. From a terminal you close afterwards, so `KEYSTONE_DB` does not linger
 and point every later `dotnet ef` at production:
 
 ```powershell
-$env:HUBIX_DB = "<the Azure SQL connection string>"
-dotnet ef migrations list  --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet ef database update  --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+$env:KEYSTONE_DB = "<the Azure SQL connection string>"
+dotnet ef migrations list  --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet ef database update  --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
 ```
 
 Your IP has to be on the SQL server's firewall list (**SQL server → Networking**). Point-in-time
@@ -189,7 +189,7 @@ re-registered by somebody else, and an id cannot.
 Only when the pipeline cannot, and only from a clean `main`:
 
 ```powershell
-dotnet publish src/Hubix.Web -c Release -o publish
+dotnet publish src/Keystone.Web -c Release -o publish
 C:\Windows\System32\tar.exe -a -c -f hubix-web.zip -C publish *
 az webapp deploy -g hubix-dev -n hubix-dev --src-path hubix-web.zip --type zip --clean true
 ```
@@ -267,7 +267,7 @@ toward an exception on every message.
 The key never goes in a file that anybody reads:
 
 ```powershell
-dotnet user-secrets set "Resend:ApiKey" "re_..." --project src/Hubix.Web
+dotnet user-secrets set "Resend:ApiKey" "re_..." --project src/Keystone.Web
 ```
 
 In production it comes from the host's own secret store, as an environment variable
@@ -287,7 +287,7 @@ owns the Resend account. A production instance refuses to start while `Email:Fro
 ### Changing provider
 
 `ResendEmailSender` is the only file in the solution that names a provider, and
-`EmailRegistration.AddHubixEmail` is the only place it is chosen. Moving to Postmark is a
+`EmailRegistration.AddKeystoneEmail` is the only place it is chosen. Moving to Postmark is a
 `PostmarkEmailSender` beside it, its options bound in the same method, and the one line that
 picks the live sender. No page, notifier or job mentions a provider, so none of them change.
 

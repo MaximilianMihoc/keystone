@@ -114,10 +114,10 @@ change, [#30](https://github.com/MaximilianMihoc/hubix-portal/issues/30) needs a
 ### F-1 — Public email-claim hijacks an existing buyer's record
 
 - **Severity:** High · **Confidence:** High · **CWE-306 / CWE-639 / CWE-863** (broken access control, insecure design)
-- **Files:** `src/Hubix.Infrastructure/Sales/HoldService.cs` (`FindOrCreateProspectAsync`),
-  `src/Hubix.Infrastructure/Sales/WaitlistService.cs` (`JoinAsync`, `RegisterAsync`),
-  `src/Hubix.Infrastructure/Sales/EnquiryService.cs`,
-  `src/Hubix.Web/Pages/Projects/Waitlist.cshtml.cs` (`AlreadyWaiting` redirect)
+- **Files:** `src/Keystone.Infrastructure/Sales/HoldService.cs` (`FindOrCreateProspectAsync`),
+  `src/Keystone.Infrastructure/Sales/WaitlistService.cs` (`JoinAsync`, `RegisterAsync`),
+  `src/Keystone.Infrastructure/Sales/EnquiryService.cs`,
+  `src/Keystone.Web/Pages/Projects/Waitlist.cshtml.cs` (`AlreadyWaiting` redirect)
 
 **Description.** Every public flow locates a prospect by the submitted email and overwrites it via
 `ProspectDetails.ApplyTo` (name, phone, city, country) and can stamp GDPR consent. There is **no
@@ -156,8 +156,8 @@ unauthenticated submitter — re-send it to the address on file instead.
 ### F-2 — Stored XSS via SVG asset upload (editor → admin takeover)
 
 - **Severity:** High · **Confidence:** High · **CWE-79 / CWE-434**
-- **Files:** `src/Hubix.Infrastructure/Assets/AssetService.cs:47-54` (`.svg` in the allow-list),
-  `src/Hubix.Web/Api/AssetApi.cs:57` (`Results.File(..., inline)`), served same-origin at
+- **Files:** `src/Keystone.Infrastructure/Assets/AssetService.cs:47-54` (`.svg` in the allow-list),
+  `src/Keystone.Web/Api/AssetApi.cs:57` (`Results.File(..., inline)`), served same-origin at
   `/assets/{**key}`; no CSP anywhere.
 
 **Description.** Any `CanEdit` user (Sales or Admin) may upload `.svg`. Validation is extension +
@@ -196,8 +196,8 @@ serve untrusted files from an isolated origin.
 ### F-3 — Host-header injection poisons staff sign-in links (account takeover)
 
 - **Severity:** High · **Confidence:** High · **CWE-290 / CWE-640 / CWE-644**
-- **Files:** `src/Hubix.Web/appsettings.json` (`"AllowedHosts": "*"`),
-  `src/Hubix.Web/Pages/Admin/Login.cshtml.cs:70`
+- **Files:** `src/Keystone.Web/appsettings.json` (`"AllowedHosts": "*"`),
+  `src/Keystone.Web/Pages/Admin/Login.cshtml.cs:70`
   (`Url.Page("/Admin/Verify", null, new { token }, Request.Scheme)`)
 
 **Description.** `AllowedHosts` is `*`, and the sign-in link is built with
@@ -229,9 +229,9 @@ a must-fix before enabling live email, i.e. before public launch.
 ### F-4 — Deactivated or demoted staff sessions retain authority
 
 - **Severity:** Medium–High · **Confidence:** High · **CWE-613 / CWE-863**
-- **Files:** `src/Hubix.Web/Program.cs` (cookie auth setup),
-  `src/Hubix.Web/Pages/Admin/Login.cshtml.cs` (`Verify` copies roles into claims),
-  `src/Hubix.Infrastructure/Admin/StaffAdminService.cs`
+- **Files:** `src/Keystone.Web/Program.cs` (cookie auth setup),
+  `src/Keystone.Web/Pages/Admin/Login.cshtml.cs` (`Verify` copies roles into claims),
+  `src/Keystone.Infrastructure/Admin/StaffAdminService.cs`
 
 **Description.** Login copies role claims into the cookie. There is no `ValidatePrincipal` callback,
 no `IsActive` re-check per request, and no session/security-stamp version. `ExpireTimeSpan` is 12h
@@ -304,7 +304,7 @@ account changes, and impose an absolute session lifetime. (Microsoft: "react to 
   Counting inside the transaction changes nothing (each attempt's own row is invisible to the
   others until it commits) and deadlocks under load. The cap is enforced behind an `UPDLOCK` on
   the prospect row; see §10.*
-- **F-9 — Import commit hash optional.** `src/Hubix.Web/Api/ImportApi.cs:409` skips the
+- **F-9 — Import commit hash optional.** `src/Keystone.Web/Api/ImportApi.cs:409` skips the
   preview-vs-commit file-hash check when the client omits `hash`. Not an access hole (still
   `CanEdit`, re-planned server-side, cannot touch held/sold units) — an integrity gap only.
   **Fix:** require the hash on commit.
@@ -389,8 +389,8 @@ written before anything was attempted and three of them mis-prescribed:
   the log. It is not: request logging records the path exactly as it records the query. Only the
   fragment stays out of the log, because a browser never sends it.
 - **F-9/[#38](https://github.com/MaximilianMihoc/hubix-portal/issues/38)** asked for a client fix that was not needed (the admin client already sent the
-  hash) and an integration test that cannot exist (`Hubix.IntegrationTests` does not reference
-  `Hubix.Web`, so it cannot reach an endpoint).
+  hash) and an integration test that cannot exist (`Keystone.IntegrationTests` does not reference
+  `Keystone.Web`, so it cannot reach an endpoint).
 
 ### P0 — before public deployment
 1. **[#31](https://github.com/MaximilianMihoc/hubix-portal/issues/31) — F-2 SVG XSS** — drop/sanitize `.svg`; serve assets `attachment` + `nosniff`.

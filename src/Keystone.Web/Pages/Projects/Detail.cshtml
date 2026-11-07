@@ -1,0 +1,162 @@
+@page "/projects/{slug}"
+@model Keystone.Web.Pages.Projects.DetailModel
+@{
+    ViewData["Title"] = Model.Project.Name;
+    var p = Model.Project;
+}
+
+<div class="shell">
+    <p class="crumbs">
+        <a asp-page="/Index">@L["Nav.Projects"]</a><span>/</span>@p.Name
+    </p>
+
+    <div class="page-head">
+        <p class="eyebrow">@Model.City</p>
+        <h1>@p.Name</h1>
+        @if (Model.Text?.Summary is { Length: > 0 } summary)
+        {
+            <p class="lede">@summary</p>
+        }
+    </div>
+
+    <dl class="spec">
+        @if (Model.DeveloperName is { } developer)
+        {
+            <div>
+                <dt>@L["Project.Developer"]</dt>
+                <dd>@developer</dd>
+            </div>
+        }
+        @if (p.UnitsCommitted is { } committed)
+        {
+            <div>
+                <dt>@L["Project.Apartments"]</dt>
+                <dd>
+                    @committed
+                    <small>@L["Project.FreeOfTotal", Model.FreeUnits, Model.TotalUnits]</small>
+                </dd>
+            </div>
+        }
+        @if (p.DeliveryDate is { } delivery)
+        {
+            <div>
+                <dt>@L["Project.Delivery"]</dt>
+                <dd>
+                    @delivery.ToString("MMMM yyyy")
+                    @if (p.DeliveryGraceMonths > 0)
+                    {
+                        <small>@L["Project.DeliveryGrace", p.DeliveryGraceMonths]</small>
+                    }
+                </dd>
+            </div>
+        }
+        @if (Model.FromPrice is { } from)
+        {
+            <div>
+                <dt>@L["Index.From"]</dt>
+                <dd>
+                    @Display.Money(from)
+                    <small>@L["Unit.PriceNet"]</small>
+                </dd>
+            </div>
+        }
+        @if (p.ReservationFee is { } fee)
+        {
+            <div>
+                <dt>@L["Project.ReservationFee"]</dt>
+                <dd>
+                    @Display.Money(fee)
+                    <small>@L["Project.HoldHours", p.HoldDurationHours]</small>
+                </dd>
+            </div>
+        }
+        @if (p.RentalProfile is { } profile)
+        {
+            <div>
+                <dt>@L["Project.RentalProfile"]</dt>
+                <dd>@L[$"Rental.{profile}"]</dd>
+            </div>
+        }
+    </dl>
+
+    @if (Model.Slides.Count > 0)
+    {
+        @* Without script the first image shows on its own; slideshow.js adds the rest of the
+           movement. Images, never links to the files: an asset opened on its own is a page
+           of its own (issue #31). *@
+        <section class="section">
+            <div class="slideshow" data-slideshow aria-roledescription="carousel" aria-label="@T["Slideshow.Label"]">
+                <div class="slides">
+                    @for (var i = 0; i < Model.Slides.Count; i++)
+                    {
+                        var slide = Model.Slides[i];
+                        <figure class="slide@(i == 0 ? " is-current" : "")" aria-roledescription="slide"
+                                aria-label="@(i + 1) / @Model.Slides.Count" aria-hidden="@(i == 0 ? "false" : "true")">
+                            <img src="@slide.Url" alt="@(slide.Caption ?? "")" loading="@(i == 0 ? "eager" : "lazy")" />
+                            @if (slide.Caption is { Length: > 0 } caption)
+                            {
+                                <figcaption>@caption</figcaption>
+                            }
+                        </figure>
+                    }
+                </div>
+
+                @if (Model.Slides.Count > 1)
+                {
+                    <button class="slide-step prev" type="button" aria-label="@T["Slideshow.Previous"]" hidden>&#8249;</button>
+                    <button class="slide-step next" type="button" aria-label="@T["Slideshow.Next"]" hidden>&#8250;</button>
+                    <div class="slide-dots" hidden>
+                        @for (var i = 0; i < Model.Slides.Count; i++)
+                        {
+                            <button type="button" aria-label="@T["Slideshow.Show", i + 1]"
+                                    aria-current="@(i == 0 ? "true" : "false")"></button>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    <div class="section" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@p.Slug">
+            @L["Project.ViewApartments", Model.FreeUnits]
+        </a>
+        <a class="btn ghost" href="@Display.MapsLink(p.MapsUrl, p.Name, p.City)"
+           rel="noopener noreferrer" target="_blank">@L["Project.Location"]</a>
+    </div>
+
+    @if (Model.Text?.Body is { Length: > 0 } body)
+    {
+        <div class="section">
+            <p class="section-label">@L["Project.About"]</p>
+            <div class="prose">
+                @foreach (var paragraph in body.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    <p>@paragraph</p>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.Text?.PenaltyClause is { Length: > 0 } penalty)
+    {
+        <div class="section">
+            <p class="section-label">@L["Project.PenaltyClause"]</p>
+            <p class="note">@penalty</p>
+        </div>
+    }
+
+    @if (Model.TextIsFallback)
+    {
+        <div class="section">
+            <p class="note">@L["Content.OnlyInRomanian"]</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    @if (Model.Slides.Count > 1)
+    {
+        <script src="~/js/slideshow.js" asp-append-version="true" defer></script>
+    }
+}

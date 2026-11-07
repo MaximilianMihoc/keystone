@@ -12,12 +12,12 @@
 
 .EXAMPLE
     ./ops/backup.ps1
-    ./ops/backup.ps1 -Server "prod-sql" -Database HubixPortal -Path D:\backups
+    ./ops/backup.ps1 -Server "prod-sql" -Database KeystonePortal -Path D:\backups
 #>
 [CmdletBinding()]
 param(
     [string] $Server = '.\SQLEXPRESS',
-    [string] $Database = 'HubixPortal',
+    [string] $Database = 'KeystonePortal',
     [string] $Path = './backups',
     [int] $KeepDays = 30
 )

@@ -1,0 +1,91 @@
+@using System.Globalization
+@using Keystone.Domain.Entities
+@{
+    var culture = CultureInfo.CurrentUICulture.Name;
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var theme = Theme.FromRequest(Context.Request);
+}
+<!DOCTYPE html>
+<html lang="@culture.Split('-')[0]" data-theme="@(theme ?? Theme.System)">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · Hubix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <p class="demo-banner" role="note">@L["Demo.Banner"]</p>
+
+    <header class="masthead">
+        <div class="shell masthead-inner">
+            <a class="wordmark" asp-page="/Index">
+                HUBIX<span class="mark">Portal</span>
+            </a>
+
+            <nav aria-label="Main">
+                <a asp-page="/Index">@L["Nav.Projects"]</a>
+                <a asp-page="/Contact">@L["Nav.Contact"]</a>
+
+                <div class="lang" role="group" aria-label="@L["Nav.Language"]">
+                    @foreach (var option in Cultures.Offered)
+                    {
+                        var isCurrent = culture.Equals(option, StringComparison.OrdinalIgnoreCase);
+                        <a asp-page="/Language"
+                           asp-route-culture="@option"
+                           asp-route-returnUrl="@returnUrl"
+                           aria-current="@(isCurrent ? "true" : null)"
+                           hreflang="@option">@option.Split('-')[0]</a>
+                    }
+                </div>
+
+                @{
+                    var current = theme ?? Theme.System;
+                    var label = $"{L["Nav.Theme"].Value}: {L["Theme." + current].Value}";
+                }
+                <a class="theme-icon"
+                   asp-page="/Theme"
+                   asp-route-theme="@Theme.Next(current)"
+                   asp-route-returnUrl="@returnUrl"
+                   rel="nofollow"
+                   aria-label="@label"
+                   title="@label">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                        @if (current == Theme.Light)
+                        {
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                        }
+                        else if (current == Theme.Dark)
+                        {
+                            <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+                        }
+                        else
+                        {
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
+                        }
+                    </svg>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main">
+        @RenderBody()
+    </main>
+
+    <footer>
+        <div class="shell">
+            Prices exclude VAT unless stated. Availability is live; a listing is not an offer.
+        </div>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

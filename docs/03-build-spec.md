@@ -539,9 +539,9 @@ host, an EF Core model with the migrations above, Hangfire wired up, a React adm
 `ClientApp`, and a seed console project that reads the real Roka XLSX with ClosedXML — so you begin
 from a running database holding their actual units rather than an empty migration.
 
-A sensible layout: `Hubix.Domain` (entities and the state machine), `Hubix.Infrastructure` (EF Core,
-email, storage), `Hubix.Web` (Razor Pages, API, Hangfire host), `Hubix.Admin` (React + TypeScript),
-`Hubix.Seed`, and `Hubix.Tests` with Testcontainers for the concurrency test.
+A sensible layout: `Keystone.Domain` (entities and the state machine), `Keystone.Infrastructure` (EF Core,
+email, storage), `Keystone.Web` (Razor Pages, API, Hangfire host), `Keystone.Admin` (React + TypeScript),
+`Keystone.Seed`, and `Keystone.Tests` with Testcontainers for the concurrency test.
 
 One thing to settle before that: where the code lives. Your standing rule is that everything goes
 under `C:\Repositories\ClaudeLocalDocs`, so I'd put the application at

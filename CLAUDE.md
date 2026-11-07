@@ -53,39 +53,39 @@ nothing server-side catching a bypass.
 
 ```powershell
 dotnet build                                    # also builds the React admin client into wwwroot
-dotnet run --project src/Hubix.Web              # http://localhost:5001
-dotnet run --project src/Hubix.Seed             # loads real project data; -- --reset wipes first
+dotnet run --project src/Keystone.Web              # http://localhost:5001
+dotnet run --project src/Keystone.Seed             # loads real project data; -- --reset wipes first
 
-dotnet test tests/Hubix.Tests                   # unit tests, no database
-dotnet test tests/Hubix.IntegrationTests        # needs a real SQL Server (see below)
-dotnet test tests/Hubix.Tests --filter "FullyQualifiedName~UnitStateMachineTests"   # one class
-dotnet test tests/Hubix.Tests --filter "DisplayName~Exactly_one"                    # one test
+dotnet test tests/Keystone.Tests                   # unit tests, no database
+dotnet test tests/Keystone.IntegrationTests        # needs a real SQL Server (see below)
+dotnet test tests/Keystone.Tests --filter "FullyQualifiedName~UnitStateMachineTests"   # one class
+dotnet test tests/Keystone.Tests --filter "DisplayName~Exactly_one"                    # one test
 
-dotnet ef migrations add <Name> --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet ef database update       --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet ef migrations has-pending-model-changes --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+dotnet ef migrations add <Name> --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet ef database update       --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet ef migrations has-pending-model-changes --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
 ```
 
 Admin client on its own (proxies `/api` to the running host on 5001):
 
 ```powershell
-cd src/Hubix.Admin; npm run dev     # vite on 5200
-cd src/Hubix.Admin; npm run build   # tsc -b && vite build
+cd src/Keystone.Admin; npm run dev     # vite on 5200
+cd src/Keystone.Admin; npm run build   # tsc -b && vite build
 ```
 
-First-run setup: copy `src/Hubix.Web/appsettings.Development.example.json` to
+First-run setup: copy `src/Keystone.Web/appsettings.Development.example.json` to
 `appsettings.Development.json` (gitignored; the example documents its shape).
 
 ## Layout
 
 ```
-src/Hubix.Domain/             entities, UnitStateMachine, ReservationPipeline, tranche pricing. No EF.
-src/Hubix.Infrastructure/     EF Core, migrations, services (Sales/, Admin/, Auth/, Import/, Assets/, Privacy/), email
-src/Hubix.Web/                Razor Pages (public), minimal APIs under /api (admin), Hangfire host, health, jobs
-src/Hubix.Admin/              React + TS client, built into Hubix.Web/wwwroot/admin-assets. Not in the solution.
-src/Hubix.Seed/               loads seed-data/real/*.json into a local database
-tests/Hubix.Tests/            unit tests
-tests/Hubix.IntegrationTests/ real SQL Server; includes the hold concurrency release gate
+src/Keystone.Domain/             entities, UnitStateMachine, ReservationPipeline, tranche pricing. No EF.
+src/Keystone.Infrastructure/     EF Core, migrations, services (Sales/, Admin/, Auth/, Import/, Assets/, Privacy/), email
+src/Keystone.Web/                Razor Pages (public), minimal APIs under /api (admin), Hangfire host, health, jobs
+src/Keystone.Admin/              React + TS client, built into Keystone.Web/wwwroot/admin-assets. Not in the solution.
+src/Keystone.Seed/               loads seed-data/real/*.json into a local database
+tests/Keystone.Tests/            unit tests
+tests/Keystone.IntegrationTests/ real SQL Server; includes the hold concurrency release gate
 ```
 
 The public site is server-rendered Razor Pages and needs no API. The API exists only because the
@@ -152,7 +152,7 @@ corrections should be edits to that list.
 **Every state transition writes an `AuditLog` row** in the same transaction. "Who released that hold
 and when" has to be answerable.
 
-**Money is `decimal`, never `double`.** `HubixDbContext.OnModelCreating` maps every decimal to
+**Money is `decimal`, never `double`.** `KeystoneDbContext.OnModelCreating` maps every decimal to
 `decimal(12,2)`, except `*Pct` / VAT rates which become `decimal(6,4)`. A new decimal property picks
 this up automatically. Money is snapshotted at agreement, never recomputed.
 
@@ -160,7 +160,7 @@ this up automatically. Money is snapshotted at agreement, never recomputed.
 from ids — use `AccessToken.New()` (32 bytes CSPRNG), because UUIDv7 is partly predictable.
 
 **Timestamps are `DateTimeOffset`, UTC.** `CreatedAt` / `UpdatedAt` are stamped by
-`HubixDbContext.SaveChanges`.
+`KeystoneDbContext.SaveChanges`.
 
 **Translatable prose goes in translation tables** (`ProjectTranslation`, `UnitTypeTranslation`),
 never `FieldEn` / `FieldRo` pairs. Adding a language is then a data change.
@@ -199,10 +199,10 @@ there is no live sender at all and everything still lands in `./outbox`. It is w
 path out goes through the guards" a fact about the code rather than a hope.
 
 `ResendEmailSender` is the **only** file that names a provider, and
-`EmailRegistration.AddHubixEmail` the only place one is chosen. Nothing above `IEmailSender` —
+`EmailRegistration.AddKeystoneEmail` the only place one is chosen. Nothing above `IEmailSender` —
 no page, notifier or job — knows which provider exists, so swapping Resend for Postmark is a new
 sender class and one line of registration. Keep it that way: no provider type belongs outside
-`Hubix.Infrastructure.Email`.
+`Keystone.Infrastructure.Email`.
 
 `Email:From` stays in configuration rather than on the screen: it has to match the domain
 verified with the provider, whose SPF, DKIM and DMARC are published, and a screen cannot move DNS.
@@ -239,7 +239,7 @@ interpolating it into a C# string prints the type name, so take `.Value`.
 ## Tests
 
 `DatabaseFixture` creates and drops a real database per run. It uses `.\SQLEXPRESS` with a trusted
-connection by default; set `HUBIX_TEST_SQL` (a format string with `{0}` for the database name) to
+connection by default; set `KEYSTONE_TEST_SQL` (a format string with `{0}` for the database name) to
 point elsewhere. CI runs a SQL Server container. The behaviour under test — racing transactions, a
 filtered unique index, a persisted computed column — does not exist in the in-memory provider, so
 never move these tests onto it.
@@ -247,17 +247,21 @@ never move these tests onto it.
 `ResetUnitAsync` restores *every* field a test can write. Adding a writable column to `Unit` means
 adding it there too, or the suite becomes order-dependent.
 
+Find a row a test wrote by the id it got back, never by a value another test can also leave
+(`Outcome == "anonymised"`). The database lives for the whole run, and xUnit orders tests by a
+hash of their names, so renaming a namespace reshuffles them and exposes the collision.
+
 CI also fails on a pending model change (an entity edited without a migration) and on a missing
 admin bundle.
 
-Before calling a change done, run what CI would: `dotnet build`, `dotnet test tests/Hubix.Tests`,
-and `has-pending-model-changes` if an entity moved. Add `tests/Hubix.IntegrationTests` when the
+Before calling a change done, run what CI would: `dotnet build`, `dotnet test tests/Keystone.Tests`,
+and `has-pending-model-changes` if an entity moved. Add `tests/Keystone.IntegrationTests` when the
 change touches holds, reservations or anything with a transaction. Report failures as they are;
 do not call work finished on a red build.
 
 ## Gotchas
 
-- `Hubix.Web.csproj` builds the admin client via a `BuildAdminClient` target. Its `AdminClientSource`
+- `Keystone.Web.csproj` builds the admin client via a `BuildAdminClient` target. Its `AdminClientSource`
   ItemGroup sits **outside** the target on purpose — `Inputs=` is evaluated before the target runs,
   so an ItemGroup declared inside resolves to nothing, which shipped a stale bundle.
 - Vite emits fixed filenames (`index.js`, `index.css`) because the Razor page references them by

@@ -82,14 +82,14 @@ Get **SQL database → Connection strings → ADO.NET (SQL authentication)** and
 password. In a terminal you will close afterwards:
 
 ```powershell
-$env:HUBIX_DB = "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<database>;User ID=<admin>;Password=<password>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-dotnet ef migrations list --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+$env:KEYSTONE_DB = "Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<database>;User ID=<admin>;Password=<password>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+dotnet ef migrations list --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
 ```
 
-The design-time factory (`HubixDbContextFactory`) reads `HUBIX_DB` before anything else. Every
+The design-time factory (`KeystoneDbContextFactory`) reads `KEYSTONE_DB` before anything else. Every
 migration listed as `(Pending)` proves that the firewall, the login and the string all work.
 
-**Close this terminal when you are finished.** While `HUBIX_DB` is set, every `dotnet ef` in it
+**Close this terminal when you are finished.** While `KEYSTONE_DB` is set, every `dotnet ef` in it
 targets production. PowerShell does not write a line containing `Password=` to its history file,
 so the password does not end up there.
 
@@ -98,7 +98,7 @@ so the password does not end up there.
 Same terminal:
 
 ```powershell
-dotnet ef database update --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+dotnet ef database update --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
 ```
 
 Run `migrations list` again afterwards; nothing should say `(Pending)`. Before any later
@@ -109,7 +109,7 @@ migration, note the time: point-in-time restore is the backup.
 Same terminal, **without `--reset`**:
 
 ```powershell
-dotnet run --project src/Hubix.Seed
+dotnet run --project src/Keystone.Seed
 ```
 
 This loads one project, Roka Park View, from the gitignored `seed-data/real/` file. It reads unit
@@ -180,11 +180,11 @@ nesting, then **Apply**:
 
 | Name | Value |
 |---|---|
-| `ConnectionStrings__HubixDb` | The ADO.NET connection string from step 3. It is still the admin login for now; [#73](https://github.com/MaximilianMihoc/hubix-portal/issues/73) replaces it. |
+| `ConnectionStrings__KeystoneDb` | The ADO.NET connection string from step 3. It is still the admin login for now; [#73](https://github.com/MaximilianMihoc/hubix-portal/issues/73) replaces it. |
 | `Assets__BlobConnectionString` | The storage key1 connection string |
-| `Hubix__PublicBaseUrl` | `https://hubix-dev-gng6fjg5d6bvc7hf.germanywestcentral-01.azurewebsites.net` |
+| `Keystone__PublicBaseUrl` | `https://hubix-dev-gng6fjg5d6bvc7hf.germanywestcentral-01.azurewebsites.net` |
 | `AllowedHosts` | `hubix-dev-gng6fjg5d6bvc7hf.germanywestcentral-01.azurewebsites.net` |
-| `Hubix__SalesInbox` | A real inbox you own |
+| `Keystone__SalesInbox` | A real inbox you own |
 | `Resend__ApiKey`, `Email__From` | Added later, in step 15 |
 
 **Do not set `ASPNETCORE_ENVIRONMENT`.** Unset means Production, and Production is what makes
@@ -207,7 +207,7 @@ tile says "no preview".
 ## 12. The first deploy, by hand
 
 ```powershell
-dotnet publish src/Hubix.Web -c Release -o publish
+dotnet publish src/Keystone.Web -c Release -o publish
 C:\Windows\System32\tar.exe -a -c -f hubix-web.zip -C publish *
 az webapp deploy --resource-group hubix-dev --name hubix-dev --src-path hubix-web.zip --type zip --clean true
 ```
@@ -218,7 +218,7 @@ then served its own **"Microsoft Azure App Service - Welcome"** placeholder page
 every route of ours. The tell is a missing `Content-Security-Policy` header, which every
 response from this app carries. `file hubix-web.zip` should say *Zip archive data*.
 
-`appsettings.Development*.json` is no longer published (`Hubix.Web.csproj`), so the package
+`appsettings.Development*.json` is no longer published (`Keystone.Web.csproj`), so the package
 carries no local configuration.
 
 ## 13. Check it is really the app
@@ -351,7 +351,7 @@ gh secret set AZURE_SUBSCRIPTION_ID --body (az account show --query id -o tsv)
 - [#61](https://github.com/MaximilianMihoc/hubix-portal/issues/61): confirm the hold cap with
   Hubix.
 - Hubix's agreement. Then: a custom domain and managed certificate (update `AllowedHosts`,
-  `Hubix__PublicBaseUrl` and the storage CORS origin to match), the real sales inbox, and
+  `Keystone__PublicBaseUrl` and the storage CORS origin to match), the real sales inbox, and
   opening email beyond the allow list.
 - A "demo, not an official Hubix site" note and keeping the site out of search engines, for as
   long as it stays a demo.

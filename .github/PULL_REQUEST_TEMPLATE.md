@@ -12,8 +12,8 @@
 <!-- What you actually ran, and what it said. Delete the lines that do not apply. -->
 
 - [ ] `dotnet build`
-- [ ] `dotnet test tests/Hubix.Tests`
-- [ ] `dotnet test tests/Hubix.IntegrationTests` (needs SQL Server)
+- [ ] `dotnet test tests/Keystone.Tests`
+- [ ] `dotnet test tests/Keystone.IntegrationTests` (needs SQL Server)
 - [ ] Ran the app and exercised the change
 - [ ] Not applicable — documentation or configuration only
 

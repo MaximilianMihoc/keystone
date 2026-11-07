@@ -69,14 +69,14 @@ its content in Romanian, so an untranslated field falls back to Romanian rather 
 
 ```
 src/
-  Hubix.Domain/           entities, the unit state machine, pricing rules
-  Hubix.Infrastructure/   EF Core, email, blob storage
-  Hubix.Web/              Razor Pages, API, Hangfire host
-  Hubix.Admin/            React + TypeScript admin client (built into wwwroot by dotnet build)
-  Hubix.Seed/             loads real project data into a local database
+  Keystone.Domain/           entities, the unit state machine, pricing rules
+  Keystone.Infrastructure/   EF Core, email, blob storage
+  Keystone.Web/              Razor Pages, API, Hangfire host
+  Keystone.Admin/            React + TypeScript admin client (built into wwwroot by dotnet build)
+  Keystone.Seed/             loads real project data into a local database
 tests/
-  Hubix.Tests/            unit tests
-  Hubix.IntegrationTests/ includes the hold concurrency test
+  Keystone.Tests/            unit tests
+  Keystone.IntegrationTests/ includes the hold concurrency test
 ```
 
 ---
@@ -118,11 +118,11 @@ winget install Microsoft.SQLServer.2022.Express
 git clone https://github.com/MaximilianMihoc/hubix-portal.git
 cd hubix-portal
 
-cp src/Hubix.Web/appsettings.Development.example.json src/Hubix.Web/appsettings.Development.json
+cp src/Keystone.Web/appsettings.Development.example.json src/Keystone.Web/appsettings.Development.json
 dotnet restore
-dotnet ef database update --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet run --project src/Hubix.Seed          # loads real project data
-dotnet run --project src/Hubix.Web
+dotnet ef database update --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet run --project src/Keystone.Seed          # loads real project data
+dotnet run --project src/Keystone.Web
 ```
 
 `appsettings.Development.json` is gitignored — it holds your local connection string and the
