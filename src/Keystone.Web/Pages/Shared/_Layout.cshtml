@@ -17,10 +17,8 @@
           href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body id="top">
     <a class="skip-link" href="#main">Skip to content</a>
-
-    <p class="demo-banner" role="note">@L["Demo.Banner"]</p>
 
     <header class="masthead">
         <div class="shell masthead-inner">
@@ -80,11 +78,7 @@
         @RenderBody()
     </main>
 
-    <footer>
-        <div class="shell">
-            Prices exclude VAT unless stated. Availability is live; a listing is not an offer.
-        </div>
-    </footer>
+    <partial name="_Footer" />
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

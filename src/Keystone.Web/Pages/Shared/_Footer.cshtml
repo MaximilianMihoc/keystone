@@ -1,0 +1,62 @@
+@using System.Globalization
+@using Keystone.Domain.Entities
+@{
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+<footer class="site-footer">
+    @* The elevation board, seen from the street at dusk: the same lit amber windows that mark
+       an available apartment on a project's board. Decoration only. *@
+    <div class="skyline" aria-hidden="true"></div>
+
+    <div class="footer-board">
+        <div class="shell footer-grid">
+            <div class="footer-brand">
+                <a class="wordmark" asp-page="/Index">KEYSTONE<span class="mark">Portal</span></a>
+                <p class="footer-tagline">@L["Footer.Tagline"]</p>
+                <p class="footer-live"><span class="live-dot" aria-hidden="true"></span>@L["Footer.Live"]</p>
+            </div>
+
+            <nav class="footer-col" aria-labelledby="footer-explore">
+                <h2 id="footer-explore">@L["Footer.Explore"]</h2>
+                <ul>
+                    <li><a asp-page="/Index">@L["Nav.Projects"]</a></li>
+                    <li><a asp-page="/Contact">@L["Nav.Contact"]</a></li>
+                </ul>
+            </nav>
+
+            <nav class="footer-col" aria-labelledby="footer-data">
+                <h2 id="footer-data">@L["Footer.YourData"]</h2>
+                <ul>
+                    <li><a asp-page="/Contact" asp-route-kind="Access">@L["Footer.DataCopy"]</a></li>
+                    <li><a asp-page="/Contact" asp-route-kind="Erasure">@L["Footer.DataErase"]</a></li>
+                </ul>
+            </nav>
+
+            <nav class="footer-col" aria-labelledby="footer-language">
+                <h2 id="footer-language">@L["Nav.Language"]</h2>
+                <ul>
+                    @foreach (var option in Cultures.Offered)
+                    {
+                        var language = CultureInfo.GetCultureInfo(option.Split('-')[0]);
+                        var name = language.TextInfo.ToTitleCase(language.NativeName);
+                        var isCurrent = language.Name == CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+                        <li>
+                            <a asp-page="/Language"
+                               asp-route-culture="@option"
+                               asp-route-returnUrl="@returnUrl"
+                               aria-current="@(isCurrent ? "true" : null)"
+                               hreflang="@option"
+                               lang="@language.Name">@name</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        </div>
+
+        <div class="shell footer-base">
+            <p>@L["Footer.Legal"]</p>
+            <p>&copy; @DateTime.UtcNow.Year Keystone</p>
+            <a class="to-top" href="#top">@L["Footer.BackToTop"] <span aria-hidden="true">&uarr;</span></a>
+        </div>
+    </div>
+</footer>

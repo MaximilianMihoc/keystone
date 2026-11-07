@@ -54,9 +54,16 @@
 
   <data name="Nav.Projects"><value>Proiecte</value></data>
   <data name="Nav.Contact"><value>Contact</value></data>
-  <data name="Demo.Banner"><value>Site demonstrativ. Proiectele și persoanele sunt fictive. Nu introduceți date personale reale.</value></data>
   <data name="Nav.Language"><value>Limbă</value></data>
   <data name="Nav.Theme"><value>Aspect</value></data>
+  <data name="Footer.Tagline"><value>Apartamente în proiecte verificate, la prețul dezvoltatorului. Rezervi unul în câteva secunde și îl păstrăm pentru tine cât timp te decizi.</value></data>
+  <data name="Footer.Live"><value>Disponibilitate în timp real</value></data>
+  <data name="Footer.Explore"><value>Explorează</value></data>
+  <data name="Footer.YourData"><value>Datele tale</value></data>
+  <data name="Footer.DataCopy"><value>Cere o copie</value></data>
+  <data name="Footer.DataErase"><value>Cere ștergerea lor</value></data>
+  <data name="Footer.Legal"><value>Prețurile nu includ TVA, dacă nu se precizează altfel. O listare nu constituie o ofertă.</value></data>
+  <data name="Footer.BackToTop"><value>Înapoi sus</value></data>
   <data name="Theme.light"><value>Luminos</value></data>
   <data name="Theme.dark"><value>Întunecat</value></data>
   <data name="Theme.system"><value>Auto</value></data>

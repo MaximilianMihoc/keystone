@@ -58,9 +58,16 @@
   <!-- Navigation -->
   <data name="Nav.Projects"><value>Projects</value></data>
   <data name="Nav.Contact"><value>Contact</value></data>
-  <data name="Demo.Banner"><value>Demo site. The projects and people are fictional. Do not enter real personal details.</value></data>
   <data name="Nav.Language"><value>Language</value></data>
   <data name="Nav.Theme"><value>Appearance</value></data>
+  <data name="Footer.Tagline"><value>Apartments in verified developments, at a developer's terms. Reserve one in seconds, and it is held for you while you decide.</value></data>
+  <data name="Footer.Live"><value>Availability is live</value></data>
+  <data name="Footer.Explore"><value>Explore</value></data>
+  <data name="Footer.YourData"><value>Your data</value></data>
+  <data name="Footer.DataCopy"><value>Request a copy</value></data>
+  <data name="Footer.DataErase"><value>Ask us to delete it</value></data>
+  <data name="Footer.Legal"><value>Prices exclude VAT unless stated. A listing is not an offer.</value></data>
+  <data name="Footer.BackToTop"><value>Back to top</value></data>
   <data name="Theme.light"><value>Light</value></data>
   <data name="Theme.dark"><value>Dark</value></data>
   <data name="Theme.system"><value>Auto</value></data>

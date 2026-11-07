@@ -9,6 +9,11 @@ A side project, designed against the real workflow of a Romanian operator. The o
 it did not need one, so there is no live instance. Every project, person and price in this
 repository is fictional.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/apartments-board-dark.png">
+  <img alt="A development's apartments drawn as its building, floor by floor, with the ones still available lit amber" src="docs/images/apartments-board.png">
+</picture>
+
 ---
 
 ## The problem
@@ -50,6 +55,20 @@ state; it does not hold funds.
   editable from the admin and audited.
 - **A pre-launch security review** (stored XSS, host-header injection, session revocation,
   concurrency bypasses), with every finding fixed.
+
+### An apartment, and what it costs
+
+Every payment calculated from the project's pricing rule at the moment it is read: the deposit,
+the operator's assignment price, VAT on each, and when each instalment falls due.
+
+![An apartment page with its payment schedule split into instalments, net, VAT and total](docs/images/apartment.png)
+
+### The admin
+
+The same inventory for staff: every unit editable in place, with holds, reservations and the
+sales pipeline beside it.
+
+![The admin's apartments grid, with each unit's areas, prices, VAT eligibility and state](docs/images/admin-apartments.png)
 
 ---
 
