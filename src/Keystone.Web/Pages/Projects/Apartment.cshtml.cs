@@ -1,0 +1,259 @@
+using System.Globalization;
+using Keystone.Domain;
+using Keystone.Domain.Entities;
+using Keystone.Domain.Pricing;
+using Keystone.Infrastructure;
+using Keystone.Infrastructure.Assets;
+using Microsoft.Extensions.Localization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+
+namespace Keystone.Web.Pages.Projects;
+
+public class ApartmentModel(
+    KeystoneDbContext db,
+    AssetService assets,
+    IStringLocalizer<SharedResource> localizer) : PageModel
+{
+    public string Slug { get; private set; } = "";
+
+    public string ProjectName { get; private set; } = "";
+
+    public int HoldDurationHours { get; private set; }
+
+    public Unit Unit { get; private set; } = null!;
+
+    public string TypeDisplay { get; private set; } = "";
+
+    /// <summary>
+    /// The schedule an individual buyer would pay. Individual rather than company because that
+    /// is the common case; the buyer type is confirmed at reservation, which is where the price
+    /// gets snapshotted.
+    /// </summary>
+    public PriceBreakdown? Schedule { get; private set; }
+
+    public bool IsFree => Display.IsFree(Unit.State);
+
+    /// <summary>
+    /// What this project says about parking, in the reader's language.
+    /// </summary>
+    /// <remarks>
+    /// Prose, so the row for the reader's culture is chosen with a fallback to Romanian rather
+    /// than to nothing — the opposite of CityFor, where a Romanian city name would be worse
+    /// than the canonical one. The fallback picks a whole row, not a field: an English row
+    /// that exists but leaves this empty gives an English reader nothing, the same way
+    /// Summary already behaves.
+    /// </remarks>
+    public string? ParkingNote { get; private set; }
+
+    /// <summary>
+    /// What the project's car park offers, by kind: the price, and how many are actually free.
+    /// </summary>
+    /// <remarks>
+    /// A kind with no price is not for sale and is left out — a space nobody can be charged for
+    /// is not an offer. Availability is counted rather than stored, so it cannot claim spaces
+    /// the car park does not have.
+    /// </remarks>
+    public IReadOnlyList<ParkingOffer> ParkingOnOffer { get; private set; } = [];
+
+    public sealed record ParkingOffer(
+        ParkingSpaceKind Kind,
+        int Level,
+        decimal PriceNet,
+        decimal DepositNet,
+        int Available);
+
+    /// <summary>Nothing to say about parking is a reason to say nothing.</summary>
+    public bool ShowParking =>
+        ParkingOnOffer.Count > 0 || ParkingNote is { Length: > 0 };
+
+    /// <summary>
+    /// Drawings for this apartment: its own RLV and renders, plus the plan for its floor.
+    /// </summary>
+    /// <remarks>
+    /// The floor plan is not attached to the unit. It belongs to the floor, and every
+    /// apartment on that floor picks it up — which is the whole reason floors are records.
+    /// In the spreadsheet a Drive link is pasted into each row, and some rows have the wrong
+    /// one.
+    /// </remarks>
+    public IReadOnlyList<Drawing> Drawings { get; private set; } = [];
+
+    /// <summary>A file on the apartment's page, as the admin Files screen shows it less the size.</summary>
+    public sealed record Drawing(AssetKind Kind, string Label, string Name, string Url, bool IsPdf)
+    {
+        /// <summary>Drawings are seen whole on a sheet, renders fill the frame, documents are pages.</summary>
+        public string Shape => Kind switch
+        {
+            AssetKind.Render => "photo",
+            AssetKind.FloorPlan or AssetKind.Rlv or AssetKind.SitePlan => "sheet",
+            _ => "page"
+        };
+    }
+
+    public async Task<IActionResult> OnGetAsync(string slug, string code, CancellationToken ct)
+    {
+        var culture = CultureInfo.CurrentUICulture.Name;
+
+        var project = await db.Projects
+            .AsNoTracking()
+            .Where(p => p.Slug == slug && p.PublishedAt != null)
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.Slug,
+                p.HoldDurationHours,
+                Parking = p.Translations.Select(t => new { t.Culture, t.Parking }).ToList()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (project is null)
+        {
+            return NotFound();
+        }
+
+        var unit = await db.Units
+            .AsNoTracking()
+            .Include(u => u.UnitType!).ThenInclude(t => t.Translations)
+            .FirstOrDefaultAsync(
+                u => u.ProjectId == project.Id
+                     && u.Code == code
+                     && u.State != UnitState.Withdrawn, ct);
+
+        if (unit is null)
+        {
+            return NotFound();
+        }
+
+        Slug = project.Slug;
+        ProjectName = project.Name;
+        HoldDurationHours = project.HoldDurationHours;
+        Unit = unit;
+        TypeDisplay = unit.UnitType?.DisplayName(culture) ?? "";
+
+        ParkingNote = project.Parking
+            .Select(t => new ProjectTranslation { Culture = t.Culture, Parking = t.Parking })
+            .ForCulture(culture)?.Parking;
+
+        ParkingOnOffer = await LoadParkingAsync(project.Id, ct);
+
+        var rule = await db.PricingRules
+            .AsNoTracking()
+            .Where(r => r.ProjectId == project.Id)
+            .OrderByDescending(r => r.EffectiveFrom)
+            .FirstOrDefaultAsync(ct);
+
+        if (rule is not null)
+        {
+            Schedule = TrancheCalculator.Calculate(
+                rule,
+                unit.BasePriceNet,
+                unit.CesiunePriceNet ?? 0m,
+
+                // Shown at the standard rate. The reduced rate depends on the buyer as well as
+                // the unit, so it cannot honestly be assumed on a public page.
+                reducedVatApplies: false);
+        }
+
+        Drawings = await LoadDrawingsAsync(project.Id, unit, ct);
+
+        return Page();
+    }
+
+    private async Task<IReadOnlyList<ParkingOffer>> LoadParkingAsync(Guid projectId, CancellationToken ct)
+    {
+        var prices = await db.ParkingPrices
+            .AsNoTracking()
+            .Where(p => p.ProjectId == projectId)
+            .Select(p => new { p.Kind, p.PriceNet, p.DepositNet })
+            .ToListAsync(ct);
+
+        if (prices.Count == 0)
+        {
+            return [];
+        }
+
+        // Grouped in the database rather than counted per kind in a loop: one query however
+        // many kinds a car park has.
+        var spaces = await db.ParkingSpaces
+            .AsNoTracking()
+            .Where(s => s.ProjectId == projectId)
+            .GroupBy(s => s.Kind)
+            .Select(g => new
+            {
+                Kind = g.Key,
+                Level = g.Min(s => s.Level),
+                Available = g.Count(s => s.State == UnitState.Available)
+            })
+            .ToListAsync(ct);
+
+        return
+        [
+            .. from price in prices
+               join space in spaces on price.Kind equals space.Kind
+               orderby space.Available descending, price.PriceNet descending
+               select new ParkingOffer(
+                   price.Kind, space.Level, price.PriceNet, price.DepositNet, space.Available)
+        ];
+    }
+
+    private async Task<IReadOnlyList<Drawing>> LoadDrawingsAsync(
+        Guid projectId,
+        Unit unit,
+        CancellationToken ct)
+    {
+        var attached = await db.UnitAssets
+            .AsNoTracking()
+            .Where(ua => ua.UnitId == unit.Id)
+            .OrderBy(ua => ua.SortOrder)
+            .Select(ua => new { ua.Asset!.Kind, ua.Asset.FileName, ua.Asset.StorageKey, ua.Asset.Caption })
+            .ToListAsync(ct);
+
+        var floorPlan = unit.FloorLevel is { } level
+            ? await db.Floors
+                .AsNoTracking()
+                .Where(f => f.ProjectId == projectId
+                            && f.Building == unit.Building
+                            && f.Level == level
+                            && f.FloorPlanAsset != null)
+                .Select(f => new { f.FloorPlanAsset!.FileName, f.FloorPlanAsset.StorageKey, f.FloorPlanAsset.Caption })
+                .FirstOrDefaultAsync(ct)
+            : null;
+
+        var drawings = new List<Drawing>();
+
+        foreach (var item in attached)
+        {
+            drawings.Add(new Drawing(
+                item.Kind,
+                Title(item.Kind),
+                item.Caption ?? item.FileName,
+                await assets.LinkAsync(item.StorageKey, ct),
+                IsPdf(item.FileName)));
+        }
+
+        if (floorPlan is not null)
+        {
+            drawings.Add(new Drawing(
+                AssetKind.FloorPlan,
+                Title(AssetKind.FloorPlan),
+                floorPlan.Caption ?? floorPlan.FileName,
+                await assets.LinkAsync(floorPlan.StorageKey, ct),
+                IsPdf(floorPlan.FileName)));
+        }
+
+        return drawings;
+    }
+
+    private string Title(AssetKind kind) => kind switch
+    {
+        AssetKind.Rlv => localizer["Asset.Rlv"].Value,
+        AssetKind.Render => localizer["Asset.Render"].Value,
+        AssetKind.FloorPlan => localizer["Asset.FloorPlan"].Value,
+        _ => localizer["Asset.Document"].Value
+    };
+
+    private static bool IsPdf(string fileName) =>
+        Path.GetExtension(fileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase);
+}

@@ -4,22 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Investor portal for Hubix real estate hubs: apartment inventory, atomic reservations, waitlists and
-the sales pipeline. Pre-alpha and **unsanctioned** — Hubix have seen a pitch for it and declined. That
-fact is load-bearing in code (see "Email cannot escape", below), not just a disclaimer.
+A sales portal for a real estate operator that resells blocks of apartments: inventory, atomic
+reservations, waitlists and the sales pipeline. A public side project with no live instance;
+every project, person and price in the repository is fictional, and has to stay that way.
 
-Read `README.md` for the business context and `docs/RUNBOOK.md` for operational behaviour. The
-analysis, proposal and full build spec are `docs/01-business-analysis.md`,
-`docs/02-application-proposal.md` and `docs/03-build-spec.md` — internal working documents,
-never shared with Hubix. Source material with real prices and buyer data stays in
-`C:\Repositories\HubixDocs`, outside this repo.
-
-`docs/04-security-assessment.md` is the pre-launch security review. It holds **live exploit detail
-for findings that are not yet fixed** (tracked as issues #29–#38), so it is the most sensitive
-document here and shares the same never-leaves-this-repo rule. Read it before changing anything in
-authentication, asset upload/serving, the public reserve/waitlist/contact forms, or the reservation
-pipeline — it names what is already broken there and, as importantly, which controls are load-bearing
-and were verified working.
+Read `README.md` for the business context, `CONTEXT.md` for the vocabulary and `docs/RUNBOOK.md`
+for operational behaviour. The pre-launch security review is tracked in issues #29–#38 and #53;
+read them before changing authentication, asset upload/serving, the public
+reserve/waitlist/contact forms or the reservation pipeline, because they name which controls are
+load-bearing.
 
 ## Branching — read before committing
 
@@ -43,9 +36,9 @@ since that setting is local and cannot be committed.
 Both hooks name `--no-verify` as an escape hatch. Do not reach for it. If a hook blocks you, the
 answer is a branch, not a bypass — ask the user before overriding either hook.
 
-This is enforced locally rather than by GitHub because branch protection and rulesets need GitHub
-Pro on a private repository, and this account is on Free. The hooks are the whole guard; there is
-nothing server-side catching a bypass.
+This is enforced locally because the repository started private on GitHub Free, where branch
+protection and rulesets are unavailable. Unless a ruleset has since been added on GitHub, the
+hooks are the whole guard and nothing server-side catches a bypass.
 
 `/pr` takes uncommitted work through this entire flow in one step.
 
@@ -53,39 +46,39 @@ nothing server-side catching a bypass.
 
 ```powershell
 dotnet build                                    # also builds the React admin client into wwwroot
-dotnet run --project src/Hubix.Web              # http://localhost:5001
-dotnet run --project src/Hubix.Seed             # loads real project data; -- --reset wipes first
+dotnet run --project src/Keystone.Web              # http://localhost:5001
+dotnet run --project src/Keystone.Seed             # loads fictional demo data; -- --reset wipes first
 
-dotnet test tests/Hubix.Tests                   # unit tests, no database
-dotnet test tests/Hubix.IntegrationTests        # needs a real SQL Server (see below)
-dotnet test tests/Hubix.Tests --filter "FullyQualifiedName~UnitStateMachineTests"   # one class
-dotnet test tests/Hubix.Tests --filter "DisplayName~Exactly_one"                    # one test
+dotnet test tests/Keystone.Tests                   # unit tests, no database
+dotnet test tests/Keystone.IntegrationTests        # needs a real SQL Server (see below)
+dotnet test tests/Keystone.Tests --filter "FullyQualifiedName~UnitStateMachineTests"   # one class
+dotnet test tests/Keystone.Tests --filter "DisplayName~Exactly_one"                    # one test
 
-dotnet ef migrations add <Name> --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet ef database update       --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet ef migrations has-pending-model-changes --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+dotnet ef migrations add <Name> --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet ef database update       --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet ef migrations has-pending-model-changes --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
 ```
 
 Admin client on its own (proxies `/api` to the running host on 5001):
 
 ```powershell
-cd src/Hubix.Admin; npm run dev     # vite on 5200
-cd src/Hubix.Admin; npm run build   # tsc -b && vite build
+cd src/Keystone.Admin; npm run dev     # vite on 5200
+cd src/Keystone.Admin; npm run build   # tsc -b && vite build
 ```
 
-First-run setup: copy `src/Hubix.Web/appsettings.Development.example.json` to
+First-run setup: copy `src/Keystone.Web/appsettings.Development.example.json` to
 `appsettings.Development.json` (gitignored; the example documents its shape).
 
 ## Layout
 
 ```
-src/Hubix.Domain/             entities, UnitStateMachine, ReservationPipeline, tranche pricing. No EF.
-src/Hubix.Infrastructure/     EF Core, migrations, services (Sales/, Admin/, Auth/, Import/, Assets/, Privacy/), email
-src/Hubix.Web/                Razor Pages (public), minimal APIs under /api (admin), Hangfire host, health, jobs
-src/Hubix.Admin/              React + TS client, built into Hubix.Web/wwwroot/admin-assets. Not in the solution.
-src/Hubix.Seed/               loads seed-data/real/*.json into a local database
-tests/Hubix.Tests/            unit tests
-tests/Hubix.IntegrationTests/ real SQL Server; includes the hold concurrency release gate
+src/Keystone.Domain/             entities, UnitStateMachine, ReservationPipeline, tranche pricing. No EF.
+src/Keystone.Infrastructure/     EF Core, migrations, services (Sales/, Admin/, Auth/, Import/, Assets/, Privacy/), email
+src/Keystone.Web/                Razor Pages (public), minimal APIs under /api (admin), Hangfire host, health, jobs
+src/Keystone.Admin/              React + TS client, built into Keystone.Web/wwwroot/admin-assets. Not in the solution.
+src/Keystone.Seed/               seeds staff and one fictional project (DemoSeeder) into a local database
+tests/Keystone.Tests/            unit tests
+tests/Keystone.IntegrationTests/ real SQL Server; includes the hold concurrency release gate
 ```
 
 The public site is server-rendered Razor Pages and needs no API. The API exists only because the
@@ -146,13 +139,13 @@ needed and neither substitutes for the other.
 
 **The sales pipeline is one table.** `ReservationPipeline.Stages` holds order, labels, unit-state
 implications, dates and preconditions. Nothing else in the system switches on `ReservationState` —
-keep it that way. The pipeline was inferred from Hubix's documents rather than observed, so
+keep it that way. The pipeline was inferred from the operator's documents rather than observed, so
 corrections should be edits to that list.
 
 **Every state transition writes an `AuditLog` row** in the same transaction. "Who released that hold
 and when" has to be answerable.
 
-**Money is `decimal`, never `double`.** `HubixDbContext.OnModelCreating` maps every decimal to
+**Money is `decimal`, never `double`.** `KeystoneDbContext.OnModelCreating` maps every decimal to
 `decimal(12,2)`, except `*Pct` / VAT rates which become `decimal(6,4)`. A new decimal property picks
 this up automatically. Money is snapshotted at agreement, never recomputed.
 
@@ -160,12 +153,12 @@ this up automatically. Money is snapshotted at agreement, never recomputed.
 from ids — use `AccessToken.New()` (32 bytes CSPRNG), because UUIDv7 is partly predictable.
 
 **Timestamps are `DateTimeOffset`, UTC.** `CreatedAt` / `UpdatedAt` are stamped by
-`HubixDbContext.SaveChanges`.
+`KeystoneDbContext.SaveChanges`.
 
 **Translatable prose goes in translation tables** (`ProjectTranslation`, `UnitTypeTranslation`),
 never `FieldEn` / `FieldRo` pairs. Adding a language is then a data change.
 
-**Hubix's vocabulary wins, spelling mistakes aside.** `cesiune` is real terminology and stays.
+**The operator's vocabulary wins, spelling mistakes aside.** `cesiune` is real terminology and stays.
 Their sheet's `Transa 3` for the second of two payments was a numbering slip, corrected to
 `Transa 2`. Public pages number the payments by position and translate the word, so the stored
 label is only what the spreadsheet export prints.
@@ -173,11 +166,10 @@ label is only what the spreadsheet export prints.
 ## Email cannot escape
 
 Every message goes through `SafeEmailSender`. Live sending defaults to off, so mail is written
-to `./outbox` instead of sent. `BlockedRecipients` defaults to `*@hubix.ro` and is checked before
-the allow list. Both defaults live in `EmailOptions` itself and deliberately **not** in
-`appsettings`: they are set on the admin Email screen, and a configured list would append to the
-default rather than replace it. Seeded accounts use `.invalid` addresses. Do not relax any of
-this, and do not register a live sender, without being told to explicitly.
+to `./outbox` instead of sent. `BlockedRecipients` defaults to empty and is checked before the
+allow list. The live-sending default lives in `EmailOptions` itself and deliberately **not** in
+`appsettings`: it is set on the admin Email screen. Seeded accounts use `.invalid` addresses. Do
+not relax any of this, and do not register a live sender, without being told to explicitly.
 
 **The staff sign-in token travels in the URL fragment**, `…/admin/login/verify#token=…`, and
 `verify.js` posts it back. A browser never sends a fragment, so the token reaches no request
@@ -199,10 +191,10 @@ there is no live sender at all and everything still lands in `./outbox`. It is w
 path out goes through the guards" a fact about the code rather than a hope.
 
 `ResendEmailSender` is the **only** file that names a provider, and
-`EmailRegistration.AddHubixEmail` the only place one is chosen. Nothing above `IEmailSender` —
+`EmailRegistration.AddKeystoneEmail` the only place one is chosen. Nothing above `IEmailSender` —
 no page, notifier or job — knows which provider exists, so swapping Resend for Postmark is a new
 sender class and one line of registration. Keep it that way: no provider type belongs outside
-`Hubix.Infrastructure.Email`.
+`Keystone.Infrastructure.Email`.
 
 `Email:From` stays in configuration rather than on the screen: it has to match the domain
 verified with the provider, whose SPF, DKIM and DMARC are published, and a screen cannot move DNS.
@@ -239,7 +231,7 @@ interpolating it into a C# string prints the type name, so take `.Value`.
 ## Tests
 
 `DatabaseFixture` creates and drops a real database per run. It uses `.\SQLEXPRESS` with a trusted
-connection by default; set `HUBIX_TEST_SQL` (a format string with `{0}` for the database name) to
+connection by default; set `KEYSTONE_TEST_SQL` (a format string with `{0}` for the database name) to
 point elsewhere. CI runs a SQL Server container. The behaviour under test — racing transactions, a
 filtered unique index, a persisted computed column — does not exist in the in-memory provider, so
 never move these tests onto it.
@@ -247,17 +239,21 @@ never move these tests onto it.
 `ResetUnitAsync` restores *every* field a test can write. Adding a writable column to `Unit` means
 adding it there too, or the suite becomes order-dependent.
 
+Find a row a test wrote by the id it got back, never by a value another test can also leave
+(`Outcome == "anonymised"`). The database lives for the whole run, and xUnit orders tests by a
+hash of their names, so renaming a namespace reshuffles them and exposes the collision.
+
 CI also fails on a pending model change (an entity edited without a migration) and on a missing
 admin bundle.
 
-Before calling a change done, run what CI would: `dotnet build`, `dotnet test tests/Hubix.Tests`,
-and `has-pending-model-changes` if an entity moved. Add `tests/Hubix.IntegrationTests` when the
+Before calling a change done, run what CI would: `dotnet build`, `dotnet test tests/Keystone.Tests`,
+and `has-pending-model-changes` if an entity moved. Add `tests/Keystone.IntegrationTests` when the
 change touches holds, reservations or anything with a transaction. Report failures as they are;
 do not call work finished on a red build.
 
 ## Gotchas
 
-- `Hubix.Web.csproj` builds the admin client via a `BuildAdminClient` target. Its `AdminClientSource`
+- `Keystone.Web.csproj` builds the admin client via a `BuildAdminClient` target. Its `AdminClientSource`
   ItemGroup sits **outside** the target on purpose — `Inputs=` is evaluated before the target runs,
   so an ItemGroup declared inside resolves to nothing, which shipped a stale bundle.
 - Vite emits fixed filenames (`index.js`, `index.css`) because the Razor page references them by
@@ -311,12 +307,20 @@ the sections above.
 
 <!-- lessons below, newest last -->
 
+- A PowerShell script containing non-ASCII text (Romanian diacritics, em dashes) → save it as
+  UTF-8 *with* a BOM, or build those characters with `[char]0x...` → Windows PowerShell 5.1
+  reads a BOM-less `.ps1` as ANSI, so every literal is silently mangled and a replace writes
+  mojibake into the resx files.
+- A commit message containing double quotes, from PowerShell → write it to a file and use
+  `git commit -F <file>` → Windows PowerShell 5.1 splits a native argument at embedded quotes,
+  so `-m $msg` hands git the tail of the message as pathspecs and nothing is committed.
+
 
 ## Agent skills
 
 ### Issue tracker
 
-GitHub Issues on `MaximilianMihoc/hubix-portal`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+GitHub Issues on `MaximilianMihoc/keystone`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

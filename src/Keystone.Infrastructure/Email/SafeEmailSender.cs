@@ -1,0 +1,193 @@
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Keystone.Infrastructure.Email;
+
+public sealed class EmailOptions
+{
+    public const string Section = "Email";
+
+    /// <summary>
+    /// Whether mail may actually leave the machine. Off unless deliberately turned on.
+    /// </summary>
+    /// <remarks>
+    /// Opt-in rather than opt-out. Forgetting to enable sending is a nuisance you notice
+    /// immediately; forgetting to disable it emails real people, and you find out from them.
+    /// </remarks>
+    public bool LiveSendingEnabled { get; set; }
+
+    /// <summary>
+    /// The address mail is sent as.
+    /// </summary>
+    /// <remarks>
+    /// Configuration rather than the settings screen, unlike the guards below. This one has to
+    /// match the domain whose SPF, DKIM and DMARC records were set up, and an address changed
+    /// from a screen without the DNS to match does not fail — it quietly starts landing in spam,
+    /// which for a two-day hold countdown means a lost apartment.
+    /// </remarks>
+    public string From { get; set; } = "";
+
+    /// <summary>What a recipient sees instead of the bare address. Optional.</summary>
+    public string? FromName { get; set; }
+
+    /// <summary>
+    /// When set, every message is re-addressed here regardless of who it was for.
+    /// </summary>
+    /// <remarks>
+    /// The intended recipient is kept in the subject and at the top of the body, so a test
+    /// inbox shows exactly what each person would have received and who they were. This is
+    /// the only safe way to look at real mail while the data is real and the audience is not.
+    /// Leave empty in production.
+    /// </remarks>
+    public string? RedirectAllTo { get; set; }
+
+    /// <summary>
+    /// Recipients allowed through when live sending is on. Wildcards allowed
+    /// (<c>*@example.com</c>). An empty list means everyone, which is what production wants.
+    /// </summary>
+    public List<string> AllowedRecipients { get; set; } = [];
+
+    /// <summary>
+    /// Addresses never contacted, whatever else is configured. Checked before the allow list.
+    /// </summary>
+    public List<string> BlockedRecipients { get; set; } = [];
+}
+
+/// <summary>What became of one message.</summary>
+/// <param name="Transmitted">True when it was handed to the provider, false when it was kept.</param>
+/// <param name="To">Who it actually went to, which is not who it was addressed to if a redirect is set.</param>
+/// <param name="DivertedBecause">Why it went to the outbox instead, in words fit to show somebody.</param>
+public sealed record EmailDelivery(bool Transmitted, string To, string? DivertedBecause);
+
+
+/// <summary>
+/// Decides whether a message may really be sent, and diverts it to the outbox if not.
+/// </summary>
+/// <remarks>
+/// Every path out of this application goes through here. A message is transmitted only when
+/// live sending is explicitly enabled, the recipient is not blocked, and any allowlist admits
+/// them. Everything else is written to the local outbox exactly as it would have been sent,
+/// so nothing is lost and nothing is silently discarded.
+/// </remarks>
+public sealed class SafeEmailSender(
+    IEmailSender outbox,
+    IOptions<EmailOptions> options,
+    ILogger<SafeEmailSender> logger,
+    IEmailSender? live = null) : IEmailSender
+{
+    private readonly EmailOptions _options = options.Value;
+
+    public async Task SendAsync(EmailMessage message, CancellationToken ct) =>
+        await DeliverAsync(message, ct);
+
+    /// <summary>
+    /// Sends, and says what became of it.
+    /// </summary>
+    /// <remarks>
+    /// The same path as <see cref="SendAsync"/>, which is the point: a test send that took a
+    /// different route would prove nothing about the real one. It exists because the settings
+    /// screen has to report where a message actually went, and asking it to work that out from
+    /// the options itself would be a second copy of these rules, free to drift from them.
+    /// </remarks>
+    public async Task<EmailDelivery> DeliverAsync(EmailMessage message, CancellationToken ct)
+    {
+        // Redirect first, so every later check sees the address that would really be used.
+        var outgoing = Redirect(message);
+
+        var verdict = Check(outgoing.To);
+
+        if (verdict is not null)
+        {
+            logger.LogWarning(
+                "Not sending to {To}: {Reason}. Written to the outbox instead.",
+                outgoing.To, verdict);
+
+            await outbox.SendAsync(outgoing, ct);
+            return new EmailDelivery(false, outgoing.To, verdict);
+        }
+
+        if (live is null)
+        {
+            logger.LogWarning(
+                "Live sending is enabled but no provider is registered. " +
+                "Message to {To} written to the outbox.", outgoing.To);
+
+            await outbox.SendAsync(outgoing, ct);
+            return new EmailDelivery(false, outgoing.To, "no provider is configured");
+        }
+
+        await live.SendAsync(outgoing, ct);
+        return new EmailDelivery(true, outgoing.To, null);
+    }
+
+    /// <summary>
+    /// Re-addresses a message to the test inbox, keeping the intended recipient visible.
+    /// </summary>
+    private EmailMessage Redirect(EmailMessage message)
+    {
+        if (string.IsNullOrWhiteSpace(_options.RedirectAllTo)
+            || string.Equals(_options.RedirectAllTo, message.To, StringComparison.OrdinalIgnoreCase))
+        {
+            return message;
+        }
+
+        logger.LogInformation(
+            "Redirecting mail intended for {Original} to {Redirect}",
+            message.To, _options.RedirectAllTo);
+
+        return message with
+        {
+            To = _options.RedirectAllTo,
+            Subject = $"[to: {message.To}] {message.Subject}",
+            Body =
+                $"""
+                 — — — — — — — — — — — — — — — — — — — — — — — — — — — —
+                 This is a test copy. It would have been sent to {message.To}.
+                 — — — — — — — — — — — — — — — — — — — — — — — — — — — —
+
+                 {message.Body}
+                 """,
+
+            // The same warning on the HTML part. A reader whose client prefers HTML would
+            // otherwise be shown a test copy with nothing on it to say so.
+            HtmlBody = message.HtmlBody is null
+                ? null
+                : $"""
+                   <p><strong>This is a test copy.</strong> It would have been sent to
+                   {message.To}.</p>
+                   <hr />
+                   {message.HtmlBody}
+                   """
+        };
+    }
+
+    /// <summary>The reason this address may not be contacted, or null if it may.</summary>
+    private string? Check(string recipient)
+    {
+        if (!_options.LiveSendingEnabled)
+        {
+            return "live sending is disabled";
+        }
+
+        if (_options.BlockedRecipients.Any(pattern => Matches(recipient, pattern)))
+        {
+            return "recipient is on the blocked list";
+        }
+
+        if (_options.AllowedRecipients.Count > 0
+            && !_options.AllowedRecipients.Any(pattern => Matches(recipient, pattern)))
+        {
+            return "recipient is not on the allowed list";
+        }
+
+        return null;
+    }
+
+    internal static bool Matches(string address, string pattern)
+    {
+        var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+
+        return Regex.IsMatch(address, regex, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
+    }
+}

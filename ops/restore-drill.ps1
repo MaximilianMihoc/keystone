@@ -17,7 +17,7 @@
 [CmdletBinding()]
 param(
     [string] $Server = '.\SQLEXPRESS',
-    [string] $Database = 'HubixPortal',
+    [string] $Database = 'KeystonePortal',
     [string] $Path = './backups',
     [switch] $KeepRestored
 )

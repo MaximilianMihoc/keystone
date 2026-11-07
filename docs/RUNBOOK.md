@@ -2,10 +2,6 @@
 
 What to do when something is wrong, and what has to be true before this serves anybody real.
 
-> **Status: pre-alpha, unsanctioned.** Hubix have not been approached about this system.
-> Nothing in here should be done against hubix.ro, its DNS, or its mailboxes without them
-> having agreed to the project first. Several steps below say so again where it matters.
-
 ---
 
 ## Is it working?
@@ -74,7 +70,7 @@ wrong, the previous value is in the audit row and can be put back through the gr
 ### Mail is not arriving
 
 Check live sending first, on the admin Email screen — while it is off **nothing leaves the
-machine**, which is the intended state until Hubix have agreed to this. Messages are written to
+machine**, which is the default. Messages are written to
 `./outbox` instead, exactly as they would have been sent. The screen is the only place it is
 set; it is not in `appsettings`, and the "Send test message" button on the same screen answers
 this question directly.
@@ -87,13 +83,9 @@ refuses blocked recipients, anyone outside the allow list, and redirects everyth
 
 ## Backups
 
-**Azure SQL (the deployed instance)** backs itself up. The Basic tier keeps seven days of
-point-in-time restore with nothing to schedule. A restore is **SQL database → Restore** in the
-portal, which creates a *new* database at the chosen moment and leaves the original alone. The
-drill below applies there too: restore under another name, count the rows, delete it. It has
-not been performed against Azure yet.
-
-The scripts below are for a SQL Server you run yourself, such as the local SQLEXPRESS.
+A managed database (Azure SQL and the like) backs itself up; the drill below still applies
+there: restore under another name, count the rows, delete it. The scripts are for a SQL Server
+you run yourself, such as the local SQLEXPRESS.
 
 ```powershell
 ./ops/backup.ps1                       # full, verified, 30-day retention
@@ -123,79 +115,28 @@ is a backup job that has been "succeeding" for months against a database it stop
 
 ## Deploying
 
-How it was set up, resource by resource, is in
-[`05-azure-deployment.md`](05-azure-deployment.md). This section is day-to-day operation.
+There is no live instance. While it was a demo it ran on Azure App Service (Linux, B1) with
+Azure SQL Basic and Blob Storage; nothing in the code depends on that choice. It is one
+ASP.NET Core process with SQL Server behind it, and Hangfire keeps its jobs in the same
+database.
 
-The portal runs in Azure, region Germany West Central, all in resource group `hubix-dev`:
+Configuration comes from environment variables, never a file: `ConnectionStrings__KeystoneDb`,
+`Assets__BlobConnectionString`, `Keystone__PublicBaseUrl`, `Keystone__SalesInbox`,
+`AllowedHosts`, `Resend__ApiKey`, `Email__From`. Leave `ASPNETCORE_ENVIRONMENT` unset, which
+means Production, so the checks below run.
 
-| | |
-|---|---|
-| App Service `hubix-dev` | Linux, .NET 10, B1, Always On. https://hubix-dev-gng6fjg5d6bvc7hf.germanywestcentral-01.azurewebsites.net |
-| Azure SQL database | Basic. Hangfire lives in it too. Serverless would never pause, because Hangfire polls it every 15 seconds. |
-| Storage account | Private container `hubix-assets`, created by the app. Account-key access must stay on, because read links are signed with the key. CORS allows `GET` from the site. |
-
-Configuration is in **App Service → Environment variables**, never in a file:
-`ConnectionStrings__HubixDb`, `Assets__BlobConnectionString`, `Hubix__PublicBaseUrl`,
-`Hubix__SalesInbox`, `AllowedHosts`, `Resend__ApiKey`, `Email__From`. `ASPNETCORE_ENVIRONMENT`
-is deliberately unset, which means Production.
-
-**Every merge to `main` deploys.** The `deploy` job in `.github/workflows/ci.yml` runs only
-after the build job has passed every check: unit tests, integration tests against a real SQL
-Server, no pending model changes, and the admin bundle present. It then waits for `/health` to
-answer `ok`. A Production instance **refuses to start** if its configuration is unsafe (see
-below), so a bad deploy fails that step rather than serving something wrong.
-
-**Migrations are not applied by the pipeline.** If a pull request adds one, apply it by hand
-**before merging**. Old code runs fine against a newer schema far more often than new code
-runs against an old one. From a terminal you close afterwards, so `HUBIX_DB` does not linger
-and point every later `dotnet ef` at production:
+**Migrations are applied by hand, before the code that needs them ships.** Old code runs fine
+against a newer schema far more often than new code runs against an old one. From a terminal
+you close afterwards, so `KEYSTONE_DB` does not linger and point every later `dotnet ef` at
+production:
 
 ```powershell
-$env:HUBIX_DB = "<the Azure SQL connection string>"
-dotnet ef migrations list  --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
-dotnet ef database update  --project src/Hubix.Infrastructure --startup-project src/Hubix.Web
+$env:KEYSTONE_DB = "<the production connection string>"
+dotnet ef migrations list  --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
+dotnet ef database update  --project src/Keystone.Infrastructure --startup-project src/Keystone.Web
 ```
 
-Your IP has to be on the SQL server's firewall list (**SQL server → Networking**). Point-in-time
-restore is the backup, but for a migration that drops or rewrites data, note the time first.
-
-### Signing the pipeline in to Azure (once)
-
-The workflow signs in with OpenID Connect, so there is no stored password or publish profile.
-It needs three repository secrets, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and
-`AZURE_SUBSCRIPTION_ID`, and one app registration that trusts pushes to `main`:
-
-```powershell
-$app = az ad app create --display-name hubix-portal-deploy | ConvertFrom-Json
-az ad sp create --id $app.appId
-'{"name":"main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:MaximilianMihoc@5854236/hubix-portal@1354394993:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}' | Set-Content -Encoding ascii fic.json
-az ad app federated-credential create --id $app.id --parameters "@fic.json"
-Remove-Item fic.json
-az role assignment create --assignee $app.appId --role "Website Contributor" --scope (az group show -n hubix-dev --query id -o tsv)
-```
-
-It can deploy to web apps in `hubix-dev` and do nothing else: not read the database, not touch
-storage, not create resources.
-
-**The subject names the owner and repository by numeric id** (`MaximilianMihoc@5854236`,
-`hubix-portal@1354394993`), because that is what this repository's tokens present. The
-familiar `repo:owner/name:ref:…` form is refused with `AADSTS700213: No matching federated
-identity record`, and the error prints the subject that was actually sent. Copy it from there
-if it ever changes. Ids are the better thing to trust anyway: a name can be renamed or
-re-registered by somebody else, and an id cannot.
-
-### Deploying by hand
-
-Only when the pipeline cannot, and only from a clean `main`:
-
-```powershell
-dotnet publish src/Hubix.Web -c Release -o publish
-C:\Windows\System32\tar.exe -a -c -f hubix-web.zip -C publish *
-az webapp deploy -g hubix-dev -n hubix-dev --src-path hubix-web.zip --type zip --clean true
-```
-
-Use **Windows' own `tar.exe`**. Git Bash's `tar` ignores `-a`, writes a tar archive named
-`.zip`, and App Service then accepts it and serves its own placeholder page instead of the app.
+For a migration that drops or rewrites data, take a backup or note the restore point first.
 
 ### What stops a production start
 
@@ -206,7 +147,6 @@ harmful live, and every one fails silently if unchecked:
 |---|---|
 | No connection string | Nothing works. |
 | Live email, no allow list and no redirect | Mail would reach real buyers. |
-| Live email, empty blocked list | Hubix's own addresses must stay on it. |
 | Live email, no `Email:From` | Nothing can be sent without a sender address. |
 | Live email, `Email:From` on `resend.dev` | The sandbox sender reaches nobody but test addresses. |
 | Live email, empty `Resend:ApiKey` | Every message would go quietly to the outbox. |
@@ -235,7 +175,7 @@ on it. So `appsettings` is no longer where you look to find out where mail is go
 and the `GET` above are.
 
 **A save is refused for anything a production instance would refuse to start on** — live sending
-with no allow list and no redirect, or live sending with an empty blocked list. Same rule, same
+with no allow list and no redirect, for one. Same rule, same
 code (`ProductionReadiness.EmailProblems`), enforced in both places, so a setting cannot be saved
 happily today and stop the deploy booting tomorrow.
 
@@ -244,10 +184,6 @@ also logs a warning. "Who turned this on, when, and what was it before" is answe
 
 Sales notifications go to the development's own inbox when its Setup screen names one, and to the
 portal default otherwise. That is the whole fallback: project, saved default, file.
-
-**Nothing leaves the machine yet regardless.** No mail provider is registered (`live: null` in
-`Program.cs`), so with live sending on, messages still land in `./outbox` and the log says why.
-Turning the switch on is not the same as wiring up a sender.
 
 ---
 
@@ -261,13 +197,13 @@ toward an exception on every message.
 
 ```jsonc
 "Resend": { "ApiKey": "" },           // never here — see below
-"Email":  { "From": "portal@yourdomain.example", "FromName": "Hubix Portal" }
+"Email":  { "From": "portal@yourdomain.example", "FromName": "Keystone" }
 ```
 
 The key never goes in a file that anybody reads:
 
 ```powershell
-dotnet user-secrets set "Resend:ApiKey" "re_..." --project src/Hubix.Web
+dotnet user-secrets set "Resend:ApiKey" "re_..." --project src/Keystone.Web
 ```
 
 In production it comes from the host's own secret store, as an environment variable
@@ -287,7 +223,7 @@ owns the Resend account. A production instance refuses to start while `Email:Fro
 ### Changing provider
 
 `ResendEmailSender` is the only file in the solution that names a provider, and
-`EmailRegistration.AddHubixEmail` is the only place it is chosen. Moving to Postmark is a
+`EmailRegistration.AddKeystoneEmail` is the only place it is chosen. Moving to Postmark is a
 `PostmarkEmailSender` beside it, its options bound in the same method, and the one line that
 picks the live sender. No page, notifier or job mentions a provider, so none of them change.
 
@@ -300,12 +236,10 @@ Every step below is a change on the Email screen. No deploy, and no restart.
    types. This is the step where DKIM problems show up.
 2. **Clear the redirect; put two known addresses on `AllowedRecipients`.** Real addressing now,
    and still nobody who did not agree to receive it.
-3. **Clear the allow list.** Open to everyone. **Keep `*@hubix.ro` blocked** until Hubix have
-   actually agreed to the project — that list is the only thing standing between an automated
-   reservation notice and their inbox.
+3. **Clear the allow list.** Open to everyone, except whoever is on the blocked list.
 
-A production instance refuses to start on live sending with no From, no provider key, an empty
-blocked list, or neither an allow list nor a redirect. The Email screen refuses to save the two
+A production instance refuses to start on live sending with no From, no provider key, or
+neither an allow list nor a redirect. The Email screen refuses to save the two
 of those it can see, so the same rule applies whichever way the setting is reached.
 
 ### What is still inline
@@ -371,17 +305,12 @@ Two details that are easy to get wrong and are handled:
 
 These are not built, and most cannot be by me.
 
-### Needs Hubix to have agreed to the project first
+### Needs an operator
 
 - **SPF, DKIM and DMARC on the sending domain.** Without them, reservation confirmations land
-  in spam, which for a two-day countdown means a lost apartment. This means DNS records on
-  hubix.ro, and it must not be touched until Hubix have agreed. If a separate sending domain
-  is used instead, it needs its own three records and the sender address changed to match.
+  in spam, which for a two-day countdown means a lost apartment.
 - **The real `SalesInbox`.** It is a `.invalid` placeholder on purpose: RFC 2606 reserves that
   suffix so a misconfigured environment bounces instead of emailing a real company.
-- **Turning live sending on**, and taking `*@hubix.ro` off the blocked list. Both are now
-  changes on the Email screen rather than a deploy — see "Sending for real" above — which makes
-  the decision easier to take than it used to be, not safer.
 
 ### Needs a host
 
@@ -393,12 +322,12 @@ These are not built, and most cannot be by me.
 ### Needs a person
 
 - **A native Romanian speaker to read the Romanian.** Every string in
-  `SharedResource.ro.resx` was written by me. The terms taken from Hubix's own documents —
+  `SharedResource.ro.resx` was written by me. The terms taken from the operator's own documents —
   *cesiune*, *transa*, *Pret cesiune faraTVA* — are theirs and are correct. Everything I wrote
   around them is a competent translation at best, and buyers will read it before they read
   anything else. **This is the one item on this list I cannot do, and it is the most visible.**
 - **A decision on the hold cap.** It defaults to 3 and is set per project ("Holds per buyer"
-  on the project's setup screen). Hubix's documents say a buyer may take "one (or more)"
+  on the project's setup screen). The source documents say a buyer may take "one (or more)"
   apartments and never say how many. Without a cap one person can lock the whole remaining
   inventory for two days; with the wrong cap a genuine investor is refused.
 - **Confirmation of the pipeline itself.** The eight stages were inferred from documents and

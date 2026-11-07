@@ -1,0 +1,341 @@
+using Keystone.Domain;
+using Keystone.Domain.Entities;
+using Keystone.Infrastructure;
+using Keystone.Infrastructure.Admin;
+using Keystone.Infrastructure.Auth;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Shouldly;
+
+namespace Keystone.IntegrationTests;
+
+[Collection(nameof(DatabaseCollection))]
+public class StaffAuthTests(DatabaseFixture fixture)
+{
+    private StaffAuthService Service(KeystoneDbContext db, TimeProvider? clock = null) =>
+        new(db, clock ?? TimeProvider.System, NullLogger<StaffAuthService>.Instance);
+
+    private async Task<StaffUser> SeedStaffAsync(bool active = true)
+    {
+        await using var db = fixture.CreateContext();
+        await db.Database.ExecuteSqlRawAsync("DELETE FROM [StaffLoginTokens]; DELETE FROM [StaffUsers];");
+
+        var staff = new StaffUser
+        {
+            Email = $"tester{Guid.NewGuid():N}@keystone.invalid",
+            Name = "Tester",
+            Role = StaffRole.Sales,
+            IsActive = active
+        };
+
+        db.StaffUsers.Add(staff);
+        await db.SaveChangesAsync();
+
+        return staff;
+    }
+
+    [Fact]
+    public async Task A_link_signs_you_in_exactly_once()
+    {
+        var staff = await SeedStaffAsync();
+
+        await using var db = fixture.CreateContext();
+        var auth = Service(db);
+
+        var link = await auth.IssueLoginTokenAsync(staff.Email, "::1", CancellationToken.None);
+        link.ShouldNotBeNull();
+
+        (await auth.ConsumeAsync(link.Token, CancellationToken.None)).ShouldNotBeNull();
+
+        // Forwarded, logged, or in someone's browser history: it is spent either way.
+        (await auth.ConsumeAsync(link.Token, CancellationToken.None)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Asking_for_a_new_link_voids_the_previous_one()
+    {
+        var staff = await SeedStaffAsync();
+
+        await using var db = fixture.CreateContext();
+        var auth = Service(db);
+
+        var first = await auth.IssueLoginTokenAsync(staff.Email, null, CancellationToken.None);
+        var second = await auth.IssueLoginTokenAsync(staff.Email, null, CancellationToken.None);
+
+        (await auth.ConsumeAsync(first!.Token, CancellationToken.None)).ShouldBeNull();
+        (await auth.ConsumeAsync(second!.Token, CancellationToken.None)).ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task An_expired_link_is_refused()
+    {
+        var staff = await SeedStaffAsync();
+
+        var issuedLongAgo = new FakeClock(DateTimeOffset.UtcNow.AddHours(-2));
+
+        string token;
+        await using (var db = fixture.CreateContext())
+        {
+            var link = await Service(db, issuedLongAgo)
+                .IssueLoginTokenAsync(staff.Email, null, CancellationToken.None);
+            token = link!.Token;
+        }
+
+        await using var now = fixture.CreateContext();
+        (await Service(now).ConsumeAsync(token, CancellationToken.None)).ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task An_unknown_address_yields_no_link_and_no_error()
+    {
+        await SeedStaffAsync();
+
+        await using var db = fixture.CreateContext();
+
+        // Null rather than an exception: the page shows the same confirmation either way,
+        // so an unauthenticated visitor cannot use it to enumerate who works there.
+        var link = await Service(db)
+            .IssueLoginTokenAsync("nobody@example.com", null, CancellationToken.None);
+
+        link.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_deactivated_account_cannot_get_a_link()
+    {
+        var staff = await SeedStaffAsync(active: false);
+
+        await using var db = fixture.CreateContext();
+
+        (await Service(db).IssueLoginTokenAsync(staff.Email, null, CancellationToken.None))
+            .ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task The_raw_token_is_never_stored()
+    {
+        var staff = await SeedStaffAsync();
+
+        await using var db = fixture.CreateContext();
+        var link = await Service(db).IssueLoginTokenAsync(staff.Email, null, CancellationToken.None);
+
+        var stored = await db.StaffLoginTokens.Select(t => t.TokenHash).ToListAsync();
+
+        // A token in the database is a live credential. Only its hash belongs there.
+        stored.ShouldNotContain(link!.Token);
+        stored.ShouldContain(StaffLoginToken.Hash(link.Token));
+    }
+
+    private sealed class FakeClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+}
+
+[Collection(nameof(DatabaseCollection))]
+public class UnitAdminTests(DatabaseFixture fixture)
+{
+    private static readonly Guid Actor = Guid.CreateVersion7();
+
+    private UnitAdminService Service(KeystoneDbContext db) =>
+        new(db, TimeProvider.System, NullLogger<UnitAdminService>.Instance);
+
+    private static UnitEdit Edit(
+        decimal? price = null,
+        decimal? cesiune = null,
+        decimal? areaUsable = null,
+        string? notes = null,
+        Guid? typeId = null) =>
+        new(null, null, null, typeId, null, null, areaUsable, null, price, cesiune,
+            null, notes);
+
+    [Fact]
+    public async Task An_edit_applies_and_is_audited()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(price: 140_000m, notes: "Corner unit"),
+            Actor, "dev@keystone.invalid", CancellationToken.None);
+
+        var updated = result.ShouldBeOfType<UnitEditResult.Updated>();
+        updated.Changes.Keys.ShouldBe(["BasePriceNet", "AdminNotes"], ignoreOrder: true);
+
+        await using var verify = fixture.CreateContext();
+        (await verify.Units.SingleAsync(u => u.Id == fixture.UnitId)).BasePriceNet.ShouldBe(140_000m);
+
+        var audit = await verify.AuditLogs.SingleAsync(a => a.Action == "unit.edited");
+        audit.ActorLabel.ShouldBe("dev@keystone.invalid");
+        audit.Before.ShouldNotBeNull();
+        audit.After.ShouldContain("140000");
+    }
+
+    [Fact]
+    public async Task Sending_the_same_values_changes_nothing()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var unit = await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId);
+
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(price: unit.BasePriceNet), Actor, "dev", CancellationToken.None);
+
+        // No audit noise for an edit that edited nothing.
+        result.ShouldBeOfType<UnitEditResult.NoChange>();
+        (await db.AuditLogs.CountAsync(a => a.Action == "unit.edited")).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task The_price_of_a_sold_unit_cannot_be_changed_here()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        await db.Units.Where(u => u.Id == fixture.UnitId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Sold));
+
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(price: 1m), Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>()
+            .Reason.ShouldContain("sold");
+    }
+
+    [Fact]
+    public async Task A_sold_unit_can_still_have_its_notes_corrected()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        await db.Units.Where(u => u.Id == fixture.UnitId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Sold));
+
+        // Only money is frozen. Blocking every edit would push staff back to the spreadsheet.
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(notes: "Completed 12 March"), Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Updated>();
+    }
+
+    [Fact]
+    public async Task The_cesiune_cannot_exceed_the_total()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+
+        // It is the operator's margin taken out of what the buyer pays, not added on top.
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(cesiune: 999_999m), Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>()
+            .Reason.ShouldContain("cannot exceed");
+    }
+
+    [Fact]
+    public async Task Usable_area_cannot_be_zeroed()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(areaUsable: 0m), Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>();
+    }
+
+    [Fact]
+    public async Task A_unit_type_that_does_not_exist_is_refused()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+
+        var result = await Service(db).EditAsync(
+            fixture.UnitId, Edit(typeId: Guid.CreateVersion7()), Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>()
+            .Reason.ShouldContain("does not exist");
+    }
+
+    [Fact]
+    public async Task Withdrawing_takes_a_unit_off_sale_and_back()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var service = Service(db);
+
+        (await service.SetWithdrawnAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<UnitEditResult.Updated>();
+
+        (await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId))
+            .State.ShouldBe(UnitState.Withdrawn);
+
+        (await service.SetWithdrawnAsync(fixture.UnitId, false, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<UnitEditResult.Updated>();
+
+        (await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId))
+            .State.ShouldBe(UnitState.Available);
+    }
+
+    [Fact]
+    public async Task A_held_unit_cannot_be_withdrawn_from_under_the_prospect()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        await db.Units.Where(u => u.Id == fixture.UnitId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Held));
+
+        // The state machine has no Held -> Withdrawn edge, and it is the reason why:
+        // somebody has this apartment for the next two days.
+        var result = await Service(db)
+            .SetWithdrawnAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>().Reason.ShouldContain("held");
+    }
+    [Fact]
+    public async Task Marking_a_unit_reserved_records_a_sale_made_elsewhere_and_undoes_it()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        var service = Service(db);
+
+        (await service.SetReservedAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<UnitEditResult.Updated>();
+
+        (await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId))
+            .State.ShouldBe(UnitState.Reserved);
+
+        // No reservation was invented to justify the state. That is the whole point: the
+        // pipeline is started later, when there is a buyer to name.
+        (await db.Reservations.AnyAsync(r => r.UnitId == fixture.UnitId)).ShouldBeFalse();
+
+        (await service.SetReservedAsync(fixture.UnitId, false, Actor, "dev", CancellationToken.None))
+            .ShouldBeOfType<UnitEditResult.Updated>();
+
+        (await db.Units.AsNoTracking().SingleAsync(u => u.Id == fixture.UnitId))
+            .State.ShouldBe(UnitState.Available);
+    }
+
+    [Fact]
+    public async Task A_held_unit_is_converted_on_the_pipeline_rather_than_marked_here()
+    {
+        await fixture.ResetUnitAsync();
+
+        await using var db = fixture.CreateContext();
+        await db.Units.Where(u => u.Id == fixture.UnitId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.State, UnitState.Held));
+
+        // Held -> Reserved is a legal transition, and it belongs to the reservation service,
+        // which carries the prospect across. Marking here would strand them.
+        var result = await Service(db)
+            .SetReservedAsync(fixture.UnitId, true, Actor, "dev", CancellationToken.None);
+
+        result.ShouldBeOfType<UnitEditResult.Rejected>().Reason.ShouldContain("Convert the hold");
+    }
+}

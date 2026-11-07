@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- Romanian. Terms the operator uses in its own documents are kept verbatim: transa, cesiune. -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Nav.Projects"><value>Proiecte</value></data>
+  <data name="Nav.Contact"><value>Contact</value></data>
+  <data name="Demo.Banner"><value>Site demonstrativ. Proiectele și persoanele sunt fictive. Nu introduceți date personale reale.</value></data>
+  <data name="Nav.Language"><value>Limbă</value></data>
+  <data name="Nav.Theme"><value>Aspect</value></data>
+  <data name="Theme.light"><value>Luminos</value></data>
+  <data name="Theme.dark"><value>Întunecat</value></data>
+  <data name="Theme.system"><value>Auto</value></data>
+  <data name="Time.Zone"><value>(ora României)</value></data>
+
+  <data name="Project.Apartments"><value>Apartamente</value></data>
+  <data name="Project.Developer"><value>Dezvoltator</value></data>
+  <data name="Project.Delivery"><value>Termen de livrare</value></data>
+  <data name="Project.DeliveryGrace"><value>perioadă de grație {0} luni</value></data>
+  <data name="Project.UnitsCommitted"><value>{0} apartamente</value></data>
+  <data name="Project.ReservationFee"><value>Preț rezervare</value></data>
+  <data name="Project.PenaltyClause"><value>Penalitate întârziere livrare</value></data>
+  <data name="Project.RentalProfile"><value>Tip de închiriere</value></data>
+
+  <data name="Unit.Code"><value>Apartament</value></data>
+  <data name="Unit.Type"><value>Tip apartament</value></data>
+  <data name="Unit.Floor"><value>Etaj</value></data>
+  <data name="Unit.Orientation"><value>Orientare</value></data>
+  <data name="Unit.AreaUsable"><value>Suprafață utilă</value></data>
+  <data name="Unit.AreaBalcony"><value>Balcon/logie</value></data>
+  <data name="Unit.AreaTotal"><value>Suprafață utilă totală</value></data>
+  <data name="Unit.Price"><value>Preț</value></data>
+  <data name="Unit.PriceNet"><value>Preț fără TVA</value></data>
+  <data name="Unit.Availability"><value>Disponibil</value></data>
+
+  <data name="State.Available"><value>Disponibil</value></data>
+  <data name="State.Held"><value>Rezervat temporar</value></data>
+  <data name="State.Reserved"><value>Rezervat</value></data>
+  <data name="State.Contracted"><value>Contractat</value></data>
+  <data name="State.Sold"><value>Vândut</value></data>
+  <data name="State.Withdrawn"><value>Retras</value></data>
+
+  <data name="Tranche.Schedule"><value>Grafic de plată</value></data>
+  <data name="Tranche.Number"><value>Tranșa {0}</value></data>
+  <data name="Tranche.Net"><value>Fără TVA</value></data>
+  <data name="Tranche.Vat"><value>TVA</value></data>
+  <data name="Tranche.Gross"><value>Total</value></data>
+  <data name="Tranche.DueAtSigning"><value>La semnare</value></data>
+  <data name="Tranche.DueInterim"><value>Intermediar</value></data>
+  <data name="Tranche.DueAtDelivery"><value>La predare</value></data>
+  <data name="Tranche.Advance"><value>Avans ({0}%)</value></data>
+  <data name="Tranche.AdvanceNoRate"><value>Avans</value></data>
+  <data name="Tranche.Cesiune"><value>Preț cesiune</value></data>
+
+  <data name="Parking.Heading"><value>Parcare</value></data>
+  <data name="Parking.Advance"><value>Avans + cesiune</value></data>
+  <data name="Parking.Space"><value>Tip loc</value></data>
+  <data name="Parking.AboveGroundUncovered"><value>Supraterană, neacoperită</value></data>
+  <data name="Parking.AboveGroundCovered"><value>Supraterană, acoperită</value></data>
+  <data name="Parking.Underground"><value>Subterană</value></data>
+  <data name="Parking.LevelGround"><value>La sol</value></data>
+  <data name="Parking.LevelUnder"><value>Nivel -{0}</value></data>
+  <data name="Parking.LevelAbove"><value>Nivel {0}</value></data>
+  <data name="Parking.Available"><value>{0} disponibile</value></data>
+  <data name="Parking.None"><value>Fără parcare</value></data>
+  <data name="Parking.Choose"><value>Adaugă parcare</value></data>
+  <data name="Parking.YourSpaces"><value>Parcarea ta</value></data>
+  <data name="Parking.Quantity"><value>Câte locuri</value></data>
+
+  <data name="Reserve.Action"><value>Rezervă</value></data>
+  <data name="Reserve.HoldExplainer"><value>Rezervarea îți blochează acest apartament timp de {0} ore, cât te decizi.</value></data>
+  <data name="Reserve.NoLongerAvailable"><value>Acest apartament a fost rezervat de altcineva acum câteva momente. Nu ți s-a debitat nimic.</value></data>
+  <data name="Reserve.JoinWaitlist"><value>Înscrie-te pe lista de așteptare</value></data>
+
+  <data name="Asset.Drawings"><value>Planuri și schițe</value></data>
+  <data name="Asset.FloorPlan"><value>Plan etaj</value></data>
+  <data name="Asset.Rlv"><value>Plan apartament (RLV)</value></data>
+  <data name="Asset.Render"><value>Randare</value></data>
+  <data name="Asset.Document"><value>Document</value></data>
+  <data name="Asset.OpenOriginal"><value>Deschide originalul</value></data>
+  <data name="Asset.Close"><value>Închide</value></data>
+  <data name="Asset.PreviewHint"><value>Click pentru mărire · ← → pentru navigare</value></data>
+  <data name="Asset.Previous"><value>Fișierul anterior</value></data>
+  <data name="Asset.Next"><value>Fișierul următor</value></data>
+
+  <data name="Content.OnlyInRomanian"><value>Această descriere este disponibilă doar în limba română.</value></data>
+
+  <data name="Index.Eyebrow"><value>Proiecte verificate</value></data>
+  <data name="Index.Heading"><value>Apartamente, la condițiile dezvoltatorului</value></data>
+  <data name="Index.Lede"><value>Achiziționăm un pachet de apartamente în fiecare proiect și transferăm mai departe discountul de volum. Disponibilitatea de mai jos este actualizată în timp real.</value></data>
+  <data name="Index.Empty"><value>Momentan nu este deschis niciun proiect.</value></data>
+  <data name="Index.From"><value>De la</value></data>
+  <data name="Index.OfAvailable"><value>din {0} disponibile</value></data>
+  <data name="Index.ViewDetails"><value>Vezi detalii</value></data>
+
+  <data name="Project.FreeOfTotal"><value>{0} din {1} încă disponibile</value></data>
+  <data name="Project.HoldHours"><value>blochează apartamentul {0}h</value></data>
+  <data name="Project.ViewApartments"><value>Vezi toate apartamentele ({0} disponibile)</value></data>
+  <data name="Project.Location"><value>Deschide în Maps</value></data>
+  <data name="Project.About"><value>Despre proiect</value></data>
+
+  <data name="Slideshow.Label"><value>Imagini ale proiectului</value></data>
+  <data name="Slideshow.Previous"><value>Imaginea anterioară</value></data>
+  <data name="Slideshow.Next"><value>Imaginea următoare</value></data>
+  <data name="Slideshow.Show"><value>Arată imaginea {0}</value></data>
+
+  <data name="Rental.ShortTerm"><value>Închiriere short-term</value></data>
+  <data name="Rental.MidTerm"><value>Închiriere mid-term</value></data>
+  <data name="Rental.LongTerm"><value>Închiriere long-term</value></data>
+  <data name="Rental.Mixed"><value>Short și mid-term</value></data>
+
+  <data name="Apartments.Heading"><value>Toate apartamentele din imobil</value></data>
+  <data name="Apartments.Lede"><value>{0} din {1} apartamente sunt încă disponibile. Alege unul ca să vezi prețul și când se plătește fiecare tranșă.</value></data>
+  <data name="Apartments.Elevation"><value>Imobilul, etaj cu etaj</value></data>
+  <data name="Apartments.AllUnits"><value>Toate apartamentele</value></data>
+  <data name="Apartments.Taken"><value>Indisponibil</value></data>
+  <data name="Apartments.NoMatches"><value>Niciun apartament nu corespunde acestor filtre. Elimină un filtru ca să vezi mai multe.</value></data>
+  <data name="Unit.FloorN"><value>Etaj {0}</value></data>
+  <data name="Unit.FloorUnknown"><value>Etaj —</value></data>
+
+  <data name="Filter.AllTypes"><value>Toate tipurile</value></data>
+  <data name="Filter.AvailableOnly"><value>Doar disponibile</value></data>
+
+  <data name="Tranche.Explainer"><value>TVA afișat la {0}% pentru apartament și {1}% pentru cesiune, pentru o persoană fizică. Se poate aplica TVA redus, în funcție de client și de apartament; cota care ți se aplică se confirmă înainte de semnare.</value></data>
+  <data name="Tranche.AdvanceBasis"><value>Avansul este {0}% din preț, mai puțin prețul cesiunii.</value></data>
+  <data name="Reserve.Unavailable"><value>Acest apartament nu mai este disponibil. Poți cere să fii anunțat dacă redevine liber.</value></data>
+
+  <data name="Reserve.Heading"><value>Rezervă acest apartament</value></data>
+  <data name="Reserve.Confirm"><value>Blochează-l pentru mine</value></data>
+  <data name="Reserve.SeeWhatIsLeft"><value>Vezi ce mai este disponibil</value></data>
+  <data name="Reserve.FeeNote"><value>Dacă mergi mai departe, prețul rezervării este {0}.</value></data>
+  <data name="Reserve.NoticeHeading"><value>Înainte să rezervi</value></data>
+  <data name="Reserve.NoPaymentNow"><value>Nu se încasează nimic acum. Vei fi sunat de cineva din echipa noastră.</value></data>
+  <data name="Reserve.LostTheRace"><value>Cineva a rezervat acest apartament cu câteva momente înaintea ta. Nu ți s-a debitat nimic și nu este nimic blocat pe numele tău.</value></data>
+  <data name="Reserve.Blocked"><value>O rezervare anterioară pe numele tău a expirat fără să continue, așa că nu putem bloca automat un alt apartament. Scrie-ne prin formularul de contact și rezolvăm.</value></data>
+  <data name="Reserve.TooMany"><value>Ai deja {0} apartamente blocate în acest proiect. Renunță la unul, sau mergi mai departe cu unul dintre ele, înainte de a bloca altul.</value></data>
+  <data name="Reserve.NotEnoughParking"><value>Au mai rămas doar {0} locuri {1} și ai cerut {2}. Nu s-a rezervat nimic, nici apartamentul, așa că poți alege din nou.</value></data>
+  <data name="Reserve.TooManyParking"><value>La acest proiect se pot lua {0} locuri de parcare la un apartament, iar tu ai cerut {1}. Nu s-a rezervat nimic.</value></data>
+  <data name="Reserve.CheckEmail"><value>Verifică-ți emailul. Am trimis un link la adresa pe care ai dat-o, iar dacă îl urmezi blocăm apartamentul pentru tine. Până atunci rămâne la vânzare, așa că nu lăsa pe mâine.</value></data>
+  <data name="Reserve.ConfirmHeading"><value>Confirmă rezervarea</value></data>
+  <data name="Reserve.ConfirmExplain"><value>Astfel blocăm apartamentul {0} din {1} pentru tine.</value></data>
+  <data name="Reserve.ConfirmAction"><value>Blochează-l pentru mine</value></data>
+  <data name="Reserve.LinkNotUsable"><value>Acest link a fost deja folosit sau a expirat. Nu s-a blocat nimic. Reia rezervarea ca să primești un link nou.</value></data>
+  <data name="Reserve.NotEnoughParkingNow"><value>Au mai rămas doar {0} locuri {1}, iar tu ai cerut {2}. Nu s-a blocat nimic, nici apartamentul. Reia rezervarea și alege mai puține locuri.</value></data>
+
+  <data name="Form.FirstName"><value>Prenume</value></data>
+  <data name="Form.Surname"><value>Nume</value></data>
+  <data name="Form.Email"><value>Email</value></data>
+  <data name="Form.EmailHint"><value>Aici primești linkul rezervării. Verifică să fie corect.</value></data>
+  <data name="Form.Phone"><value>Telefon</value></data>
+  <data name="Form.City"><value>Oraș</value></data>
+  <data name="Form.Country"><value>Țara (opțional)</value></data>
+  <data name="Form.CountryHint"><value>Lasă gol dacă locuiești în România.</value></data>
+  <data name="Form.Consent"><value>Sunt de acord să mă contactați despre această rezervare și să îmi păstrați datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
+  <data name="Waitlist.Consent"><value>Sunt de acord să îmi scrieți când se eliberează un apartament și să îmi păstrați datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
+
+  <data name="Validation.FirstNameRequired"><value>Spune-ne prenumele tău, ca să știm cu cine vorbim.</value></data>
+  <data name="Validation.SurnameRequired"><value>Avem nevoie de numele tău de familie pentru actele rezervării.</value></data>
+  <data name="Validation.CityRequired"><value>Spune-ne în ce oraș locuiești.</value></data>
+  <data name="Validation.EmailRequired"><value>Avem nevoie de un email ca să îți trimitem linkul rezervării.</value></data>
+  <data name="Validation.EmailInvalid"><value>Nu pare o adresă de email validă.</value></data>
+  <data name="Validation.PhoneRequired"><value>Avem nevoie de un număr de telefon, pentru că cineva din echipa noastră te va suna.</value></data>
+  <data name="Validation.PhoneInvalid"><value>Nu pare un număr de telefon valid.</value></data>
+  <data name="Validation.ConsentRequired"><value>Avem nevoie de acordul tău ca să putem bloca un apartament.</value></data>
+  <data name="Validation.ParkingQuantity"><value>Alege între 0 și 10 locuri de parcare.</value></data>
+
+  <data name="Hold.Title"><value>Rezervarea ta</value></data>
+  <data name="Hold.TimeLeft"><value>Timp rămas pentru decizie</value></data>
+  <data name="Hold.Until"><value>Blocat până la {0}</value></data>
+  <data name="Hold.WhatNext"><value>Ce urmează</value></data>
+  <data name="Hold.WhatNextBody"><value>Cineva din echipa noastră te va suna ca să răspundă la întrebări și să îți explice contractul. Dacă decizi să mergi mai departe, achiți prețul rezervării și apartamentul rămâne al tău. Cât timp curge cronometrul, nimeni altcineva nu îl poate rezerva.</value></data>
+  <data name="Hold.CancelWarning"><value>Dacă renunți la această rezervare, apartamentul revine imediat la vânzare și nu vom mai bloca automat altul pentru tine.</value></data>
+  <data name="Hold.CancelAction"><value>Renunț la acest apartament</value></data>
+  <data name="Hold.Cancelled"><value>Eliberat. Apartamentul a revenit la vânzare.</value></data>
+  <data name="Hold.WasCancelled"><value>Ai renunțat la această rezervare. Apartamentul a revenit la vânzare.</value></data>
+  <data name="Hold.Expired"><value>Această rezervare a expirat, iar apartamentul a revenit la vânzare.</value></data>
+  <data name="Hold.Converted"><value>Această rezervare a fost confirmată. Te vom contacta pentru pașii următori.</value></data>
+
+  <data name="Email.ReserveConfirmSubject"><value>Confirmă rezervarea pentru {0} — {1}</value></data>
+  <data name="Email.ReserveConfirmBody"><value>Ai cerut să rezervi apartamentul {0} din {1}.
+
+Nu am blocat încă nimic, iar apartamentul este în continuare la vânzare. Urmează acest link ca să îl blochezi:
+{2}
+
+Linkul este valabil până la {3}. Dacă nu tu ai cerut asta, ignoră acest email — nu am rezervat nimic pe numele tău și nu s-a perceput nimic.</value></data>
+  <data name="Email.HoldSubject"><value>{0} este blocat pentru tine — {1}</value></data>
+  <data name="Email.HoldBody"><value>Am blocat apartamentul {0} din {1} pentru tine.
+
+Ai {2} ore ca să te decizi. Rezervarea expiră pe {3}, iar până atunci nimeni altcineva nu îl poate rezerva.
+
+Vezi timpul rămas și ce urmează aici:
+{4}
+
+Vei fi sunat în scurt timp de cineva din echipa noastră. Nu s-a încasat nimic.</value></data>
+
+  <data name="Email.ExpiredSubject"><value>Rezervarea ta pentru {0} a expirat</value></data>
+  <data name="Email.ExpiredBody"><value>Rezervarea pentru apartamentul {0} din {1} a expirat, iar acesta a revenit la vânzare.
+
+Dacă ești în continuare interesat, vezi ce este disponibil aici:
+{2}</value></data>
+
+  <data name="Email.WaitlistSubject"><value>S-a eliberat un apartament la {0}</value></data>
+  <data name="Email.WaitlistBody"><value>Apartamentul {0} din {1} tocmai a revenit la vânzare, iar tu ești următorul pe lista de așteptare.
+
+Este disponibil pentru oricine, deci va reveni celui care rezervă primul:
+{2}</value></data>
+
+  <data name="Email.WaitlistJoinedSubject"><value>Ești pe lista de așteptare pentru {0}</value></data>
+  <data name="Email.WaitlistJoinedBody"><value>Ești pe locul {2} pe lista de așteptare pentru {0} din {1}.
+
+Îți scriem imediat ce se eliberează unul. În acel moment va fi disponibil pentru oricine, deci avantajul este că afli primul, nu că este rezervat.
+
+Vezi-ți locul sau ieși de pe listă aici:
+{3}</value></data>
+
+  <data name="Waitlist.Heading"><value>Înscrie-te pe lista de așteptare</value></data>
+  <data name="Waitlist.CtaNoneFree"><value>Momentan nu este nimic liber aici. Rezervările expiră sau se anulează, deci apartamentele revin.</value></data>
+  <data name="Waitlist.CtaSomeFree"><value>Nu este cel potrivit? Te anunțăm când revine altul.</value></data>
+  <data name="Waitlist.NoneFree"><value>Momentan totul este ocupat. Rezervările expiră sau se anulează, deci apartamentele revin — te anunțăm când se întâmplă.</value></data>
+  <data name="Waitlist.SomeFree"><value>{0} disponibile acum. Dacă niciunul nu ți se potrivește, te anunțăm când revine altul.</value></data>
+  <data name="Waitlist.WhichType"><value>Ce apartament aștepți?</value></data>
+  <data name="Waitlist.WhichTypeHint"><value>Dacă aștepți un tip anume, ai prioritate față de cei care acceptă orice.</value></data>
+  <data name="Waitlist.AnyType"><value>Orice apartament</value></data>
+  <data name="Waitlist.EmailHint"><value>Aici îți scriem când se eliberează unul.</value></data>
+  <data name="Waitlist.Join"><value>Înscrie-mă pe listă</value></data>
+  <data name="Waitlist.NoObligation"><value>Nu se rezervă nimic și nu datorezi nimic. Poți ieși de pe listă oricând.</value></data>
+  <data name="Waitlist.CouldNotJoin"><value>Nu te-am putut adăuga pe listă. Te rugăm să încerci din nou.</value></data>
+  <data name="Waitlist.Sent"><value>Mulțumim. Ți-am trimis pe email locul tău în coadă și un link către pagina ta, de unde îl poți verifica sau poți ieși de pe listă oricând.</value></data>
+  <data name="Waitlist.YourPlace"><value>Locul tău</value></data>
+  <data name="Waitlist.OfWaiting"><value>din {0} în așteptare</value></data>
+  <data name="Waitlist.WhatNextBody"><value>Când un apartament de acest tip revine la vânzare, îi scriem primul celui aflat în fruntea listei. Rămâne disponibil pentru toată lumea, deci va reveni celui care rezervă primul — avantajul este că afli înaintea celorlalți, nu că ți-l păstrăm.</value></data>
+  <data name="Waitlist.LeaveWarning"><value>Dacă ieși, îți pierzi locul. Te poți înscrie din nou, dar la coada listei.</value></data>
+  <data name="Waitlist.Leave"><value>Scoate-mă de pe listă</value></data>
+  <data name="Waitlist.JustLeft"><value>Ai ieșit de pe listă. Nu îți vom mai scrie despre acest proiect.</value></data>
+  <data name="Waitlist.NoLongerOn"><value>Nu ești pe această listă de așteptare.</value></data>
+  <data name="Waitlist.AlreadyTold"><value>Ți-am scris deja despre un apartament care s-a eliberat. Locul tău a fost folosit, deci nu mai ești în așteptare.</value></data>
+
+  <!-- Contact form, and the two data rights that arrive through it -->
+  <data name="Contact.Heading"><value>Scrie-ne</value></data>
+  <data name="Contact.Lede"><value>O întrebare despre un apartament sau despre datele pe care le avem despre tine. Amândouă ajung aici.</value></data>
+  <data name="Contact.Kind"><value>Despre ce este mesajul?</value></data>
+  <data name="Contact.KindGeneral"><value>O întrebare despre un apartament sau un proiect</value></data>
+  <data name="Contact.KindAccess"><value>O copie a datelor pe care le aveți despre mine</value></data>
+  <data name="Contact.KindErasure"><value>Ștergerea datelor pe care le aveți despre mine</value></data>
+  <data name="Contact.KindHint"><value>Ultimele două sunt drepturile tale GDPR. Dacă alegi una dintre ele, începe luna în care suntem obligați să îți răspundem.</value></data>
+  <data name="Contact.Project"><value>Despre ce proiect? (opțional)</value></data>
+  <data name="Contact.NoProject"><value>Nu este despre un anume proiect</value></data>
+  <data name="Contact.EmailHint"><value>Aici îți răspundem.</value></data>
+  <data name="Contact.Message"><value>Mesajul tău</value></data>
+  <data name="Contact.Send"><value>Trimite</value></data>
+  <data name="Contact.Sent"><value>Mulțumim. Mesajul a ajuns la noi și îți trimitem o confirmare pe email.</value></data>
+  <data name="Contact.SentPrivacy"><value>Avem la dispoziție o lună ca să îți răspundem și îți scriem înainte de termen. S-ar putea să îți cerem mai întâi să confirmi cine ești, pentru că altfel oricine ar putea cere datele tale.</value></data>
+  <data name="Contact.CouldNotSend"><value>Nu am putut trimite mesajul. Mai încearcă o dată.</value></data>
+  <data name="Contact.PrivacyNote"><value>Folosim ce scrii aici ca să îți răspundem și păstrăm mesajul împreună cu restul datelor pe care le avem despre tine. Poți cere o copie a lor sau ștergerea lor, tot din acest formular.</value></data>
+  <data name="Validation.MessageRequired"><value>Scrie-ne ce vrei să ne spui.</value></data>
+
+  <data name="Email.EnquirySubject"><value>Am primit mesajul tău</value></data>
+  <data name="Email.EnquiryBody"><value>Îți mulțumim că ne-ai scris. Mesajul tău a ajuns la echipa noastră și cineva îți va răspunde.
+
+Acest email este doar confirmarea că a ajuns. Nu trebuie să faci nimic.</value></data>
+  <data name="Email.PrivacyRequestSubject"><value>Cererea ta privind datele tale</value></data>
+  <data name="Email.PrivacyRequestBody"><value>Ne-ai cerut: {0}
+
+Avem termen până la {1} să îți răspundem și îți scriem înainte de atunci.
+
+S-ar putea să îți cerem mai întâi să confirmi cine ești. Oricine poate scrie o adresă de email într-un formular, iar noi nu dăm datele nimănui și nu le ștergem doar pe baza unei adrese.</value></data>
+
+  <data name="Busy.Heading"><value>Cam multe încercări</value></data>
+  <data name="Busy.Body"><value>Ai trimis asta de prea multe ori în ultimele minute, așa că am oprit-o pentru scurt timp. Așteaptă câteva minute și încearcă din nou. Ce ai trimis înainte a ajuns la noi.</value></data>
+
+  <!-- Dead ends -->
+  <data name="Error.MissingHeading"><value>Pagina nu este aici</value></data>
+  <data name="Error.MissingBody"><value>Adresa nu corespunde cu nimic de pe site. Poate a fost scrisă greșit sau este un apartament care între timp s-a vândut.</value></data>
+  <data name="Error.Heading"><value>Ceva nu a mers</value></data>
+  <data name="Error.Body"><value>Nu a funcționat, și este din partea noastră, nu a ta. Mai încearcă o dată peste un moment. Dacă se repetă, scrie-ne și dă-ne referința de mai jos.</value></data>
+  <data name="Error.Reference"><value>Referință:</value></data>
+</root>

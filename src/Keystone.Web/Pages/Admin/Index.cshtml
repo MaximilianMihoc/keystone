@@ -1,0 +1,41 @@
+@page "/admin/{**catchall}"
+@model Keystone.Web.Pages.Admin.IndexModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en" data-theme="@(Model.Theme ?? Keystone.Web.Theme.System)">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Keystone admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" />
+    @if (Model.BundleExists)
+    {
+        <link rel="stylesheet" href="/admin-assets/index.css" asp-append-version="true" />
+    }
+</head>
+<body>
+    <div id="root"></div>
+
+    @if (Model.BundleExists)
+    {
+        <script type="module" src="/admin-assets/index.js" asp-append-version="true"></script>
+    }
+    else
+    {
+        <noscript></noscript>
+        <div style="font-family:system-ui;max-width:640px;margin:80px auto;padding:0 24px;line-height:1.6">
+            <h1 style="font-size:20px">The admin client has not been built</h1>
+            <p>Run it once from the repository root:</p>
+            <pre style="background:#f1f2f3;padding:14px;overflow-x:auto">cd src/Keystone.Admin
+npm install
+npm run build</pre>
+            <p><code>dotnet build</code> does this for you, but only when npm is on PATH.</p>
+        </div>
+    }
+</body>
+</html>

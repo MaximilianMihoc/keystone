@@ -64,7 +64,7 @@ pnpm-debug.log*
 .eslintcache
 
 ## Built admin bundle, emitted into the ASP.NET host at build time
-src/Hubix.Web/wwwroot/admin-assets/
+src/Keystone.Web/wwwroot/admin-assets/
 
 ## ---------------------------------------------------------------------------
 ## Database
@@ -91,21 +91,19 @@ coverage/
 ## ---------------------------------------------------------------------------
 uploads/
 storage/
-src/Hubix.Web/wwwroot/uploads/
+src/Keystone.Web/wwwroot/uploads/
 
 ## ---------------------------------------------------------------------------
-## Hubix source material.
+## Source documents.
 ##
-## The prospectuses and inventory spreadsheets contain real prices, real
-## developer terms and (in the admin columns) real buyer data. They stay
-## out of this repository. Source lives in C:\Repositories\HubixDocs and the
-## derived seed JSON in C:\Repositories\ClaudeLocalDocs\Hubix\seed-data.
+## Real inventory spreadsheets and prospectuses can carry real prices and
+## buyer data, so none of them is committed. Test workbooks are built in code.
 ## ---------------------------------------------------------------------------
 *.xlsx
 *.xls
 *.docx
 *.doc
-seed-data/real/
+seed-data/
 
 ## ---------------------------------------------------------------------------
 ## OS noise

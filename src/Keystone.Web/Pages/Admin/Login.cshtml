@@ -1,0 +1,53 @@
+@page "/admin/login"
+@model Keystone.Web.Pages.Admin.LoginModel
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = "_Layout";
+}
+
+<div class="shell">
+    <div class="page-head">
+        <p class="eyebrow">Keystone admin</p>
+        <h1>Sign in</h1>
+        <p class="lede">We email you a link. No password to remember or lose.</p>
+    </div>
+
+    @if (TempData["LoginError"] is string error)
+    {
+        <div class="alert" role="alert">@error</div>
+    }
+
+    @if (Model.LinkSent)
+    {
+        <div class="alert" role="status">
+            If that address belongs to a staff account, a sign-in link is on its way.
+            It works once and expires in 15 minutes.
+        </div>
+
+        @if (Model.DevelopmentLink is { } link)
+        {
+            <div class="form-wrap" style="margin-top:20px">
+                <p class="field-hint" style="margin-bottom:10px">
+                    Development only — this is not shown in any other environment.
+                </p>
+                <a class="btn" href="@link">Open the sign-in link</a>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="form-wrap">
+            <form method="post" novalidate>
+                <div asp-validation-summary="ModelOnly" class="alert"></div>
+
+                <div class="field">
+                    <label asp-for="Email">Your work email</label>
+                    <input asp-for="Email" type="email" autocomplete="email" required />
+                    <span asp-validation-for="Email" class="field-error"></span>
+                </div>
+
+                <button class="btn" type="submit">Email me a link</button>
+            </form>
+        </div>
+    }
+</div>

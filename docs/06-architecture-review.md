@@ -4,7 +4,7 @@
 > Review · 2026-09-26 · no changes made
 
 Where the code is shallow, duplicated or leaking across seams, and what a deeper module would
-absorb. Written after Hubix declined, while the project is frozen: this is a record for whoever
+absorb. Written while the project was frozen: this is a record for whoever
 picks it up next, not a work plan. Nothing here has been acted on.
 
 Scoped to the hot spots of the previous 60 days of commits. Vocabulary: a **module** is deep
@@ -42,7 +42,7 @@ all". The promise lives with the callers, and three of them forgot it.
 
 **Deepening.** "Unit returns to sale" becomes one module in Infrastructure that owns both the
 state change and the promotion, so no caller can free a unit without the queue hearing. Today
-`WaitlistPromoter` and `HoldNotifier` sit in `Hubix.Web`, which the integration tests do not
+`WaitlistPromoter` and `HoldNotifier` sit in `Keystone.Web`, which the integration tests do not
 reference, so promotion is untested; moving it behind Infrastructure's seam makes it testable
 against SQL Server like the other Sales services. The two copies of try/catch logging around
 `PromoteAsync` go with it.
@@ -53,7 +53,7 @@ against SQL Server like the other Sales services. The two copies of try/catch lo
 
 The published gate (`PublishedAt != null`) and the read model around it are hand-written in
 seven page models: `Index`, `Projects/Detail`, `Apartments`, `Apartment`, `Reserve`, `Waitlist`,
-and `Contact` (which ADR-0001 does not list). Each injects `HubixDbContext` and queries directly.
+and `Contact` (which ADR-0001 does not list). Each injects `KeystoneDbContext` and queries directly.
 
 The copies already disagree:
 
@@ -121,7 +121,7 @@ and the pasted switches are deleted.
   (culture and length checks), `TryBuyerType` in `ReservationApi.cs:166`.
 - Nothing reaches this code in tests: there is no `WebApplicationFactory`.
 - Endpoints return anonymous objects hand-mirrored by the TypeScript types in
-  `Hubix.Admin/src/api.ts` (e.g. `ProjectSummary` at `:45` mirrors `AdminApi.cs:65-83`), and
+  `Keystone.Admin/src/api.ts` (e.g. `ProjectSummary` at `:45` mirrors `AdminApi.cs:65-83`), and
   nothing checks they agree.
 
 **Deepening.** Endpoints keep auth and mapping; read models and validation move into

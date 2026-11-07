@@ -1,0 +1,32 @@
+@page "/admin/login/verify"
+@model Keystone.Web.Pages.Admin.VerifyModel
+@{
+    ViewData["Title"] = "Signing you in";
+    Layout = "_Layout";
+}
+
+@* The token is in the fragment and never reaches the server as part of a URL. verify.js
+   moves it into the form below and posts it. *@
+
+<div class="shell">
+    <div class="page-head">
+        <p class="eyebrow">Keystone admin</p>
+        <h1>Signing you in</h1>
+    </div>
+
+    <div class="form-wrap">
+        <form method="post" id="verify-form">
+            <input type="hidden" name="token" id="verify-token" />
+            <p class="field-hint" id="verify-status">One moment.</p>
+            <button class="btn" type="submit">Sign in</button>
+        </form>
+
+        <noscript>
+            <p class="field-hint">
+                This step needs JavaScript, as does the admin it signs you into.
+            </p>
+        </noscript>
+    </div>
+</div>
+
+<script src="~/js/verify.js" asp-append-version="true"></script>

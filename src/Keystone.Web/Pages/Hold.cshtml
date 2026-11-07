@@ -1,0 +1,94 @@
+@page "/hold/{token}"
+@model Keystone.Web.Pages.HoldModel
+@{
+    ViewData["Title"] = $"{Model.UnitCode} — {T["Hold.Title"].Value}";
+}
+
+<div class="shell">
+    <div class="page-head">
+        <p class="eyebrow">@Model.ProjectName · @Model.TypeDisplay</p>
+        <h1>@Model.UnitCode</h1>
+    </div>
+
+    @if (Model.JustCancelled)
+    {
+        <div class="alert" role="status">@L["Hold.Cancelled"]</div>
+    }
+
+    @* Which space is theirs. Held under the same countdown as the apartment, so if that runs
+       out these go back on the market with it. *@
+    @if (Model.ParkingSpaces.Count > 0)
+    {
+        <div class="section">
+            <p class="section-label">@L["Parking.YourSpaces"]</p>
+            <dl class="spec">
+                @foreach (var space in Model.ParkingSpaces)
+                {
+                    <div>
+                        <dt>@space.Code</dt>
+                        <dd>
+                            @L[Display.ParkingSpaceKey(space.Kind)]
+                            <small>@Display.ParkingLevel(space.Level, T)</small>
+                        </dd>
+                    </div>
+                }
+            </dl>
+        </div>
+    }
+
+    @if (Model.IsActive)
+    {
+        <div class="countdown" data-seconds="@Model.SecondsRemaining">
+            <p class="countdown-label">@L["Hold.TimeLeft"]</p>
+            <p class="countdown-clock" aria-live="polite">
+                <span data-countdown>—</span>
+            </p>
+            <p class="countdown-until">
+                @L["Hold.Until", Display.Moment(Model.Hold.ExpiresAt, "dd MMMM yyyy, HH:mm", T)]
+            </p>
+        </div>
+
+        <div class="section">
+            <p class="section-label">@L["Hold.WhatNext"]</p>
+            <div class="prose">
+                <p>@L["Hold.WhatNextBody"]</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <form method="post" asp-page-handler="Cancel" asp-route-token="@Model.Hold.AccessToken">
+                <p class="note">@L["Hold.CancelWarning"]</p>
+                <button class="btn ghost" type="submit" style="margin-top:16px">
+                    @L["Hold.CancelAction"]
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="alert" role="status">
+            @if (Model.Hold.ReleaseReason == HoldReleaseReason.Converted)
+            {
+                @L["Hold.Converted"]
+            }
+            else if (Model.Hold.ReleaseReason == HoldReleaseReason.Cancelled)
+            {
+                @L["Hold.WasCancelled"]
+            }
+            else
+            {
+                @L["Hold.Expired"]
+            }
+        </div>
+
+        <p style="margin-top:20px">
+            <a class="btn" asp-page="/Projects/Apartments" asp-route-slug="@Model.ProjectSlug">
+                @L["Reserve.SeeWhatIsLeft"]
+            </a>
+        </p>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/hold.js" asp-append-version="true" defer></script>
+}
