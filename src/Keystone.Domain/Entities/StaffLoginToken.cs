@@ -5,7 +5,7 @@ using Keystone.Domain.Common;
 namespace Keystone.Domain.Entities;
 
 /// <summary>
-/// A single-use sign-in link for a member of Hubix staff.
+/// A single-use sign-in link for a member of staff.
 /// </summary>
 /// <remarks>
 /// <para>

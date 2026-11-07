@@ -93,7 +93,7 @@ public class StaffAuthTests(DatabaseFixture fixture)
         await using var db = fixture.CreateContext();
 
         // Null rather than an exception: the page shows the same confirmation either way,
-        // so an unauthenticated visitor cannot use it to enumerate who works at Hubix.
+        // so an unauthenticated visitor cannot use it to enumerate who works there.
         var link = await Service(db)
             .IssueLoginTokenAsync("nobody@example.com", null, CancellationToken.None);
 
@@ -226,7 +226,7 @@ public class UnitAdminTests(DatabaseFixture fixture)
 
         await using var db = fixture.CreateContext();
 
-        // It is Hubix's margin taken out of what the buyer pays, not added on top.
+        // It is the operator's margin taken out of what the buyer pays, not added on top.
         var result = await Service(db).EditAsync(
             fixture.UnitId, Edit(cesiune: 999_999m), Actor, "dev", CancellationToken.None);
 

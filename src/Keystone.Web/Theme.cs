@@ -14,7 +14,7 @@ namespace Keystone.Web;
 /// </remarks>
 public static class Theme
 {
-    public const string CookieName = "hubix.theme";
+    public const string CookieName = "keystone.theme";
 
     public const string Light = "light";
 

@@ -72,7 +72,7 @@ public sealed class Sheet(string sourceFile, IReadOnlyList<SheetRow> rows)
 }
 
 /// <summary>
-/// Reads the JSON extracted from Hubix's inventory spreadsheets.
+/// Reads the JSON extracted from the operator's inventory spreadsheets.
 /// </summary>
 public static class SheetReader
 {

@@ -403,7 +403,7 @@ function Prose({
       <h2>{CULTURE_NAMES[row.culture] ?? row.culture}</h2>
       <p className="hint">
         {row.isSource
-          ? 'The language Hubix writes in. Anything missing in another language falls back to this one, so leaving it blank leaves a blank page for everybody.'
+          ? 'The language the operator writes in. Anything missing in another language falls back to this one, so leaving it blank leaves a blank page for everybody.'
           : 'Falls back to the Romanian above wherever it is left empty.'}
       </p>
 

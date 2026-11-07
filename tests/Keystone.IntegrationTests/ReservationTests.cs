@@ -125,7 +125,7 @@ public class ReservationTests(DatabaseFixture fixture)
 
         await using (var db = fixture.CreateContext())
         {
-            // Hubix raises prices mid-launch; the Lake Home document describes exactly this.
+            // The operator raises prices mid-launch; the Lake Home document describes exactly this.
             await db.Units.Where(u => u.Id == fixture.UnitId)
                 .ExecuteUpdateAsync(s => s.SetProperty(u => u.BasePriceNet, 200_000m));
         }

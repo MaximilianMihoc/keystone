@@ -24,7 +24,7 @@ public sealed record SpacesRemoved(int Removed, IReadOnlyList<string> Kept);
 /// </summary>
 /// <remarks>
 /// <para>
-/// Spaces are entered rather than imported: Hubix's sheets price parking per apartment and never
+/// Spaces are entered rather than imported: the operator's sheets price parking per apartment and never
 /// enumerate the bays, so there is nothing to import from yet.
 /// </para>
 /// <para>

@@ -30,7 +30,7 @@ function levelLabel(level: number): string {
 /**
  * The car park: what a space costs, and which bays exist.
  *
- * Spaces are entered here rather than imported, because Hubix's sheets price parking per
+ * Spaces are entered here rather than imported, because the operator's sheets price parking per
  * apartment and never enumerate the bays. They are added a range at a time, which is how a car
  * park is actually described.
  */

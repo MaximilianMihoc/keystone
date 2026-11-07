@@ -4,7 +4,7 @@ using Keystone.Domain.Pricing;
 namespace Keystone.Domain.Entities;
 
 /// <summary>
-/// A sale in progress. Replaces the hidden right-hand columns of Hubix's inventory sheets.
+/// A sale in progress. Replaces the hidden right-hand columns of the operator's inventory sheets.
 /// </summary>
 public class Reservation : Entity
 {
@@ -28,7 +28,7 @@ public class Reservation : Entity
     /// </remarks>
     public DateTimeOffset StateChangedAt { get; set; } = DateTimeOffset.UtcNow;
 
-    // --- The pipeline, as Hubix tracks it today ---------------------------------
+    // --- The pipeline, as the operator tracks it today ---------------------------------
     // Ordering, and what each of these means, live in ReservationPipeline. These are just
     // the dates.
 
@@ -59,7 +59,7 @@ public class Reservation : Entity
     public BuyerType BuyerType { get; set; } = BuyerType.Individual;
 
     // --- Price snapshot ---------------------------------------------------------
-    // What applied when this was agreed. Hubix raises prices mid-launch — the Lake Home
+    // What applied when this was agreed. The operator raises prices mid-launch — the Lake Home
     // document describes exactly that — and an agreed reservation must not move with them.
     // These are never recalculated.
 
@@ -92,7 +92,7 @@ public class Reservation : Entity
     /// </summary>
     public decimal SnapParkingNet { get; set; }
 
-    /// <summary>The parking deposit as agreed: Hubix's "Avans + cesiune parcare fara TVA".</summary>
+    /// <summary>The parking deposit as agreed: the operator's "Avans + cesiune parcare fara TVA".</summary>
     public decimal SnapParkingDepositNet { get; set; }
 
     /// <summary>Was "Comments Istratescu".</summary>
@@ -133,7 +133,7 @@ public class Reservation : Entity
 }
 
 /// <summary>
-/// A place in the queue for a unit type. First come, first served, as Hubix's documents state.
+/// A place in the queue for a unit type. First come, first served, as the operator's documents state.
 /// </summary>
 public class WaitlistEntry : Entity
 {
@@ -163,7 +163,7 @@ public class WaitlistEntry : Entity
 
     /// <summary>
     /// Lets someone see their place and leave the queue without an account, and without
-    /// having to ask Hubix to take them off by email.
+    /// having to ask the operator to take them off by email.
     /// </summary>
     public required string AccessToken { get; set; }
 

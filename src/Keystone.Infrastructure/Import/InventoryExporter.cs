@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Keystone.Infrastructure.Import;
 
 /// <summary>
-/// Writes a project back out as the workbook Hubix already knows.
+/// Writes a project back out as the workbook the operator already knows.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -77,7 +77,7 @@ public sealed class InventoryExporter(KeystoneDbContext db)
         using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("Apartamente");
 
-        // Hubix's headings, verbatim. The tranche columns are named from each project's own
+        // The operator's headings, verbatim. The tranche columns are named from each project's own
         // stored labels, which is why the label is stored at all — the public pages number the
         // payments by position instead. Roka's sheet numbered its second payment "Transa 3";
         // that slip is corrected here, so this export no longer matches that column name.

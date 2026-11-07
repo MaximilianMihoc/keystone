@@ -28,7 +28,7 @@ public static class SettingsApi
         admin.MapGet("/email", async (
             SettingsService settings,
             IOptionsSnapshot<EmailOptions> email,
-            IOptionsSnapshot<KeystoneOptions> hubix,
+            IOptionsSnapshot<KeystoneOptions> keystone,
             IOptions<ResendOptions> provider,
             CancellationToken ct) =>
         {
@@ -38,14 +38,14 @@ public static class SettingsApi
             {
                 saved = saved is not null,
                 savedAt = saved?.UpdatedAt,
-                salesInbox = hubix.Value.SalesInbox,
-                publicBaseUrl = hubix.Value.PublicBaseUrl,
+                salesInbox = keystone.Value.SalesInbox,
+                publicBaseUrl = keystone.Value.PublicBaseUrl,
                 liveSendingEnabled = email.Value.LiveSendingEnabled,
                 redirectAllTo = email.Value.RedirectAllTo,
                 // Distinct because options binding appends a configured list to the property
                 // default rather than replacing it. The shipped files no longer set either
                 // list for that reason, but a deployment is free to, and a screen showing
-                // *@hubix.ro twice invites somebody to delete one of them.
+                // *@example.com twice invites somebody to delete one of them.
                 allowedRecipients = email.Value.AllowedRecipients.Distinct(StringComparer.OrdinalIgnoreCase),
                 blockedRecipients = email.Value.BlockedRecipients.Distinct(StringComparer.OrdinalIgnoreCase),
 
@@ -137,9 +137,9 @@ public static class SettingsApi
 
             var message = new EmailMessage(
                 to,
-                "Hubix portal test message",
+                "Keystone test message",
                 $"""
-                 This is a test message from the Hubix portal, sent by {AdminApi.ActorLabel(user)}.
+                 This is a test message from Keystone, sent by {AdminApi.ActorLabel(user)}.
 
                  It went the same way every other message goes. If you are reading it in an
                  inbox, sending works. If it is in the outbox instead, the screen said so.
@@ -150,7 +150,7 @@ public static class SettingsApi
                 // exercised here rather than discovered on a buyer's reservation.
                 HtmlBody:
                 $"""
-                 <p>This is a test message from the Hubix portal, sent by
+                 <p>This is a test message from Keystone, sent by
                  {AdminApi.ActorLabel(user)}.</p>
                  <p>It went the same way every other message goes.</p>
                  """);

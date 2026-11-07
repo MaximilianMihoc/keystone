@@ -1,7 +1,7 @@
 namespace Keystone.Infrastructure.Import;
 
 /// <summary>
-/// A column of a Hubix inventory sheet, and what it means here.
+/// A column of an operator's inventory sheet, and what it means here.
 /// </summary>
 /// <param name="Field">Stable key. Saved mapping profiles store this, so it must not change.</param>
 /// <param name="Label">What the mapping screen shows.</param>
@@ -89,7 +89,7 @@ public sealed record ImportField(
             return exact;
         }
 
-        // Hubix appends the rate of the day to some headings — "Pret cesiune faraTVA 21%" is
+        // The operator appends the rate of the day to some headings — "Pret cesiune faraTVA 21%" is
         // the same column as "Pret cesiune faraTVA" — so a trailing number is dropped and the
         // rest must match exactly.
         //

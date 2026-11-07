@@ -189,7 +189,7 @@ public class ReservationConfiguration : IEntityTypeConfiguration<Reservation>
             .HasForeignKey(r => r.ProspectId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // The agreed price, frozen. Never recomputed: Hubix raises prices mid-launch and an
+        // The agreed price, frozen. Never recomputed: the operator raises prices mid-launch and an
         // agreed reservation must not move with them.
         builder.Property(r => r.SnapTranches)
             .HasConversion(

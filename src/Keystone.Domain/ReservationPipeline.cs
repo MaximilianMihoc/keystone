@@ -8,7 +8,7 @@ namespace Keystone.Domain;
 /// <param name="State">The persisted value. This is the vocabulary; the rest is behaviour.</param>
 /// <param name="Label">What the board shows, in English.</param>
 /// <param name="SourceColumn">
-/// Hubix's own spreadsheet column, where this stage came from one. Kept so the mapping back to
+/// The operator's own spreadsheet column, where this stage came from one. Kept so the mapping back to
 /// what they use today is explicit rather than folklore, without putting Romanian column
 /// headings into an otherwise English interface.
 /// </param>
@@ -46,7 +46,7 @@ public sealed record PipelineStage(
 /// <para>
 /// Every rule about the pipeline lives in the <see cref="Stages"/> table and the two methods
 /// under it. Nothing else in the system switches on <see cref="ReservationState"/>, and that is
-/// the entire point of this type. The pipeline was inferred from Hubix's documents and the
+/// the entire point of this type. The pipeline was inferred from the operator's documents and the
 /// hidden columns of their spreadsheets, not observed, so at least one thing about it is wrong.
 /// When they tell us what it really is, the correction is an edit to this list — a stage
 /// renamed, reordered, inserted or dropped — rather than a hunt through services, endpoints

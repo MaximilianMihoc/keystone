@@ -10,7 +10,7 @@ namespace Keystone.Domain.Entities;
 public class UnitType : Entity
 {
     /// <summary>
-    /// Canonical name, in Hubix's own Romanian. This is what the importer matches on, so it
+    /// Canonical name, in the operator's own Romanian. This is what the importer matches on, so it
     /// stays put; <see cref="Translations"/> only changes what a visitor reads.
     /// </summary>
     public required string Name { get; set; }
@@ -44,7 +44,7 @@ public class Floor : Entity
 
     public int Level { get; set; }
 
-    /// <summary>Hubix's label, e.g. "Etaj 1".</summary>
+    /// <summary>The operator's label, e.g. "Etaj 1".</summary>
     public string? Label { get; set; }
 
     public Guid? FloorPlanAssetId { get; set; }
@@ -66,7 +66,7 @@ public class Unit : Entity
 
     public Project? Project { get; set; }
 
-    /// <summary>Hubix's "Nr Crt", kept so rows can be cross-referenced against their sheets.</summary>
+    /// <summary>The operator's "Nr Crt", kept so rows can be cross-referenced against their sheets.</summary>
     public int? Crt { get; set; }
 
     /// <summary>The apartment code, e.g. "Ap.203". Unique within a project.</summary>
@@ -83,7 +83,7 @@ public class Unit : Entity
 
     public UnitType? UnitType { get; set; }
 
-    /// <summary>Compass orientation as Hubix records it: "W", "S-E".</summary>
+    /// <summary>Compass orientation as the operator records it: "W", "S-E".</summary>
     public string? Orientation { get; set; }
 
     /// <summary>MPC — built area.</summary>
@@ -103,11 +103,11 @@ public class Unit : Entity
     /// <summary>Net price, excluding VAT.</summary>
     public decimal BasePriceNet { get; set; }
 
-    /// <summary>The assignment price: what Hubix negotiated, excluding VAT.</summary>
+    /// <summary>The assignment price: what the operator negotiated, excluding VAT.</summary>
     public decimal? CesiunePriceNet { get; set; }
 
     /// <summary>
-    /// Hubix's "TVA redus?" column. Eligibility is a fact about the unit; whether it actually
+    /// The operator's "TVA redus?" column. Eligibility is a fact about the unit; whether it actually
     /// applies also depends on the buyer, and is resolved on the reservation.
     /// </summary>
     public bool ReducedVatEligible { get; set; }

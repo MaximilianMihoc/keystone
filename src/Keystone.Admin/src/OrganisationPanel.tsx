@@ -653,7 +653,7 @@ export function OrganisationPanel({
           <h2>Apartment types</h2>
           <p className="hint">
             One list for every project: "2 camere" means the same thing in each of them. The name
-            on the left is Hubix’s own, and it is what the spreadsheet importer matches on — so it
+            on the left is the operator’s own, and it is what the spreadsheet importer matches on — so it
             stays put. What a visitor reads is the translation next to it.
           </p>
 

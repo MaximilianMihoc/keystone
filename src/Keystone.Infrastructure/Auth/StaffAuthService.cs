@@ -7,7 +7,7 @@ namespace Keystone.Infrastructure.Auth;
 public sealed record LoginLink(string Token, string Email, string Name, DateTimeOffset ExpiresAt);
 
 /// <summary>
-/// Passwordless sign-in for Hubix staff.
+/// Passwordless sign-in for staff.
 /// </summary>
 public sealed class StaffAuthService(
     KeystoneDbContext db,
@@ -48,7 +48,7 @@ public sealed class StaffAuthService(
     /// </summary>
     /// <remarks>
     /// The caller must show the same confirmation either way. Telling an unauthenticated
-    /// visitor whether an address exists hands them a list of who works at Hubix.
+    /// visitor whether an address exists hands them a list of who works there.
     /// </remarks>
     public async Task<LoginLink?> IssueLoginTokenAsync(string email, string? ip, CancellationToken ct)
     {

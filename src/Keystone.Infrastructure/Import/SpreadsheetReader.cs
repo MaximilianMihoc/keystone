@@ -40,7 +40,7 @@ public sealed record ParsedSheet(
     IReadOnlyList<SheetRow> Rows);
 
 /// <summary>
-/// Reads a Hubix inventory workbook.
+/// Reads an operator's inventory workbook.
 /// </summary>
 /// <remarks>
 /// Assumes nothing about layout. The five sheets this has to accept disagree on column order,

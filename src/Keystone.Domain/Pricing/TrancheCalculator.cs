@@ -22,10 +22,10 @@ public static class TrancheCalculator
     /// </summary>
     /// <param name="rule">The project's pricing rule.</param>
     /// <param name="basePriceNet">
-    /// Everything the buyer pays, net of VAT — Hubix's "Pret total apartament fara TVA".
+    /// Everything the buyer pays, net of VAT — the operator's "Pret total apartament fara TVA".
     /// </param>
     /// <param name="cesiuneNet">
-    /// The assignment price, excluding VAT — the margin Hubix negotiated. This sits <em>inside</em>
+    /// The assignment price, excluding VAT — the margin the operator negotiated. This sits <em>inside</em>
     /// the base price rather than on top of it, so the developer receives
     /// <c>basePriceNet - cesiuneNet</c>, and that is what percentage tranches are measured against.
     /// Verified to the cent against the Roka (15%) and Torontal (20%) spreadsheets.

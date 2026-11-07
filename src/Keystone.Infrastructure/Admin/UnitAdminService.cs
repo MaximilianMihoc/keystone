@@ -161,7 +161,7 @@ public sealed class UnitAdminService(
 
         if (unit.CesiunePriceNet > unit.BasePriceNet)
         {
-            // The assignment fee is Hubix's margin taken out of what the buyer pays, not
+            // The assignment fee is the operator's margin taken out of what the buyer pays, not
             // added on top, so it cannot exceed the total.
             return new UnitEditResult.Rejected(
                 "The cesiune price cannot exceed the total price; it is part of it.");
@@ -253,7 +253,7 @@ public sealed class UnitAdminService(
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This records a fact, not a reservation. Hubix sell through agents and through
+    /// This records a fact, not a reservation. The operator sells through agents and through
     /// conversations that never touch this system, and a unit somebody has already agreed to
     /// buy must be able to stop being offered without a buyer, a fee and a pipeline card
     /// invented to justify it. <c>ReservationService.CreateAsync</c> then accepts exactly this

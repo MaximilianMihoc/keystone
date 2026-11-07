@@ -44,19 +44,14 @@ public sealed class EmailOptions
 
     /// <summary>
     /// Recipients allowed through when live sending is on. Wildcards allowed
-    /// (<c>*@hubix.ro</c>). An empty list means everyone, which is what production wants.
+    /// (<c>*@example.com</c>). An empty list means everyone, which is what production wants.
     /// </summary>
     public List<string> AllowedRecipients { get; set; } = [];
 
     /// <summary>
-    /// Addresses never contacted, whatever else is configured.
+    /// Addresses never contacted, whatever else is configured. Checked before the allow list.
     /// </summary>
-    /// <remarks>
-    /// Hubix has not been approached about this system. Until they have, their real inboxes
-    /// stay on this list, so a misconfiguration cannot introduce the project to them by
-    /// sending them an automated reservation notice.
-    /// </remarks>
-    public List<string> BlockedRecipients { get; set; } = ["*@hubix.ro"];
+    public List<string> BlockedRecipients { get; set; } = [];
 }
 
 /// <summary>What became of one message.</summary>

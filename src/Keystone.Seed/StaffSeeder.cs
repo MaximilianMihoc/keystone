@@ -10,10 +10,8 @@ namespace Keystone.Seed;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The names and roles come from hubix.ro. The addresses do <em>not</em>: these are
-/// <c>.invalid</c> placeholders, because Hubix has not been approached about this system and
-/// nobody there should receive a sign-in link for it. Substitute real addresses only once
-/// they are actually using it.
+/// The people are fictional and the addresses are <c>.invalid</c> placeholders, so a seeded
+/// database can never send a sign-in link to anybody real.
 /// </para>
 /// <para>
 /// Sign-in is passwordless, so seeding an account creates no credential and grants nothing on
@@ -24,10 +22,10 @@ public static class StaffSeeder
 {
     private static readonly (string Email, string Name, StaffRole Role)[] Accounts =
     [
-        ("bogdan@keystone.invalid",    "Bogdan Dinu",         StaffRole.Admin),
-        ("cristian@keystone.invalid",  "Cristian Istrătescu", StaffRole.Admin),
-        ("daniel@keystone.invalid",    "Daniel Tudor",        StaffRole.Sales),
-        ("georgiana@keystone.invalid", "Georgiana Bărbuță",   StaffRole.Sales),
+        ("ana@keystone.invalid",       "Ana Popescu",         StaffRole.Admin),
+        ("mihai@keystone.invalid",     "Mihai Ionescu",       StaffRole.Admin),
+        ("elena@keystone.invalid",     "Elena Radu",          StaffRole.Sales),
+        ("andrei@keystone.invalid",    "Andrei Stan",         StaffRole.Sales),
 
         // The developer's own account, so the admin can actually be signed into during
         // development. Configured to receive mail via Email:RedirectAllTo.

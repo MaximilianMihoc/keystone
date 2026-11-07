@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Keystone.Web.Api;
 
 /// <summary>
-/// Uploading a Hubix inventory workbook, and getting one back out.
+/// Uploading an operator's inventory workbook, and getting one back out.
 /// </summary>
 /// <remarks>
 /// Nothing here writes without a preview first. Upload returns what the file would do; commit

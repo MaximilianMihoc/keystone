@@ -42,7 +42,7 @@ public class TrancheCalculatorTests
     };
 
     // ---------------------------------------------------------------------------------
-    // Golden cases lifted straight from Hubix's live inventory sheets. If these break,
+    // Golden cases lifted straight from the operator's live inventory sheets. If these break,
     // the calculator has stopped agreeing with the business, whatever else still passes.
     // ---------------------------------------------------------------------------------
 
@@ -79,7 +79,7 @@ public class TrancheCalculatorTests
     public void The_cesiune_is_part_of_the_total_not_added_to_it()
     {
         // advance + cesiune + remainder == the price on the sheet. This is the invariant
-        // that was got wrong first time round: the assignment fee is Hubix's margin taken
+        // that was got wrong first time round: the assignment fee is the operator's margin taken
         // out of what the buyer pays, not a surcharge.
         var result = TrancheCalculator.Calculate(RokaRule(), 134_859m, 14_346.93m, false);
 

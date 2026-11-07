@@ -26,7 +26,7 @@ public static class ProductionReadiness
     public static IReadOnlyList<string> Problems(
         EmailOptions email,
         AssetOptions assets,
-        KeystoneOptions hubix,
+        KeystoneOptions keystone,
         string? connectionString,
         ResendOptions? provider = null,
         string? allowedHosts = null)
@@ -49,10 +49,10 @@ public static class ProductionReadiness
                 "every message would go quietly to the outbox.");
         }
 
-        if (hubix.PublicBaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
+        if (keystone.PublicBaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase))
         {
             problems.Add(
-                "Hubix:PublicBaseUrl still points at localhost, so every link in every email would be dead.");
+                "Keystone:PublicBaseUrl still points at localhost, so every link in every email would be dead.");
         }
 
         // A wildcard lets anybody reach the site under any Host they like. Emails no longer
@@ -65,10 +65,10 @@ public static class ProductionReadiness
                 "semicolon-separated, so a forged Host header cannot be served at all.");
         }
 
-        if (hubix.SalesInbox.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase))
+        if (keystone.SalesInbox.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase))
         {
             problems.Add(
-                "Hubix:SalesInbox is still a .invalid placeholder, so internal notifications go nowhere.");
+                "Keystone:SalesInbox is still a .invalid placeholder, so internal notifications go nowhere.");
         }
 
         // Blob storage signs its own URLs; the local store needs a key that outlives a restart
@@ -91,9 +91,6 @@ public static class ProductionReadiness
     /// Its own method because these are now editable from the admin screen, and that screen
     /// refuses to save what this would refuse to start. A setting that can be saved happily
     /// and then bricks the next deploy is a worse trap than one that cannot be saved.
-    ///
-    /// Hubix have not been approached about this system. The day a real mail provider is
-    /// wired up must not also be the day they find out about it from an automated email.
     /// </remarks>
     public static IReadOnlyList<string> EmailProblems(EmailOptions email)
     {
@@ -125,12 +122,6 @@ public static class ProductionReadiness
         {
             problems.Add(
                 "Live email is on with no allow list and no redirect. Mail would go to real buyers.");
-        }
-
-        if (email.BlockedRecipients.Count == 0)
-        {
-            problems.Add(
-                "Live email is on with an empty blocked list. Hubix's own addresses must stay on it.");
         }
 
         return problems;

@@ -513,7 +513,7 @@ export function UnitsGrid({
                 ))}
                 {canEdit && (
                   <td>
-                    {/* A sale Hubix made through an agent or a conversation. The unit stops
+                    {/* A sale the operator made through an agent or a conversation. The unit stops
                         being offered now; the pipeline is started from the board later, when
                         there is a buyer to name. */}
                     <button

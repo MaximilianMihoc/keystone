@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Hubix Portal
+   Keystone
    Direction: a developer's sales-office elevation board. Floors stacked,
    apartments as cells, the ones still available lit amber.
    ========================================================================== */
@@ -715,7 +715,7 @@ td .code:hover { border-bottom-color: var(--amber); color: var(--amber-deep); }
 
 @media (min-width: 620px) { .tranche .amt::before { content: none; } }
 
-/* Instalment 1 is really two things: the advance on the apartment and Hubix's
+/* Instalment 1 is really two things: the advance on the apartment and the operator's
    assignment price. They sit under the instalment, quieter than it, so the row above
    still reads as the amount due. */
 .tranche.part {

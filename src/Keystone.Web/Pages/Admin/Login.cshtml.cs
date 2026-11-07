@@ -18,7 +18,7 @@ public class LoginModel(
     ILogger<LoginModel> logger) : PageModel
 {
     [BindProperty]
-    [Required(ErrorMessage = "Enter your Hubix email address.")]
+    [Required(ErrorMessage = "Enter your work email address.")]
     [EmailAddress(ErrorMessage = "That does not look like an email address.")]
     public string? Email { get; set; }
 
@@ -52,7 +52,7 @@ public class LoginModel(
             Email!, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
 
         // Always the same answer. Telling an unauthenticated visitor whether an address is
-        // a Hubix account hands them a staff list.
+        // a staff account hands them a staff list.
         LinkSent = true;
 
         if (link is null)

@@ -73,12 +73,12 @@ export const PROJECT_STATUSES = [
 
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
-/** How the homes are meant to be let. Drives the yield model Hubix publishes. */
+/** How the homes are meant to be let. Drives the yield model the operator publishes. */
 export const RENTAL_PROFILES = ['ShortTerm', 'MidTerm', 'LongTerm', 'Mixed'] as const;
 
 export type RentalProfile = (typeof RENTAL_PROFILES)[number];
 
-/** The two languages the site offers. Romanian is the one Hubix writes in. */
+/** The two languages the site offers. Romanian is the one the operator writes in. */
 export const CULTURES = ['en-GB', 'ro-RO'] as const;
 
 export interface Developer {
@@ -405,14 +405,14 @@ export type UnitEdit = Partial<
 /**
  * A stage of the sales pipeline, as the server describes it.
  *
- * Not a union type and not a constant list here. The pipeline was inferred from Hubix's
+ * Not a union type and not a constant list here. The pipeline was inferred from the operator's
  * documents rather than observed, so it will need correcting; a copy in this file would be a
  * second place to correct and a second place to get it wrong.
  */
 export interface PipelineStage {
   state: string;
   label: string;
-  /** Hubix's own spreadsheet column, where this stage came from one. */
+  /** The operator's own spreadsheet column, where this stage came from one. */
   sourceColumn: string | null;
   unitState: string;
   recordsDate: boolean;

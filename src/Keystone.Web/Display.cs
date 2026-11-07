@@ -57,7 +57,7 @@ public static class Display
     public static string MoneyExact(decimal value) =>
         "€" + value.ToString("N2", CultureInfo.CurrentCulture);
 
-    /// <summary>Square metres, as Hubix writes them.</summary>
+    /// <summary>Square metres, as the operator writes them.</summary>
     public static string Area(decimal value) =>
         value.ToString("N2", CultureInfo.CurrentCulture) + " mp";
 
@@ -102,7 +102,7 @@ public static class Display
 
     /// <summary>
     /// Where the "open in maps" button goes. A project's own link wins; without one, a Google
-    /// Maps search for the project stands in, which resolves anywhere and needs no link Hubix
+    /// Maps search for the project stands in, which resolves anywhere and needs no link the operator
     /// has not given us.
     /// </summary>
     public static string MapsLink(string? mapsUrl, string name, string city) =>

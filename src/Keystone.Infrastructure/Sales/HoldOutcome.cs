@@ -37,7 +37,7 @@ public abstract record HoldOutcome
     /// </remarks>
     public sealed record LinkNotUsable : HoldOutcome;
 
-    /// <summary>Hubix's serial-canceller rule: this prospect let a hold lapse.</summary>
+    /// <summary>The operator's serial-canceller rule: this prospect let a hold lapse.</summary>
     public sealed record ProspectBlocked(string? Reason) : HoldOutcome;
 
     /// <summary>Already holding as many units in this project as the rule allows.</summary>

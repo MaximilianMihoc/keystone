@@ -22,7 +22,7 @@ public sealed record ProspectEdit(
 /// <remarks>
 /// <para>
 /// The block itself is automatic: a hold that lapses calls <see cref="Prospect.RecordLapsedHold"/>
-/// from the hold service, which is Hubix's stated rule against reservations cancelled in series.
+/// from the hold service, which is the operator's stated rule against reservations cancelled in series.
 /// Lifting it was never built, so until now a prospect who cancelled once in good faith was
 /// locked out for good, and the only key was a SQL update.
 /// </para>

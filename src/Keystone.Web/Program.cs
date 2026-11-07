@@ -168,10 +168,6 @@ builder.Services.AddAuthorizationBuilder()
 // Every message goes through SafeEmailSender, which transmits only when live sending is
 // explicitly enabled and the recipient is neither blocked nor outside the allowlist.
 // Everything else lands in the local outbox, written exactly as it would have been sent.
-//
-// Hubix has not been approached about this system. Their addresses are on the blocked
-// list by default, so wiring up a provider cannot introduce the project to them by
-// emailing them a reservation notice.
 builder.Services.AddKeystoneEmail(
     builder.Configuration,
     Path.Combine(builder.Environment.ContentRootPath, "..", "..", "outbox"));
@@ -392,7 +388,7 @@ app.MapHangfireDashboard("/admin/hangfire", new DashboardOptions
 {
     Authorization = [],
     AppPath = "/admin",
-    DashboardTitle = "Hubix jobs"
+    DashboardTitle = "Keystone jobs"
 }).RequireAuthorization(AuthPolicies.Admin);
 
 // Every minute. Cheap when there is nothing due, and a two-day countdown does not need

@@ -4,7 +4,7 @@ namespace Keystone.Domain.Pricing;
 /// One payment in a project's schedule.
 /// </summary>
 /// <param name="Label">
-/// Hubix's own name for it, kept for the spreadsheet export, which mirrors their column
+/// The operator's own name for it, kept for the spreadsheet export, which mirrors their column
 /// headings. Not what the public pages show — those number the payments by position, so the
 /// label can be read in the visitor's language.
 /// </param>
@@ -47,7 +47,7 @@ public sealed record TrancheAmount(
 
 /// <summary>The full price of one unit for one buyer, broken into tranches.</summary>
 /// <param name="BasePriceNet">Everything the buyer pays, net of VAT.</param>
-/// <param name="CesiuneNet">Hubix's assignment fee. Part of the base price, not added to it.</param>
+/// <param name="CesiuneNet">The operator's assignment fee. Part of the base price, not added to it.</param>
 /// <param name="DeveloperPriceNet">
 /// What reaches the developer: <c>BasePriceNet - CesiuneNet</c>. Percentage-based tranches are
 /// calculated against this, not against the base price — verified against the Roka and Torontal

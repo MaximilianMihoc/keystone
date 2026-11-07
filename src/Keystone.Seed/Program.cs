@@ -3,7 +3,7 @@ using Keystone.Infrastructure;
 using Keystone.Seed;
 using Microsoft.EntityFrameworkCore;
 
-// Loads real Hubix project data into the local database so development starts from
+// Loads project data into the local database so development starts from
 // something true rather than an empty schema.
 //
 //   dotnet run --project src/Keystone.Seed

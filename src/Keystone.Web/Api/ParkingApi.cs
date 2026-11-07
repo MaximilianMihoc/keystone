@@ -11,7 +11,7 @@ namespace Keystone.Web.Api;
 /// The car park, for staff.
 /// </summary>
 /// <remarks>
-/// Spaces are entered here rather than imported: Hubix's sheets hold a parking price per
+/// Spaces are entered here rather than imported: the operator's sheets hold a parking price per
 /// apartment and never enumerate the bays, so there is nothing to import from yet. Adding them
 /// a range at a time is how a real car park is described — "A1 to A40, underground, level -1" —
 /// rather than one form per space.

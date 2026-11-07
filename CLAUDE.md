@@ -315,6 +315,11 @@ the sections above.
 
 <!-- lessons below, newest last -->
 
+- A PowerShell script containing non-ASCII text (Romanian diacritics, em dashes) → save it as
+  UTF-8 *with* a BOM, or build those characters with `[char]0x...` → Windows PowerShell 5.1
+  reads a BOM-less `.ps1` as ANSI, so every literal is silently mangled and a replace writes
+  mojibake into the resx files.
+
 
 ## Agent skills
 

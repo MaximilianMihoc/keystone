@@ -6,7 +6,7 @@ using Shouldly;
 namespace Keystone.Tests;
 
 /// <summary>
-/// The guard that stands between this project and a real company's inbox.
+/// The guard that stands between this application and a real inbox.
 /// </summary>
 public class SafeEmailSenderTests
 {
@@ -57,20 +57,6 @@ public class SafeEmailSenderTests
     }
 
     [Fact]
-    public async Task Never_emails_Hubix_even_when_live_sending_is_on()
-    {
-        // Hubix has not been approached about this system. They must not find out about it
-        // from an automated reservation notice.
-        var (sender, outbox, live) = Build(o => o.LiveSendingEnabled = true);
-
-        await sender.SendAsync(To("contact@hubix.ro"), CancellationToken.None);
-        await sender.SendAsync(To("cristian@hubix.ro"), CancellationToken.None);
-
-        live.Sent.ShouldBeEmpty();
-        outbox.Sent.Count.ShouldBe(2);
-    }
-
-    [Fact]
     public async Task Sends_to_anyone_else_once_live_sending_is_on()
     {
         var (sender, outbox, live) = Build(o => o.LiveSendingEnabled = true);
@@ -105,10 +91,11 @@ public class SafeEmailSenderTests
         var (sender, outbox, live) = Build(o =>
         {
             o.LiveSendingEnabled = true;
-            o.AllowedRecipients = ["*@hubix.ro"]; // explicitly allowed...
+            o.AllowedRecipients = ["*@blocked.example"]; // explicitly allowed...
+            o.BlockedRecipients = ["*@blocked.example"];
         });
 
-        await sender.SendAsync(To("contact@hubix.ro"), CancellationToken.None);
+        await sender.SendAsync(To("contact@blocked.example"), CancellationToken.None);
 
         // ...and still refused, because blocking is checked first.
         live.Sent.ShouldBeEmpty();
@@ -118,8 +105,12 @@ public class SafeEmailSenderTests
     [Fact]
     public async Task A_blocked_message_is_kept_not_discarded()
     {
-        var (sender, outbox, _) = Build(o => o.LiveSendingEnabled = true);
-        var message = new EmailMessage("contact@hubix.ro", "Hold: Ap.104", "Body here");
+        var (sender, outbox, _) = Build(o =>
+        {
+            o.LiveSendingEnabled = true;
+            o.BlockedRecipients = ["*@blocked.example"];
+        });
+        var message = new EmailMessage("contact@blocked.example", "Hold: Ap.104", "Body here");
 
         await sender.SendAsync(message, CancellationToken.None);
 
@@ -180,23 +171,6 @@ public class SafeEmailSenderTests
     }
 
     [Fact]
-    public async Task Redirect_also_catches_mail_meant_for_Hubix()
-    {
-        // Belt and braces: even without the block list, nothing addressed to Hubix
-        // reaches them while a redirect is set.
-        var (sender, _, live) = Build(o =>
-        {
-            o.LiveSendingEnabled = true;
-            o.RedirectAllTo = "tester@example.com";
-            o.BlockedRecipients = [];
-        });
-
-        await sender.SendAsync(To("contact@hubix.ro"), CancellationToken.None);
-
-        live.Sent.Single().To.ShouldBe("tester@example.com");
-    }
-
-    [Fact]
     public async Task Redirect_does_not_double_wrap_a_message_already_addressed_there()
     {
         var (sender, _, live) = Build(o =>
@@ -212,11 +186,11 @@ public class SafeEmailSenderTests
     }
 
     [Theory]
-    [InlineData("contact@hubix.ro", "*@hubix.ro", true)]
-    [InlineData("CONTACT@HUBIX.RO", "*@hubix.ro", true)]   // case-insensitive
-    [InlineData("contact@hubix.ro.evil.com", "*@hubix.ro", false)] // anchored, not a substring
-    [InlineData("hubix.ro@example.com", "*@hubix.ro", false)]
-    [InlineData("buyer@example.ro", "*@hubix.ro", false)]
+    [InlineData("contact@blocked.example", "*@blocked.example", true)]
+    [InlineData("CONTACT@BLOCKED.EXAMPLE", "*@blocked.example", true)]   // case-insensitive
+    [InlineData("contact@blocked.example.evil.com", "*@blocked.example", false)] // anchored, not a substring
+    [InlineData("blocked.example@example.com", "*@blocked.example", false)]
+    [InlineData("buyer@example.ro", "*@blocked.example", false)]
     [InlineData("exact@match.com", "exact@match.com", true)]
     public void Patterns_are_anchored_and_case_insensitive(string address, string pattern, bool expected)
     {
@@ -245,10 +219,10 @@ public class SafeEmailSenderTests
         var (sender, _, _) = Build(o =>
         {
             o.LiveSendingEnabled = true;
-            o.BlockedRecipients = ["*@hubix.ro"];
+            o.BlockedRecipients = ["*@blocked.example"];
         });
 
-        var delivery = await sender.DeliverAsync(To("anyone@hubix.ro"), CancellationToken.None);
+        var delivery = await sender.DeliverAsync(To("anyone@blocked.example"), CancellationToken.None);
 
         delivery.Transmitted.ShouldBeFalse();
         delivery.DivertedBecause.ShouldBe("recipient is on the blocked list");
@@ -274,22 +248,18 @@ public class SafeEmailSenderTests
     }
 
     /// <summary>
-    /// The two defaults that are now the only copy: neither is set in appsettings any more,
-    /// because a configured list appends to this rather than replacing it. If somebody removes
-    /// these initialisers, an unconfigured instance starts sending, and to Hubix.
+    /// The default that is the only copy: it is not set in appsettings, so if somebody flips
+    /// this initialiser, an unconfigured instance starts sending.
     /// </summary>
     [Fact]
-    public async Task An_unconfigured_instance_sends_nothing_and_blocks_Hubix()
+    public async Task An_unconfigured_instance_sends_nothing()
     {
-        var bare = new EmailOptions();
-
-        bare.LiveSendingEnabled.ShouldBeFalse();
-        bare.BlockedRecipients.ShouldBe(["*@hubix.ro"]);
+        new EmailOptions().LiveSendingEnabled.ShouldBeFalse();
 
         // And the guard agrees, which is the part that matters.
         var (sender, outbox, live) = Build();
 
-        await sender.SendAsync(To("anyone@hubix.ro"), CancellationToken.None);
+        await sender.SendAsync(To("buyer@example.ro"), CancellationToken.None);
 
         live.Sent.ShouldBeEmpty();
         outbox.Sent.Count.ShouldBe(1);

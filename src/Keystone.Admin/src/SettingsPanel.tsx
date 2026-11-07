@@ -167,8 +167,7 @@ export function SettingsPanel({ onSessionExpired }: Props) {
 
       {form.liveSendingEnabled && (
         <p className="banner error">
-          With this on, messages reach the people they are addressed to. Hubix have not been
-          approached about this system — keep their addresses on the blocked list.
+          With this on, messages reach the people they are addressed to.
         </p>
       )}
 

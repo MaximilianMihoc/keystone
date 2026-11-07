@@ -49,7 +49,7 @@ public class OutboxSenderTests : IDisposable
 
     private static EmailMessage SignInEmail() =>
         new("staff@keystone.invalid",
-            "Your Hubix sign-in link",
+            "Your Keystone sign-in link",
             $"""
              Hello,
 
@@ -92,7 +92,7 @@ public class OutboxSenderTests : IDisposable
         var logger = await SendAsync(SignInEmail());
 
         logger.Lines.ShouldContain(line => line.Contains("staff@keystone.invalid"));
-        logger.Lines.ShouldContain(line => line.Contains("Your Hubix sign-in link"));
+        logger.Lines.ShouldContain(line => line.Contains("Your Keystone sign-in link"));
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public class OutboxSenderTests : IDisposable
 
         written.ShouldContain(Token);
         written.ShouldContain("To:      staff@keystone.invalid");
-        written.ShouldContain("Subject: Your Hubix sign-in link");
+        written.ShouldContain("Subject: Your Keystone sign-in link");
     }
 
     public void Dispose()

@@ -25,10 +25,10 @@ namespace Keystone.Web.Auth;
 public static class StaffSessionValidator
 {
     /// <summary>When the session began. Stamped at sign-in and never renewed.</summary>
-    public const string SignedInAt = "hubix.signed-in-at";
+    public const string SignedInAt = "keystone.signed-in-at";
 
     /// <summary>When the account behind the session was last looked up.</summary>
-    public const string CheckedAt = "hubix.checked-at";
+    public const string CheckedAt = "keystone.checked-at";
 
     /// <summary>How stale a check may be before the database is asked again.</summary>
     public static readonly TimeSpan RecheckEvery = TimeSpan.FromMinutes(2);

@@ -6,7 +6,7 @@ namespace Keystone.Domain.Entities;
 /// A remembered column mapping for one project's spreadsheet.
 /// </summary>
 /// <remarks>
-/// Hubix re-sends the same workbook every time anything changes. Making somebody re-map thirty
+/// The operator re-sends the same workbook every time anything changes. Making somebody re-map thirty
 /// columns on every upload would guarantee the importer went unused, and a mapping done in a
 /// hurry is how a price lands in the balcony column.
 /// </remarks>

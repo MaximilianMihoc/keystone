@@ -5,7 +5,7 @@ using Shouldly;
 namespace Keystone.Tests;
 
 /// <summary>
-/// Reading Hubix's inventory workbooks.
+/// Reading the operator's inventory workbooks.
 /// </summary>
 /// <remarks>
 /// The workbooks are built here rather than checked in as fixtures. The real files carry live
@@ -57,7 +57,7 @@ public class SpreadsheetReaderTests
         {
             for (var i = 1; i <= titleRows; i++)
             {
-                sheet.Cell(i, 1).Value = "HUBIX — Roka Park View";
+                sheet.Cell(i, 1).Value = "Inventory — Roka Park View";
             }
 
             WriteRow(sheet, titleRows + 1, RokaHeaders);

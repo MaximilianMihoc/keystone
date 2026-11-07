@@ -20,9 +20,7 @@ public sealed class KeystoneOptions
     /// <remarks>
     /// Defaults to a <c>.invalid</c> address on purpose. RFC 2606 reserves that TLD so it can
     /// never resolve, which means a misconfigured environment bounces instead of emailing a
-    /// real company. Hubix has not been approached about this system; the day a real provider
-    /// gets wired up must not also be the day they find out about it from an automated email.
-    /// Set the real address in configuration for production only.
+    /// real inbox. Set the real address in configuration for production only.
     /// </remarks>
     public string SalesInbox { get; set; } = "sales@keystone.invalid";
 }

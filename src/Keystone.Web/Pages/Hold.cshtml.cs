@@ -49,7 +49,7 @@ public class HoldModel(HoldService holds, TimeProvider clock) : PageModel
 
         if (IsActive)
         {
-            // Hubix's own rule: a prospect who abandons a hold may not take another, "to avoid
+            // The operator's own rule: a prospect who abandons a hold may not take another, "to avoid
             // reservations cancelled in series by the same person". Cancelling counts as a
             // lapse for exactly that reason, and the page says so before they click.
             await holds.ReleaseAsync(Hold.Id, HoldReleaseReason.Cancelled, null, ct);

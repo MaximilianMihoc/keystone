@@ -14,7 +14,7 @@ public enum ProjectStatus
 }
 
 /// <summary>
-/// How the HUB is intended to be let. Drives the yield model Hubix publishes.
+/// How the HUB is intended to be let. Drives the yield model the operator publishes.
 /// </summary>
 public enum RentalProfile
 {
@@ -56,7 +56,7 @@ public enum UnitState
     /// <summary>Balance settled.</summary>
     Sold,
 
-    /// <summary>Pulled from sale by Hubix. Delisted without being deleted.</summary>
+    /// <summary>Pulled from sale by the operator. Delisted without being deleted.</summary>
     Withdrawn
 }
 
@@ -80,7 +80,7 @@ public enum HoldReleaseReason
 }
 
 /// <summary>
-/// The sales pipeline. These are the columns Hubix keeps by hand in hidden spreadsheet
+/// The sales pipeline. These are the columns the operator keeps by hand in hidden spreadsheet
 /// columns today, and they are expected to be wrong in at least one respect, since the
 /// model was inferred from documents rather than observed.
 /// </summary>

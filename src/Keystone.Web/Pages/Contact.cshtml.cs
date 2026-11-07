@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Keystone.Web.Pages;
 
 /// <summary>
-/// Writing to Hubix, and asking for your data.
+/// Writing to the operator, and asking for your data.
 /// </summary>
 /// <remarks>
 /// One form for both, because that is how the second one arrives — nobody hunts for a separate

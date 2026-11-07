@@ -9,7 +9,7 @@ namespace Keystone.Infrastructure.Sales;
 public sealed record EnquiryReceipt(Guid EnquiryId, PrivacyRequest? Request);
 
 /// <summary>
-/// The contact form. Replaces Hubix's "trimite intrebari".
+/// The contact form. Replaces the operator's "trimite intrebari".
 /// </summary>
 /// <remarks>
 /// It is also the way in for the two data rights, because that is how they actually arrive —

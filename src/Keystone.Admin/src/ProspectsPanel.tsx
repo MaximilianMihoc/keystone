@@ -29,7 +29,7 @@ const when = (value: string | null) => (value ? day.format(new Date(value)) : '�
 /**
  * The people on the other side of the sale, and whether they may still reserve.
  *
- * The block is applied automatically — a hold that lapses bars the prospect, which is Hubix's
+ * The block is applied automatically — a hold that lapses bars the prospect, which is the operator's
  * rule against reservations cancelled in series. Lifting it had no way in until this screen, so
  * somebody who cancelled once in good faith stayed barred for good. Admin only: deciding that
  * a person is a serial canceller, or that they are not after all, is a judgement about them.

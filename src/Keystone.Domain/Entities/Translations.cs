@@ -13,7 +13,7 @@ public static class Cultures
     public const string Romanian = "ro-RO";
 
     /// <summary>
-    /// The culture Hubix authors content in. Used as the fallback when a translation is
+    /// The culture the operator authors content in. Used as the fallback when a translation is
     /// missing, because Romanian prose is better than an empty page.
     /// </summary>
     public const string Source = Romanian;
@@ -46,7 +46,7 @@ public static class Cultures
 /// </summary>
 /// <remarks>
 /// A child table rather than <c>SummaryEn</c> / <c>SummaryRo</c> column pairs. Adding a third
-/// language is then a data change, not a migration — which matters, because Hubix already has
+/// language is then a data change, not a migration — which matters, because the operator already has
 /// deals in negotiation in Athens and Warsaw.
 /// </remarks>
 public class ProjectTranslation : Entity
@@ -60,7 +60,7 @@ public class ProjectTranslation : Entity
 
     /// <summary>
     /// The city as it is written in this culture — "Bucharest" against "București". Optional:
-    /// a missing one falls back to <see cref="Project.City"/>, which is Hubix's own spelling.
+    /// a missing one falls back to <see cref="Project.City"/>, which is the operator's own spelling.
     /// </summary>
     public string? City { get; set; }
 
@@ -93,7 +93,7 @@ public class ProjectTranslation : Entity
 /// </summary>
 /// <remarks>
 /// <see cref="UnitType.Name"/> stays canonical and Romanian — it is the key the importer
-/// matches on, and Hubix's own vocabulary. This only affects what a visitor reads.
+/// matches on, and the operator's own vocabulary. This only affects what a visitor reads.
 /// </remarks>
 public class UnitTypeTranslation : Entity
 {

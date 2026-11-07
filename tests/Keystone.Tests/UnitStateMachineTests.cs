@@ -116,7 +116,7 @@ public class HoldTests
     }
 
     [Fact]
-    public void A_lapse_blocks_further_holds_per_Hubix_rule()
+    public void A_lapse_blocks_further_holds_per_the_operators_rule()
     {
         var prospect = new Prospect { Email = "test@example.ro" };
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- Romanian. Terms Hubix uses in its own documents are kept verbatim: transa, cesiune. -->
+  <!-- Romanian. Terms the operator uses in its own documents are kept verbatim: transa, cesiune. -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
@@ -54,7 +54,7 @@
 
   <data name="Nav.Projects"><value>Proiecte</value></data>
   <data name="Nav.Contact"><value>Contact</value></data>
-  <data name="Demo.Banner"><value>Demo neoficial. Nu este afiliat cu Hubix și nici aprobat de Hubix. Nu introduceți date personale reale.</value></data>
+  <data name="Demo.Banner"><value>Site demonstrativ. Proiectele și persoanele sunt fictive. Nu introduceți date personale reale.</value></data>
   <data name="Nav.Language"><value>Limbă</value></data>
   <data name="Nav.Theme"><value>Aspect</value></data>
   <data name="Theme.light"><value>Luminos</value></data>
@@ -136,7 +136,7 @@
 
   <data name="Index.Eyebrow"><value>Proiecte verificate</value></data>
   <data name="Index.Heading"><value>Apartamente, la condițiile dezvoltatorului</value></data>
-  <data name="Index.Lede"><value>Hubix achiziționează un pachet de apartamente în fiecare proiect și transferă mai departe discountul de volum. Disponibilitatea de mai jos este actualizată în timp real.</value></data>
+  <data name="Index.Lede"><value>Achiziționăm un pachet de apartamente în fiecare proiect și transferăm mai departe discountul de volum. Disponibilitatea de mai jos este actualizată în timp real.</value></data>
   <data name="Index.Empty"><value>Momentan nu este deschis niciun proiect.</value></data>
   <data name="Index.From"><value>De la</value></data>
   <data name="Index.OfAvailable"><value>din {0} disponibile</value></data>
@@ -179,9 +179,9 @@
   <data name="Reserve.SeeWhatIsLeft"><value>Vezi ce mai este disponibil</value></data>
   <data name="Reserve.FeeNote"><value>Dacă mergi mai departe, prețul rezervării este {0}.</value></data>
   <data name="Reserve.NoticeHeading"><value>Înainte să rezervi</value></data>
-  <data name="Reserve.NoPaymentNow"><value>Nu se încasează nimic acum. Vei fi sunat de cineva din echipa Hubix.</value></data>
+  <data name="Reserve.NoPaymentNow"><value>Nu se încasează nimic acum. Vei fi sunat de cineva din echipa noastră.</value></data>
   <data name="Reserve.LostTheRace"><value>Cineva a rezervat acest apartament cu câteva momente înaintea ta. Nu ți s-a debitat nimic și nu este nimic blocat pe numele tău.</value></data>
-  <data name="Reserve.Blocked"><value>O rezervare anterioară pe numele tău a expirat fără să continue, așa că nu putem bloca automat un alt apartament. Scrie-ne la contact@hubix.ro și rezolvăm.</value></data>
+  <data name="Reserve.Blocked"><value>O rezervare anterioară pe numele tău a expirat fără să continue, așa că nu putem bloca automat un alt apartament. Scrie-ne prin formularul de contact și rezolvăm.</value></data>
   <data name="Reserve.TooMany"><value>Ai deja {0} apartamente blocate în acest proiect. Renunță la unul, sau mergi mai departe cu unul dintre ele, înainte de a bloca altul.</value></data>
   <data name="Reserve.NotEnoughParking"><value>Au mai rămas doar {0} locuri {1} și ai cerut {2}. Nu s-a rezervat nimic, nici apartamentul, așa că poți alege din nou.</value></data>
   <data name="Reserve.TooManyParking"><value>La acest proiect se pot lua {0} locuri de parcare la un apartament, iar tu ai cerut {1}. Nu s-a rezervat nimic.</value></data>
@@ -200,15 +200,15 @@
   <data name="Form.City"><value>Oraș</value></data>
   <data name="Form.Country"><value>Țara (opțional)</value></data>
   <data name="Form.CountryHint"><value>Lasă gol dacă locuiești în România.</value></data>
-  <data name="Form.Consent"><value>Sunt de acord ca Hubix să mă contacteze despre această rezervare și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
-  <data name="Waitlist.Consent"><value>Sunt de acord ca Hubix să îmi scrie când se eliberează un apartament și să îmi păstreze datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
+  <data name="Form.Consent"><value>Sunt de acord să mă contactați despre această rezervare și să îmi păstrați datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
+  <data name="Waitlist.Consent"><value>Sunt de acord să îmi scrieți când se eliberează un apartament și să îmi păstrați datele în acest scop. Nu sunt folosite pentru altceva.</value></data>
 
   <data name="Validation.FirstNameRequired"><value>Spune-ne prenumele tău, ca să știm cu cine vorbim.</value></data>
   <data name="Validation.SurnameRequired"><value>Avem nevoie de numele tău de familie pentru actele rezervării.</value></data>
   <data name="Validation.CityRequired"><value>Spune-ne în ce oraș locuiești.</value></data>
   <data name="Validation.EmailRequired"><value>Avem nevoie de un email ca să îți trimitem linkul rezervării.</value></data>
   <data name="Validation.EmailInvalid"><value>Nu pare o adresă de email validă.</value></data>
-  <data name="Validation.PhoneRequired"><value>Avem nevoie de un număr de telefon, pentru că cineva din echipa Hubix te va suna.</value></data>
+  <data name="Validation.PhoneRequired"><value>Avem nevoie de un număr de telefon, pentru că cineva din echipa noastră te va suna.</value></data>
   <data name="Validation.PhoneInvalid"><value>Nu pare un număr de telefon valid.</value></data>
   <data name="Validation.ConsentRequired"><value>Avem nevoie de acordul tău ca să putem bloca un apartament.</value></data>
   <data name="Validation.ParkingQuantity"><value>Alege între 0 și 10 locuri de parcare.</value></data>
@@ -217,13 +217,13 @@
   <data name="Hold.TimeLeft"><value>Timp rămas pentru decizie</value></data>
   <data name="Hold.Until"><value>Blocat până la {0}</value></data>
   <data name="Hold.WhatNext"><value>Ce urmează</value></data>
-  <data name="Hold.WhatNextBody"><value>Cineva din echipa Hubix te va suna ca să răspundă la întrebări și să îți explice contractul. Dacă decizi să mergi mai departe, achiți prețul rezervării și apartamentul rămâne al tău. Cât timp curge cronometrul, nimeni altcineva nu îl poate rezerva.</value></data>
+  <data name="Hold.WhatNextBody"><value>Cineva din echipa noastră te va suna ca să răspundă la întrebări și să îți explice contractul. Dacă decizi să mergi mai departe, achiți prețul rezervării și apartamentul rămâne al tău. Cât timp curge cronometrul, nimeni altcineva nu îl poate rezerva.</value></data>
   <data name="Hold.CancelWarning"><value>Dacă renunți la această rezervare, apartamentul revine imediat la vânzare și nu vom mai bloca automat altul pentru tine.</value></data>
   <data name="Hold.CancelAction"><value>Renunț la acest apartament</value></data>
   <data name="Hold.Cancelled"><value>Eliberat. Apartamentul a revenit la vânzare.</value></data>
   <data name="Hold.WasCancelled"><value>Ai renunțat la această rezervare. Apartamentul a revenit la vânzare.</value></data>
   <data name="Hold.Expired"><value>Această rezervare a expirat, iar apartamentul a revenit la vânzare.</value></data>
-  <data name="Hold.Converted"><value>Această rezervare a fost confirmată. Hubix te va contacta pentru pașii următori.</value></data>
+  <data name="Hold.Converted"><value>Această rezervare a fost confirmată. Te vom contacta pentru pașii următori.</value></data>
 
   <data name="Email.ReserveConfirmSubject"><value>Confirmă rezervarea pentru {0} — {1}</value></data>
   <data name="Email.ReserveConfirmBody"><value>Ai cerut să rezervi apartamentul {0} din {1}.
@@ -240,7 +240,7 @@ Ai {2} ore ca să te decizi. Rezervarea expiră pe {3}, iar până atunci nimeni
 Vezi timpul rămas și ce urmează aici:
 {4}
 
-Vei fi sunat în scurt timp de cineva din echipa Hubix. Nu s-a încasat nimic.</value></data>
+Vei fi sunat în scurt timp de cineva din echipa noastră. Nu s-a încasat nimic.</value></data>
 
   <data name="Email.ExpiredSubject"><value>Rezervarea ta pentru {0} a expirat</value></data>
   <data name="Email.ExpiredBody"><value>Rezervarea pentru apartamentul {0} din {1} a expirat, iar acesta a revenit la vânzare.
@@ -304,7 +304,7 @@ Vezi-ți locul sau ieși de pe listă aici:
   <data name="Validation.MessageRequired"><value>Scrie-ne ce vrei să ne spui.</value></data>
 
   <data name="Email.EnquirySubject"><value>Am primit mesajul tău</value></data>
-  <data name="Email.EnquiryBody"><value>Îți mulțumim că ne-ai scris. Mesajul tău a ajuns la Hubix și cineva îți va răspunde.
+  <data name="Email.EnquiryBody"><value>Îți mulțumim că ne-ai scris. Mesajul tău a ajuns la echipa noastră și cineva îți va răspunde.
 
 Acest email este doar confirmarea că a ajuns. Nu trebuie să faci nimic.</value></data>
   <data name="Email.PrivacyRequestSubject"><value>Cererea ta privind datele tale</value></data>

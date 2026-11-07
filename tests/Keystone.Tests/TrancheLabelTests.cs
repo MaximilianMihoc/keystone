@@ -17,7 +17,7 @@ public class TrancheLabelTests
         string culture, string first, string second)
     {
         // The apartment page numbers by position rather than printing the stored label, which
-        // is Hubix's own and untranslatable. Roka's sheet called its second payment "Transa 3".
+        // is the operator's own and untranslatable. Roka's sheet called its second payment "Transa 3".
         var format = Resources.GetString("Tranche.Number", CultureInfo.GetCultureInfo(culture));
 
         string.Format(CultureInfo.GetCultureInfo(culture), format!, 1).ShouldBe(first);
@@ -30,7 +30,7 @@ public class TrancheLabelTests
     public void The_first_instalment_names_the_two_columns_the_sheets_keep_it_in(
         string culture, string advance, string advanceNoRate, string cesiune)
     {
-        // Every one of Hubix's five sheets splits "Transa 1" into "Avans ... fara TVA" and
+        // Every one of the operator's five sheets splits "Transa 1" into "Avans ... fara TVA" and
         // "Pret cesiune faraTVA". The page shows the same two figures under the instalment.
         var ci = CultureInfo.GetCultureInfo(culture);
 

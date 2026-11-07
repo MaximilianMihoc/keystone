@@ -349,7 +349,7 @@ public sealed class ImportPlanner(KeystoneDbContext db)
             : null;
     }
 
-    /// <summary>Hubix writes DA and NU. Anything else is a no.</summary>
+    /// <summary>The operator writes DA and NU. Anything else is a no.</summary>
     public static bool ParseYesNo(string raw) =>
         raw.Trim().ToLowerInvariant() is "da" or "yes" or "true" or "1" or "x";
 

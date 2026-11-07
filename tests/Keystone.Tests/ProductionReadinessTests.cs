@@ -19,13 +19,12 @@ public class ProductionReadinessTests
     {
         LiveSendingEnabled = true,
         From = "portal@example.ro",
-        AllowedRecipients = ["*@example.ro"],
-        BlockedRecipients = ["*@hubix.ro"]
+        AllowedRecipients = ["*@example.ro"]
     };
 
     private static AssetOptions SafeAssets() => new() { SigningKey = "a-real-key" };
 
-    private static KeystoneOptions SafeHubix() => new()
+    private static KeystoneOptions SafeKeystone() => new()
     {
         PublicBaseUrl = "https://portal.example.ro",
         SalesInbox = "sales@example.ro"
@@ -34,12 +33,12 @@ public class ProductionReadinessTests
     private static IReadOnlyList<string> Check(
         EmailOptions? email = null,
         AssetOptions? assets = null,
-        KeystoneOptions? hubix = null,
+        KeystoneOptions? keystone = null,
         string? connection = "Server=real;Database=real",
         ResendOptions? provider = null,
         string? allowedHosts = "portal.example.ro") =>
         ProductionReadiness.Problems(
-            email ?? SafeEmail(), assets ?? SafeAssets(), hubix ?? SafeHubix(), connection, provider,
+            email ?? SafeEmail(), assets ?? SafeAssets(), keystone ?? SafeKeystone(), connection, provider,
             allowedHosts);
 
     [Fact]
@@ -77,24 +76,12 @@ public class ProductionReadinessTests
     }
 
     [Fact]
-    public void Live_email_with_an_empty_blocked_list_is_refused()
-    {
-        var email = SafeEmail();
-        email.BlockedRecipients = [];
-
-        // Hubix have not been approached. Their addresses stay on the blocked list until
-        // somebody decides otherwise on purpose.
-        Check(email: email).ShouldContain(p => p.Contains("Hubix's own addresses"));
-    }
-
-    [Fact]
-    public void Live_email_is_the_only_thing_those_two_checks_care_about()
+    public void Live_email_is_the_only_thing_the_allow_list_check_cares_about()
     {
         var email = new EmailOptions
         {
             LiveSendingEnabled = false,
-            AllowedRecipients = [],
-            BlockedRecipients = []
+            AllowedRecipients = []
         };
 
         // Nothing leaves the machine, so an empty list is not a hazard.
@@ -104,21 +91,21 @@ public class ProductionReadinessTests
     [Fact]
     public void A_public_url_still_pointing_at_localhost_is_refused()
     {
-        var hubix = SafeHubix();
-        hubix.PublicBaseUrl = "http://localhost:5001";
+        var keystone = SafeKeystone();
+        keystone.PublicBaseUrl = "http://localhost:5001";
 
         // Every link in every email would be dead, and nobody would find out until a buyer
         // clicked one.
-        Check(hubix: hubix).ShouldContain(p => p.Contains("localhost"));
+        Check(keystone: keystone).ShouldContain(p => p.Contains("localhost"));
     }
 
     [Fact]
     public void A_placeholder_sales_inbox_is_refused()
     {
-        var hubix = SafeHubix();
-        hubix.SalesInbox = "sales@keystone.invalid";
+        var keystone = SafeKeystone();
+        keystone.SalesInbox = "sales@keystone.invalid";
 
-        Check(hubix: hubix).ShouldContain(p => p.Contains("SalesInbox"));
+        Check(keystone: keystone).ShouldContain(p => p.Contains("SalesInbox"));
     }
 
     [Fact]
@@ -152,7 +139,7 @@ public class ProductionReadinessTests
         var problems = Check(
             email: new EmailOptions { LiveSendingEnabled = true },
             assets: new AssetOptions(),
-            hubix: new KeystoneOptions(),
+            keystone: new KeystoneOptions(),
             connection: null);
 
         // Fixing these one restart at a time would be a miserable afternoon.

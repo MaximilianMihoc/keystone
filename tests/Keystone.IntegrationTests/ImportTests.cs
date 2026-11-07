@@ -388,7 +388,7 @@ public class ImportTests(DatabaseFixture fixture)
     }
 
     [Fact]
-    public async Task The_export_uses_Hubix_own_column_names_and_calculates_the_tranches()
+    public async Task The_export_uses_the_operators_own_column_names_and_calculates_the_tranches()
     {
         await fixture.ResetUnitAsync();
 
@@ -445,7 +445,7 @@ public class NumberParsingTests
     [InlineData("NU", false)]
     [InlineData("", false)]
     [InlineData("poate", false)]
-    public void Hubix_writes_DA_and_NU(string raw, bool expected)
+    public void Sheets_write_DA_and_NU(string raw, bool expected)
     {
         ImportPlanner.ParseYesNo(raw).ShouldBe(expected);
     }

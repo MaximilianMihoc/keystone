@@ -50,7 +50,7 @@
 
     @if (Model.Schedule is { } schedule)
     {
-        @* Every one of Hubix's sheets keeps the first payment in two columns: the advance on
+        @* Every one of the operator's sheets keeps the first payment in two columns: the advance on
            the apartment and the assignment price. Those are the two halves the buyer signs
            for separately, so the page shows them rather than one figure they cannot check. *@
         var advance = schedule.Tranches

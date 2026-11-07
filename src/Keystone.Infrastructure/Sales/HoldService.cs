@@ -11,7 +11,7 @@ namespace Keystone.Infrastructure.Sales;
 /// </summary>
 /// <remarks>
 /// This is the only place a unit becomes <see cref="UnitState.Held"/> or returns from it. Today
-/// Hubix prevents double-booking by a member of staff being quick with a spreadsheet; here it is
+/// the operator prevents double-booking by a member of staff being quick with a spreadsheet; here it is
 /// a row lock.
 /// </remarks>
 public sealed class HoldService(

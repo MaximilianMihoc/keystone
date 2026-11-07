@@ -2,7 +2,7 @@ using Keystone.Domain.Common;
 
 namespace Keystone.Domain.Entities;
 
-/// <summary>A developer Hubix partners with.</summary>
+/// <summary>A developer the operator partners with.</summary>
 public class Developer : Entity
 {
     public required string Name { get; set; }
@@ -19,7 +19,7 @@ public class Developer : Entity
 }
 
 /// <summary>
-/// One development in which Hubix has committed to a block of apartments.
+/// One development in which the operator has committed to a block of apartments.
 /// </summary>
 /// <remarks>
 /// This record is the single source of truth. The prospectus, the public inventory, the
@@ -50,7 +50,7 @@ public class Project : Entity
     public int SortOrder { get; set; }
 
     /// <summary>
-    /// How many apartments Hubix committed to.
+    /// How many apartments the operator committed to.
     /// </summary>
     /// <remarks>
     /// Stated exactly once. The Roka prospectus says 20 in its description and 30 in its
@@ -71,7 +71,7 @@ public class Project : Entity
     public string Currency { get; set; } = "EUR";
 
     /// <summary>
-    /// How long a prospect holds a unit while deciding. Hubix says "1-2 days" in prose;
+    /// How long a prospect holds a unit while deciding. The operator says "1-2 days" in prose;
     /// this makes it a number the countdown can be driven from.
     /// </summary>
     public int HoldDurationHours { get; set; } = 48;
@@ -80,10 +80,10 @@ public class Project : Entity
     /// How many apartments one person may hold at once in this project.
     /// </summary>
     /// <remarks>
-    /// Hubix's documents say a buyer may take "one (or more) apartments", so holding several is
+    /// The operator's documents say a buyer may take "one (or more) apartments", so holding several is
     /// legitimate. They do not say how many, and without a cap one person can lock the entire
     /// remaining inventory for the length of a hold. Three is a guess and needs confirming with
-    /// Hubix (issue #61); it is per project so the answer can be set without a deploy.
+    /// the operator (issue #61); it is per project so the answer can be set without a deploy.
     /// </remarks>
     public int MaxActiveHoldsPerProspect { get; set; } = 3;
 
@@ -93,7 +93,7 @@ public class Project : Entity
     /// </summary>
     /// <remarks>
     /// Per project rather than a constant, because the developments differ. The numbers are a
-    /// guess in the same way <see cref="MaxActiveHoldsPerProspect"/> is a guess: Hubix's
+    /// guess in the same way <see cref="MaxActiveHoldsPerProspect"/> is a guess: the operator's
     /// documents say a car park exists and what a space costs, never how many one buyer may have.
     /// </remarks>
     public int MaxParkingSpacesPerReservation { get; set; }

@@ -26,7 +26,7 @@ public class SettingsTests(DatabaseFixture fixture)
         string[]? allowed = null,
         string[]? blocked = null) =>
         new("sales@example.test", "https://portal.example.test", live, redirect,
-            allowed ?? [], blocked ?? ["*@hubix.ro"]);
+            allowed ?? [], blocked ?? ["*@blocked.example"]);
 
     private async Task ClearAsync()
     {
@@ -53,7 +53,7 @@ public class SettingsTests(DatabaseFixture fixture)
         {
             LiveSendingEnabled = true,
             RedirectAllTo = "dev@example.test",
-            BlockedRecipients = ["*@hubix.ro"]
+            BlockedRecipients = ["*@blocked.example"]
         };
 
         var effective = Effective(db, configured);
@@ -70,7 +70,7 @@ public class SettingsTests(DatabaseFixture fixture)
         await using (var write = fixture.CreateContext())
         {
             await Service(write).SaveAsync(
-                Input(live: true, allowed: ["*@example.test"], blocked: ["*@hubix.ro"]),
+                Input(live: true, allowed: ["*@example.test"], blocked: ["*@blocked.example"]),
                 Actor, "admin@example.test", CancellationToken.None);
         }
 
@@ -88,7 +88,7 @@ public class SettingsTests(DatabaseFixture fixture)
         effective.LiveSendingEnabled.ShouldBeTrue();
         effective.RedirectAllTo.ShouldBeNull();
         effective.AllowedRecipients.ShouldBe(["*@example.test"]);
-        effective.BlockedRecipients.ShouldBe(["*@hubix.ro"]);
+        effective.BlockedRecipients.ShouldBe(["*@blocked.example"]);
 
         // And the sender obeys the saved values, which is the only part that matters: a
         // blocked address stays blocked however the switches were turned on.
@@ -98,7 +98,7 @@ public class SettingsTests(DatabaseFixture fixture)
         var sender = new SafeEmailSender(
             outbox, Options.Create(effective), NullLogger<SafeEmailSender>.Instance, live);
 
-        await sender.SendAsync(new EmailMessage("someone@hubix.ro", "s", "b"), CancellationToken.None);
+        await sender.SendAsync(new EmailMessage("someone@blocked.example", "s", "b"), CancellationToken.None);
         await sender.SendAsync(new EmailMessage("buyer@example.test", "s", "b"), CancellationToken.None);
 
         live.Count.ShouldBe(1);

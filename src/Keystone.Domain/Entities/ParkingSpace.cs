@@ -25,7 +25,7 @@ public class ParkingSpace : Entity
 
     /// <summary>
     /// Which floor of the car park, signed: underground is negative, ground is 0, above ground
-    /// is positive. Independent of <see cref="Kind"/>, which is Hubix's own vocabulary and says
+    /// is positive. Independent of <see cref="Kind"/>, which is the operator's own vocabulary and says
     /// whether the space is covered rather than exactly where it sits.
     /// </summary>
     public int Level { get; set; }
@@ -81,7 +81,7 @@ public class ParkingPrice : Entity
 
     public ParkingSpaceKind Kind { get; set; }
 
-    /// <summary>Hubix's "Pret total parcare fara TVA".</summary>
+    /// <summary>The operator's "Pret total parcare fara TVA".</summary>
     public decimal PriceNet { get; set; }
 
     /// <summary>Their "Avans + cesiune parcare fara TVA": what falls due at signing.</summary>

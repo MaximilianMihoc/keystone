@@ -7,7 +7,7 @@
 
 <div class="shell">
     <div class="page-head">
-        <p class="eyebrow">Hubix admin</p>
+        <p class="eyebrow">Keystone admin</p>
         <h1>Sign in</h1>
         <p class="lede">We email you a link. No password to remember or lose.</p>
     </div>
@@ -20,7 +20,7 @@
     @if (Model.LinkSent)
     {
         <div class="alert" role="status">
-            If that address belongs to a Hubix account, a sign-in link is on its way.
+            If that address belongs to a staff account, a sign-in link is on its way.
             It works once and expires in 15 minutes.
         </div>
 
@@ -41,7 +41,7 @@
                 <div asp-validation-summary="ModelOnly" class="alert"></div>
 
                 <div class="field">
-                    <label asp-for="Email">Your Hubix email</label>
+                    <label asp-for="Email">Your work email</label>
                     <input asp-for="Email" type="email" autocomplete="email" required />
                     <span asp-validation-for="Email" class="field-error"></span>
                 </div>

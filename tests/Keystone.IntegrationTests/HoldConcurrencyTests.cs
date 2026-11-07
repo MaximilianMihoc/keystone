@@ -12,7 +12,7 @@ namespace Keystone.IntegrationTests;
 /// The release gate for M3.
 /// </summary>
 /// <remarks>
-/// Today Hubix prevents double-booking by a member of staff being quick with a spreadsheet.
+/// Today the operator prevents double-booking by a member of staff being quick with a spreadsheet.
 /// If these fail, this system is no better than that, whatever else passes.
 /// </remarks>
 [Collection(nameof(DatabaseCollection))]
@@ -254,7 +254,7 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
         hold.ReleasedAt.ShouldNotBeNull();
         hold.ReleaseReason.ShouldBe(HoldReleaseReason.Expired);
 
-        // Hubix's serial-canceller rule: the prospect who let it lapse is blocked.
+        // The operator's serial-canceller rule: the prospect who let it lapse is blocked.
         var prospect = await verify.Prospects.SingleAsync();
         prospect.LapsedHoldCount.ShouldBe(1);
         prospect.CanHold.ShouldBeFalse();
@@ -300,7 +300,7 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
         var created = await service.TryHoldAsync(fixture.UnitId, Prospect(1), null, CancellationToken.None);
         var hold = created.ShouldBeOfType<HoldOutcome.Created>();
 
-        // Cancelling counts as a lapse, per Hubix's stated rule.
+        // Cancelling counts as a lapse, per the operator's stated rule.
         await service.ReleaseAsync(hold.HoldId, HoldReleaseReason.Cancelled, null, CancellationToken.None);
 
         var again = await service.TryHoldAsync(fixture.UnitId, Prospect(1), null, CancellationToken.None);
@@ -322,7 +322,7 @@ public class HoldConcurrencyTests(DatabaseFixture fixture)
         var created = await service.TryHoldAsync(fixture.UnitId, Prospect(1), null, CancellationToken.None);
         var hold = created.ShouldBeOfType<HoldOutcome.Created>();
 
-        await service.ReleaseAsync(hold.HoldId, HoldReleaseReason.Admin, "cristi@hubix.ro", CancellationToken.None);
+        await service.ReleaseAsync(hold.HoldId, HoldReleaseReason.Admin, "admin@keystone.invalid", CancellationToken.None);
 
         await using var verify = fixture.CreateContext();
         var prospect = await verify.Prospects.SingleAsync();

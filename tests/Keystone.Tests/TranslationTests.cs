@@ -88,7 +88,7 @@ public class TranslationTests
     [Fact]
     public void Falls_back_to_Romanian_when_no_translation_exists()
     {
-        // Hubix authors in Romanian. Romanian prose beats an empty page.
+        // The operator authors in Romanian. Romanian prose beats an empty page.
         List<ProjectTranslation> romanianOnly =
             [new() { Culture = Cultures.Romanian, Summary = "Doar în română" }];
 

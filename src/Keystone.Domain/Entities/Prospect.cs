@@ -25,7 +25,7 @@ public class Prospect : Entity
 
     public string? Phone { get; set; }
 
-    /// <summary>Where they live. Hubix's buyers are overwhelmingly Romanian.</summary>
+    /// <summary>Where they live. The operator's buyers are overwhelmingly Romanian.</summary>
     public string? City { get; set; }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class Prospect : Entity
     public DateTimeOffset? AnonymisedAt { get; set; }
 
     // --- Serial-canceller rule --------------------------------------------------
-    // Hubix's documents state that a prospect who abandons a hold may not take another,
+    // The operator's documents state that a prospect who abandons a hold may not take another,
     // "to avoid reservations cancelled in series by the same person". Today that is
     // enforced by staff memory.
 
@@ -80,7 +80,7 @@ public class Prospect : Entity
 
     public ICollection<WaitlistEntry> WaitlistEntries { get; set; } = [];
 
-    /// <summary>Records a lapse and blocks further holds, per Hubix's stated rule.</summary>
+    /// <summary>Records a lapse and blocks further holds, per the operator's stated rule.</summary>
     public void RecordLapsedHold()
     {
         LapsedHoldCount++;
@@ -110,7 +110,7 @@ public class Prospect : Entity
     }
 }
 
-/// <summary>A Hubix staff member.</summary>
+/// <summary>A staff member.</summary>
 public class StaffUser : Entity
 {
     public required string Email { get; set; }

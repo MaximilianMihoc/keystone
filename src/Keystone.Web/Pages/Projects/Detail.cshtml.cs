@@ -15,7 +15,7 @@ public class DetailModel(KeystoneDbContext db, AssetService assets) : PageModel
 
     public ProjectTranslation? Text { get; private set; }
 
-    /// <summary>The city in the visitor's language, or Hubix's own spelling of it.</summary>
+    /// <summary>The city in the visitor's language, or the operator's own spelling of it.</summary>
     public string City { get; private set; } = "";
 
     public string? DeveloperName { get; private set; }
@@ -51,7 +51,7 @@ public class DetailModel(KeystoneDbContext db, AssetService assets) : PageModel
         Project = project;
         DeveloperName = project.Developer?.Name;
 
-        // Prose falls back to Romanian when no English translation exists — Hubix authors
+        // Prose falls back to Romanian when no English translation exists — the operator authors
         // in Romanian, and Romanian beats a blank panel.
         Text = project.Translations.ForCulture(CultureInfo.CurrentUICulture.Name);
         City = project.Translations.CityFor(CultureInfo.CurrentUICulture.Name, project.City);

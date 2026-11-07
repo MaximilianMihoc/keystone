@@ -32,9 +32,9 @@ public class ResendEmailSenderTests
     public void A_display_name_is_used_when_there_is_one()
     {
         var message = ResendEmailSender.Compose(
-            new EmailMessage("buyer@example.test", "Subject", "Body"), From("Hubix Portal"));
+            new EmailMessage("buyer@example.test", "Subject", "Body"), From("Keystone"));
 
-        message.From!.DisplayName.ShouldBe("Hubix Portal");
+        message.From!.DisplayName.ShouldBe("Keystone");
     }
 
     [Fact]

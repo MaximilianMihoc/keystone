@@ -5,7 +5,7 @@ const THEMES = ['light', 'dark', 'system'] as const;
 type Theme = (typeof THEMES)[number];
 
 /** The same cookie the public site writes, so a choice made on either side holds on both. */
-const COOKIE = 'hubix.theme';
+const COOKIE = 'keystone.theme';
 
 const LABELS: Record<Theme, string> = { light: 'Light', dark: 'Dark', system: 'Auto' };
 

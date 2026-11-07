@@ -15,7 +15,7 @@ public sealed record WaitlistCandidate(
 public sealed record WaitlistLink(string Email, string AccessToken);
 
 /// <summary>
-/// The queue for a unit type. First come, first served, as Hubix's documents state.
+/// The queue for a unit type. First come, first served, as the operator's documents state.
 /// </summary>
 /// <remarks>
 /// Replaces a separate Google Form per apartment type, which is why entries carry the type

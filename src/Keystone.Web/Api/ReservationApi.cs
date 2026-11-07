@@ -16,7 +16,7 @@ namespace Keystone.Web.Api;
 /// </summary>
 /// <remarks>
 /// The stage list is served rather than duplicated in the client. The pipeline was inferred
-/// from Hubix's documents and will need correcting; if the board hardcoded its own columns,
+/// from the operator's documents and will need correcting; if the board hardcoded its own columns,
 /// that correction would be two edits in two languages that could disagree.
 /// </remarks>
 public static class ReservationApi

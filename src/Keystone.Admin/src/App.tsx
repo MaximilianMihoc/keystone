@@ -118,7 +118,7 @@ export function App() {
     <>
       <header className="topbar">
         <a className="wordmark" href="/admin">
-          HUBIX<span>ADMIN</span>
+          KEYSTONE<span>ADMIN</span>
         </a>
 
         {/* Rendered whatever the count. It used to hide below two projects, which also hid it

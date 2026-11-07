@@ -30,7 +30,7 @@ public sealed class ReservationService(
     /// <param name="unitId">
     /// A unit that is <see cref="UnitState.Held"/>, whose hold then converts, or one already
     /// marked <see cref="UnitState.Reserved"/> with no record behind it. The second case is not
-    /// a curiosity: every project Hubix migrates arrives with sales already in flight, and a
+    /// a curiosity: every project the operator migrates arrives with sales already in flight, and a
     /// unit the spreadsheet calls reserved has to be able to become a reservation here.
     /// </param>
     /// <param name="details">
@@ -568,7 +568,7 @@ public sealed class ReservationService(
     /// <remarks>
     /// Eligibility is a fact about the unit; it only takes effect for a private buyer. That is
     /// how the reduced rate works in Romania as far as the documents show, and it is one of the
-    /// things worth putting to Hubix directly.
+    /// things worth putting to the operator directly.
     /// </remarks>
     private static bool ReducedVatApplies(Unit unit, BuyerType buyerType) =>
         unit.ReducedVatEligible && buyerType == BuyerType.Individual;

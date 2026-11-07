@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace Keystone.Web.Notifications;
 
 /// <summary>
-/// Internal emails to Hubix staff. Always English — nobody on the team needs otherwise, and
+/// Internal emails to staff. Always English — nobody on the team needs otherwise, and
 /// a sign-in link is not the place to discover a missing translation.
 /// </summary>
 public sealed class StaffNotifier(IEmailSender email, IOptionsSnapshot<KeystoneOptions> options)
@@ -51,7 +51,7 @@ public sealed class StaffNotifier(IEmailSender email, IOptionsSnapshot<KeystoneO
             $"""
              Hello {link.Name},
 
-             Here is your sign-in link for the Hubix admin:
+             Here is your sign-in link for the Keystone admin:
 
              {url}
 
@@ -62,7 +62,7 @@ public sealed class StaffNotifier(IEmailSender email, IOptionsSnapshot<KeystoneO
              """;
 
         await email.SendAsync(
-            new EmailMessage(link.Email, "Your Hubix sign-in link", body), ct);
+            new EmailMessage(link.Email, "Your Keystone sign-in link", body), ct);
 
         return url;
     }
